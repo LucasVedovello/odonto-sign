@@ -23,7 +23,7 @@ export type Database = {
           endereco: string | null
           id: string
           nome: string | null
-          prontuario: string
+          prontuario: string | null
           rg: string | null
           signature_data: string | null
           signed_at: string | null
@@ -39,7 +39,7 @@ export type Database = {
           endereco?: string | null
           id?: string
           nome?: string | null
-          prontuario: string
+          prontuario?: string | null
           rg?: string | null
           signature_data?: string | null
           signed_at?: string | null
@@ -55,7 +55,7 @@ export type Database = {
           endereco?: string | null
           id?: string
           nome?: string | null
-          prontuario?: string
+          prontuario?: string | null
           rg?: string | null
           signature_data?: string | null
           signed_at?: string | null
