@@ -1,0 +1,129 @@
+import { jsPDF } from "jspdf";
+
+export interface PatientPdfData {
+  prontuario: string;
+  nome: string | null;
+  cpf: string | null;
+  rg: string | null;
+  endereco: string | null;
+  telefone: string | null;
+  convenio: string | null;
+  signature_data: string | null;
+  signed_at: string | null;
+}
+
+export const CONTRACT_TEXT = `CONTRATO DE PRESTAÇÃO DE SERVIÇOS ODONTOLÓGICOS
+
+Pelo presente instrumento particular, de um lado a OdontoClinic, doravante denominada CONTRATADA, e de outro lado o paciente identificado neste cadastro, doravante denominado CONTRATANTE, têm entre si justo e contratado o seguinte:
+
+1. OBJETO — A CONTRATADA prestará serviços odontológicos conforme plano de tratamento apresentado e acordado com o CONTRATANTE.
+
+2. OBRIGAÇÕES — O CONTRATANTE compromete-se a comparecer às consultas agendadas, seguir as orientações clínicas e efetuar os pagamentos conforme combinado.
+
+3. SIGILO — A CONTRATADA se compromete a manter sigilo absoluto sobre as informações clínicas e pessoais do CONTRATANTE, conforme a LGPD.
+
+4. CANCELAMENTO — Em caso de desistência, o CONTRATANTE deverá comunicar a CONTRATADA com antecedência mínima de 24 horas.
+
+5. ACEITE — Ao assinar digitalmente este documento, o CONTRATANTE declara ter lido, compreendido e aceito os termos aqui descritos.
+
+Este contrato é firmado em meio digital e possui validade jurídica nos termos da legislação vigente.`;
+
+export function generatePatientPdf(p: PatientPdfData): jsPDF {
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const margin = 48;
+  let y = margin;
+
+  // Header band
+  doc.setFillColor(38, 99, 176);
+  doc.rect(0, 0, pageW, 70, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(20);
+  doc.text("OdontoClinic", margin, 32);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text("Cadastro Digital de Paciente", margin, 50);
+  doc.text(p.prontuario, pageW - margin, 50, { align: "right" });
+
+  y = 110;
+  doc.setTextColor(34, 40, 60);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.text("Dados do Paciente", margin, y);
+  y += 6;
+  doc.setDrawColor(220, 228, 240);
+  doc.line(margin, y, pageW - margin, y);
+  y += 18;
+
+  const rows: [string, string][] = [
+    ["Nome completo", p.nome || "—"],
+    ["CPF", p.cpf || "—"],
+    ["RG", p.rg || "—"],
+    ["Endereço", p.endereco || "—"],
+    ["Telefone", p.telefone || "—"],
+    ["Convênio", p.convenio || "—"],
+  ];
+
+  doc.setFontSize(10);
+  rows.forEach(([k, v]) => {
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(90, 100, 120);
+    doc.text(k, margin, y);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(34, 40, 60);
+    const lines = doc.splitTextToSize(v, pageW - margin * 2 - 130);
+    doc.text(lines, margin + 130, y);
+    y += Math.max(16, lines.length * 14);
+  });
+
+  y += 12;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.setTextColor(34, 40, 60);
+  doc.text("Contrato", margin, y);
+  y += 6;
+  doc.line(margin, y, pageW - margin, y);
+  y += 14;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9.5);
+  const contractLines = doc.splitTextToSize(CONTRACT_TEXT, pageW - margin * 2);
+  contractLines.forEach((line: string) => {
+    if (y > 740) {
+      doc.addPage();
+      y = margin;
+    }
+    doc.text(line, margin, y);
+    y += 12;
+  });
+
+  // Signature
+  if (y > 600) { doc.addPage(); y = margin; }
+  y += 24;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.text("Assinatura Digital", margin, y);
+  y += 6;
+  doc.line(margin, y, pageW - margin, y);
+  y += 16;
+
+  if (p.signature_data) {
+    try {
+      doc.addImage(p.signature_data, "PNG", margin, y, 240, 90);
+    } catch (e) { console.error(e); }
+  }
+  y += 100;
+  doc.setDrawColor(34, 40, 60);
+  doc.line(margin, y, margin + 260, y);
+  y += 14;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(90, 100, 120);
+  doc.text(p.nome || "Paciente", margin, y);
+  if (p.signed_at) {
+    doc.text(`Assinado em ${new Date(p.signed_at).toLocaleString("pt-BR")}`, margin, y + 12);
+  }
+
+  return doc;
+}
