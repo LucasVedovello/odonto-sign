@@ -28,7 +28,7 @@ function PatientFlow() {
   const sigRef = useRef<SignaturePadHandle>(null);
 
   const [form, setForm] = useState({
-    nome: "", cpf: "", rg: "", endereco: "", telefone: "", convenio: "",
+    nome: "", cpf: "", rg: "", endereco: "", telefone: "",
   });
 
   useEffect(() => {
