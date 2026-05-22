@@ -28,7 +28,7 @@ function PatientFlow() {
   const sigRef = useRef<SignaturePadHandle>(null);
 
   const [form, setForm] = useState({
-    nome: "", cpf: "", rg: "", endereco: "", telefone: "", convenio: "",
+    nome: "", cpf: "", rg: "", endereco: "", telefone: "",
   });
 
   useEffect(() => {
@@ -45,7 +45,6 @@ function PatientFlow() {
         setForm({
           nome: data.nome || "", cpf: data.cpf || "", rg: data.rg || "",
           endereco: data.endereco || "", telefone: data.telefone || "",
-          convenio: data.convenio || "",
         });
         setStep("contract");
       }
@@ -143,10 +142,7 @@ function PatientFlow() {
                 <Field label="RG" value={form.rg} onChange={(v) => setForm({ ...form, rg: v })} />
               </div>
               <Field label="Endereço" value={form.endereco} onChange={(v) => setForm({ ...form, endereco: v })} />
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Telefone" value={form.telefone} onChange={(v) => setForm({ ...form, telefone: v })} />
-                <Field label="Convênio" value={form.convenio} onChange={(v) => setForm({ ...form, convenio: v })} />
-              </div>
+              <Field label="Telefone" value={form.telefone} onChange={(v) => setForm({ ...form, telefone: v })} />
               <Button type="submit" size="lg" disabled={saving} className="mt-2">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Continuar"}
               </Button>

@@ -1,30 +1,31 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState, useDeferredValue, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Copy, ExternalLink, Plus, Download, FileText, Stethoscope, Loader2 } from "lucide-react";
-import { generatePatientPdf } from "@/lib/pdf";
+import { Copy, ExternalLink, Plus, Download, FileText, Stethoscope, Loader2, Search } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: ReceptionDashboard,
-  head: () => ({
-    meta: [{ title: "Recepção — OdontoClinic" }],
-  }),
+  head: () => ({ meta: [{ title: "Recepção — OdontoClinic" }] }),
 });
 
 type Patient = {
   id: string;
   token: string;
-  prontuario: string;
+  prontuario: string | null;
   nome: string | null;
   cpf: string | null;
   rg: string | null;
   endereco: string | null;
   telefone: string | null;
-  convenio: string | null;
   signature_data: string | null;
   signed_at: string | null;
   status: string;
@@ -41,17 +42,22 @@ function ReceptionDashboard() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
-  const [newLink, setNewLink] = useState<{ url: string; prontuario: string } | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [newProntuario, setNewProntuario] = useState("");
+  const [newLink, setNewLink] = useState<{ url: string; prontuario: string | null } | null>(null);
+  const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const { data, error } = await supabase
       .from("patients")
-      .select("*")
-      .order("created_at", { ascending: false });
+      .select("id,token,prontuario,nome,cpf,rg,endereco,telefone,signature_data,signed_at,status,created_at")
+      .order("created_at", { ascending: false })
+      .limit(200);
     if (error) toast.error("Erro ao carregar pacientes");
     else setPatients((data ?? []) as Patient[]);
     setLoading(false);
-  };
+  }, []);
 
   useEffect(() => {
     load();
@@ -60,22 +66,33 @@ function ReceptionDashboard() {
       .on("postgres_changes", { event: "*", schema: "public", table: "patients" }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, []);
+  }, [load]);
 
-  const handleNew = async () => {
+  const filtered = useMemo(() => {
+    const q = deferredQuery.trim().toLowerCase();
+    if (!q) return patients;
+    return patients.filter((p) =>
+      (p.nome ?? "").toLowerCase().includes(q) ||
+      (p.prontuario ?? "").toLowerCase().includes(q) ||
+      (p.cpf ?? "").toLowerCase().includes(q)
+    );
+  }, [patients, deferredQuery]);
+
+  const handleCreate = async () => {
     setCreating(true);
-    const { data: prontData, error: pErr } = await supabase.rpc("next_prontuario");
-    if (pErr || !prontData) { toast.error("Erro ao gerar prontuário"); setCreating(false); return; }
+    const prontuario = newProntuario.trim() || null;
     const { data, error } = await supabase
       .from("patients")
-      .insert({ prontuario: prontData as string })
-      .select()
+      .insert({ prontuario })
+      .select("id,token,prontuario")
       .single();
     setCreating(false);
     if (error || !data) { toast.error("Erro ao criar cadastro"); return; }
     const url = `${window.location.origin}/cadastro/${data.token}`;
     setNewLink({ url, prontuario: data.prontuario });
-    toast.success("Novo cadastro criado");
+    setDialogOpen(false);
+    setNewProntuario("");
+    toast.success("Link gerado");
   };
 
   const copyLink = (url: string) => {
@@ -83,17 +100,18 @@ function ReceptionDashboard() {
     toast.success("Link copiado");
   };
 
-  const downloadPdf = async (p: Patient) => {
-    const doc = generatePatientPdf(p);
-    doc.save(`${p.prontuario}-${(p.nome || "paciente").replace(/\s+/g, "_")}.pdf`);
+  const downloadPdf = useCallback(async (p: Patient) => {
+    const { generatePatientPdf } = await import("@/lib/pdf");
+    const doc = await generatePatientPdf(p);
+    const fname = `${p.prontuario || "cadastro"}-${(p.nome || "paciente").replace(/\s+/g, "_")}.pdf`;
+    doc.save(fname);
     if (p.status !== "pdf_gerado") {
       await supabase.from("patients").update({ status: "pdf_gerado" }).eq("id", p.id);
     }
-  };
+  }, []);
 
   return (
     <div className="min-h-screen">
-      {/* Header */}
       <header className="border-b border-border bg-card/60 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
           <div className="flex items-center gap-3">
@@ -108,9 +126,8 @@ function ReceptionDashboard() {
               <p className="text-xs text-muted-foreground">Recepção • Cadastro Digital</p>
             </div>
           </div>
-          <Button onClick={handleNew} disabled={creating} size="lg" className="gap-2">
-            {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-            Novo Cadastro
+          <Button onClick={() => setDialogOpen(true)} size="lg" className="gap-2">
+            <Plus className="h-4 w-4" /> Novo Cadastro
           </Button>
         </div>
       </header>
@@ -118,20 +135,19 @@ function ReceptionDashboard() {
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
         {newLink && (
           <Card className="mb-6 border-primary/30 p-5 shadow-[var(--shadow-lift)]">
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start justify-between gap-4 flex-col sm:flex-row">
               <div className="min-w-0 flex-1">
-                <div className="mb-1 flex items-center gap-2">
-                  <Badge className="bg-primary text-primary-foreground hover:bg-primary">{newLink.prontuario}</Badge>
-                  <span className="text-sm font-medium">Link gerado com sucesso</span>
+                <div className="mb-1 flex items-center gap-2 flex-wrap">
+                  {newLink.prontuario && (
+                    <Badge className="bg-primary text-primary-foreground hover:bg-primary">{newLink.prontuario}</Badge>
+                  )}
+                  <span className="text-sm font-medium">Link gerado — envie ao paciente</span>
                 </div>
                 <p className="break-all rounded-md bg-muted px-3 py-2 font-mono text-xs text-muted-foreground">
                   {newLink.url}
                 </p>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Envie este link ao paciente pelo WhatsApp.
-                </p>
               </div>
-              <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+              <div className="flex shrink-0 gap-2">
                 <Button variant="outline" onClick={() => copyLink(newLink.url)} className="gap-2">
                   <Copy className="h-4 w-4" /> Copiar
                 </Button>
@@ -143,62 +159,103 @@ function ReceptionDashboard() {
           </Card>
         )}
 
-        <div className="mb-4 flex items-end justify-between">
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h2 className="text-xl font-semibold">Pacientes</h2>
-            <p className="text-sm text-muted-foreground">Acompanhe o status de cada cadastro em tempo real.</p>
+            <p className="text-sm text-muted-foreground">Busque pelo nome, CPF ou prontuário.</p>
+          </div>
+          <div className="relative w-full sm:w-80">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar paciente..."
+              className="pl-9"
+            />
           </div>
         </div>
 
         {loading ? (
           <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-        ) : patients.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <Card className="flex flex-col items-center justify-center py-16 text-center">
             <FileText className="mb-3 h-10 w-10 text-muted-foreground" />
-            <p className="font-medium">Nenhum cadastro ainda</p>
-            <p className="text-sm text-muted-foreground">Clique em "Novo Cadastro" para começar.</p>
+            <p className="font-medium">{patients.length === 0 ? "Nenhum cadastro ainda" : "Nenhum resultado"}</p>
+            <p className="text-sm text-muted-foreground">
+              {patients.length === 0 ? 'Clique em "Novo Cadastro" para começar.' : "Tente outro termo de busca."}
+            </p>
           </Card>
         ) : (
           <div className="grid gap-3">
-            {patients.map((p) => {
-              const st = statusMap[p.status] ?? statusMap.aguardando;
-              const url = typeof window !== "undefined" ? `${window.location.origin}/cadastro/${p.token}` : "";
-              const canDownload = !!p.signature_data;
-              return (
-                <Card key={p.id} className="p-4 transition hover:shadow-[var(--shadow-card)]">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-mono text-xs font-semibold text-primary">{p.prontuario}</span>
-                        <Badge variant="outline" className={st.cls}>{st.label}</Badge>
-                      </div>
-                      <p className="mt-1 truncate font-medium">
-                        {p.nome || <span className="text-muted-foreground italic">Aguardando preenchimento</span>}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Criado em {new Date(p.created_at).toLocaleString("pt-BR")}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Button size="sm" variant="outline" onClick={() => copyLink(url)} className="gap-1.5">
-                        <Copy className="h-3.5 w-3.5" /> Link
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => downloadPdf(p)}
-                        disabled={!canDownload}
-                        className="gap-1.5"
-                      >
-                        <Download className="h-3.5 w-3.5" /> Baixar PDF
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              );
-            })}
+            {filtered.map((p) => (
+              <PatientRow key={p.id} p={p} onCopy={copyLink} onDownload={downloadPdf} />
+            ))}
           </div>
         )}
       </main>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Novo cadastro</DialogTitle>
+            <DialogDescription>
+              Informe o número de prontuário do sistema oficial (opcional). Um link único será gerado para o paciente.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2 py-2">
+            <Label htmlFor="pront">Prontuário (opcional)</Label>
+            <Input
+              id="pront"
+              value={newProntuario}
+              onChange={(e) => setNewProntuario(e.target.value)}
+              placeholder="Ex: 12345"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleCreate} disabled={creating}>
+              {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Gerar link"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+function PatientRow({
+  p, onCopy, onDownload,
+}: { p: Patient; onCopy: (url: string) => void; onDownload: (p: Patient) => void }) {
+  const st = statusMap[p.status] ?? statusMap.aguardando;
+  const url = typeof window !== "undefined" ? `${window.location.origin}/cadastro/${p.token}` : "";
+  const canDownload = !!p.signature_data;
+  return (
+    <Card className="p-4 transition hover:shadow-[var(--shadow-card)]">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            {p.prontuario && (
+              <span className="font-mono text-xs font-semibold text-primary">{p.prontuario}</span>
+            )}
+            <Badge variant="outline" className={st.cls}>{st.label}</Badge>
+          </div>
+          <p className="mt-1 truncate font-medium">
+            {p.nome || <span className="text-muted-foreground italic">Aguardando preenchimento</span>}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Criado em {new Date(p.created_at).toLocaleString("pt-BR")}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant="outline" onClick={() => onCopy(url)} className="gap-1.5">
+            <Copy className="h-3.5 w-3.5" /> Link
+          </Button>
+          <Button size="sm" onClick={() => onDownload(p)} disabled={!canDownload} className="gap-1.5">
+            <Download className="h-3.5 w-3.5" /> Baixar PDF
+          </Button>
+        </div>
+      </div>
+    </Card>
   );
 }
