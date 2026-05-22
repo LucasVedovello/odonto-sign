@@ -1,13 +1,12 @@
-import { jsPDF } from "jspdf";
+import type { jsPDF } from "jspdf";
 
 export interface PatientPdfData {
-  prontuario: string;
+  prontuario: string | null;
   nome: string | null;
   cpf: string | null;
   rg: string | null;
   endereco: string | null;
   telefone: string | null;
-  convenio: string | null;
   signature_data: string | null;
   signed_at: string | null;
 }
@@ -28,13 +27,14 @@ Pelo presente instrumento particular, de um lado a OdontoClinic, doravante denom
 
 Este contrato é firmado em meio digital e possui validade jurídica nos termos da legislação vigente.`;
 
-export function generatePatientPdf(p: PatientPdfData): jsPDF {
+export async function generatePatientPdf(p: PatientPdfData): Promise<jsPDF> {
+  // Lazy load jspdf to keep the dashboard bundle light
+  const { jsPDF } = await import("jspdf");
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const margin = 48;
   let y = margin;
 
-  // Header band
   doc.setFillColor(38, 99, 176);
   doc.rect(0, 0, pageW, 70, "F");
   doc.setTextColor(255, 255, 255);
@@ -44,7 +44,7 @@ export function generatePatientPdf(p: PatientPdfData): jsPDF {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   doc.text("Cadastro Digital de Paciente", margin, 50);
-  doc.text(p.prontuario, pageW - margin, 50, { align: "right" });
+  if (p.prontuario) doc.text(p.prontuario, pageW - margin, 50, { align: "right" });
 
   y = 110;
   doc.setTextColor(34, 40, 60);
@@ -62,7 +62,6 @@ export function generatePatientPdf(p: PatientPdfData): jsPDF {
     ["RG", p.rg || "—"],
     ["Endereço", p.endereco || "—"],
     ["Telefone", p.telefone || "—"],
-    ["Convênio", p.convenio || "—"],
   ];
 
   doc.setFontSize(10);
@@ -90,15 +89,11 @@ export function generatePatientPdf(p: PatientPdfData): jsPDF {
   doc.setFontSize(9.5);
   const contractLines = doc.splitTextToSize(CONTRACT_TEXT, pageW - margin * 2);
   contractLines.forEach((line: string) => {
-    if (y > 740) {
-      doc.addPage();
-      y = margin;
-    }
+    if (y > 740) { doc.addPage(); y = margin; }
     doc.text(line, margin, y);
     y += 12;
   });
 
-  // Signature
   if (y > 600) { doc.addPage(); y = margin; }
   y += 24;
   doc.setFont("helvetica", "bold");
@@ -109,9 +104,7 @@ export function generatePatientPdf(p: PatientPdfData): jsPDF {
   y += 16;
 
   if (p.signature_data) {
-    try {
-      doc.addImage(p.signature_data, "PNG", margin, y, 240, 90);
-    } catch (e) { console.error(e); }
+    try { doc.addImage(p.signature_data, "PNG", margin, y, 240, 90); } catch (e) { console.error(e); }
   }
   y += 100;
   doc.setDrawColor(34, 40, 60);
