@@ -14,13 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      patients: {
+        Row: {
+          contract_accepted: boolean
+          convenio: string | null
+          cpf: string | null
+          created_at: string
+          endereco: string | null
+          id: string
+          nome: string | null
+          prontuario: string
+          rg: string | null
+          signature_data: string | null
+          signed_at: string | null
+          status: string
+          telefone: string | null
+          token: string
+        }
+        Insert: {
+          contract_accepted?: boolean
+          convenio?: string | null
+          cpf?: string | null
+          created_at?: string
+          endereco?: string | null
+          id?: string
+          nome?: string | null
+          prontuario: string
+          rg?: string | null
+          signature_data?: string | null
+          signed_at?: string | null
+          status?: string
+          telefone?: string | null
+          token?: string
+        }
+        Update: {
+          contract_accepted?: boolean
+          convenio?: string | null
+          cpf?: string | null
+          created_at?: string
+          endereco?: string | null
+          id?: string
+          nome?: string | null
+          prontuario?: string
+          rg?: string | null
+          signature_data?: string | null
+          signed_at?: string | null
+          status?: string
+          telefone?: string | null
+          token?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      next_prontuario: { Args: never; Returns: string }
     }
     Enums: {
       [_ in never]: never
