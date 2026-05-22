@@ -45,7 +45,6 @@ function PatientFlow() {
         setForm({
           nome: data.nome || "", cpf: data.cpf || "", rg: data.rg || "",
           endereco: data.endereco || "", telefone: data.telefone || "",
-          convenio: data.convenio || "",
         });
         setStep("contract");
       }
