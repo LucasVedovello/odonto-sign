@@ -1,12 +1,15 @@
 import type { jsPDF } from "jspdf";
+import { dateISOtoBR } from "./masks";
 
 export interface PatientPdfData {
   prontuario: string | null;
   nome: string | null;
   cpf: string | null;
   rg: string | null;
+  data_nascimento: string | null;
   endereco: string | null;
   telefone: string | null;
+  email: string | null;
   signature_data: string | null;
   signed_at: string | null;
 }
@@ -28,7 +31,6 @@ Pelo presente instrumento particular, de um lado a OdontoClinic, doravante denom
 Este contrato é firmado em meio digital e possui validade jurídica nos termos da legislação vigente.`;
 
 export async function generatePatientPdf(p: PatientPdfData): Promise<jsPDF> {
-  // Lazy load jspdf to keep the dashboard bundle light
   const { jsPDF } = await import("jspdf");
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
@@ -60,8 +62,10 @@ export async function generatePatientPdf(p: PatientPdfData): Promise<jsPDF> {
     ["Nome completo", p.nome || "—"],
     ["CPF", p.cpf || "—"],
     ["RG", p.rg || "—"],
+    ["Data de nascimento", dateISOtoBR(p.data_nascimento) || "—"],
     ["Endereço", p.endereco || "—"],
     ["Telefone", p.telefone || "—"],
+    ["Email", p.email || "—"],
   ];
 
   doc.setFontSize(10);
@@ -71,8 +75,8 @@ export async function generatePatientPdf(p: PatientPdfData): Promise<jsPDF> {
     doc.text(k, margin, y);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(34, 40, 60);
-    const lines = doc.splitTextToSize(v, pageW - margin * 2 - 130);
-    doc.text(lines, margin + 130, y);
+    const lines = doc.splitTextToSize(v, pageW - margin * 2 - 140);
+    doc.text(lines, margin + 140, y);
     y += Math.max(16, lines.length * 14);
   });
 

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,12 @@ import { toast } from "sonner";
 import { CheckCircle2, Loader2, Stethoscope, PenLine, Eraser } from "lucide-react";
 import { SignaturePad, type SignaturePadHandle } from "@/components/SignaturePad";
 import { CONTRACT_TEXT } from "@/lib/pdf";
+import {
+  maskCPF, maskRG, maskDate, maskPhone, filterNomeInput,
+  isValidCPF, isValidRG, isValidDate, isValidPhone, isValidEmail, isValidNome,
+  dateBRtoISO, dateISOtoBR,
+} from "@/lib/masks";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/cadastro/$token")({
   component: PatientFlow,
@@ -17,6 +23,11 @@ export const Route = createFileRoute("/cadastro/$token")({
 });
 
 type Step = "form" | "contract" | "signature" | "done";
+
+type FormState = {
+  nome: string; cpf: string; rg: string; data_nascimento: string;
+  endereco: string; telefone: string; email: string;
+};
 
 function PatientFlow() {
   const { token } = Route.useParams();
@@ -27,9 +38,11 @@ function PatientFlow() {
   const [accepted, setAccepted] = useState(false);
   const sigRef = useRef<SignaturePadHandle>(null);
 
-  const [form, setForm] = useState({
-    nome: "", cpf: "", rg: "", endereco: "", telefone: "",
+  const [form, setForm] = useState<FormState>({
+    nome: "", cpf: "", rg: "", data_nascimento: "",
+    endereco: "", telefone: "", email: "",
   });
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     (async () => {
@@ -43,8 +56,13 @@ function PatientFlow() {
       if (data.signature_data) setStep("done");
       else if (data.nome) {
         setForm({
-          nome: data.nome || "", cpf: data.cpf || "", rg: data.rg || "",
-          endereco: data.endereco || "", telefone: data.telefone || "",
+          nome: data.nome || "",
+          cpf: data.cpf ? maskCPF(data.cpf) : "",
+          rg: data.rg ? maskRG(data.rg) : "",
+          data_nascimento: dateISOtoBR((data as any).data_nascimento),
+          endereco: data.endereco || "",
+          telefone: data.telefone ? maskPhone(data.telefone) : "",
+          email: (data as any).email || "",
         });
         setStep("contract");
       }
@@ -52,14 +70,41 @@ function PatientFlow() {
     })();
   }, [token]);
 
+  const errors = useMemo(() => {
+    const e: Partial<Record<keyof FormState, string>> = {};
+    if (form.nome && !isValidNome(form.nome)) e.nome = "Digite seu nome completo (apenas letras)";
+    if (form.cpf && !isValidCPF(form.cpf)) e.cpf = "Digite um CPF válido";
+    if (form.rg && !isValidRG(form.rg)) e.rg = "Digite um RG válido";
+    if (form.data_nascimento && !isValidDate(form.data_nascimento)) e.data_nascimento = "Digite uma data válida";
+    if (form.telefone && !isValidPhone(form.telefone)) e.telefone = "Digite um telefone válido";
+    if (form.email && !isValidEmail(form.email)) e.email = "Digite um email válido";
+    return e;
+  }, [form]);
+
+  const requiredFilled = form.nome && form.cpf && form.rg && form.data_nascimento && form.endereco && form.telefone && form.email;
+  const canSubmit = requiredFilled && Object.keys(errors).length === 0;
+
   const submitForm = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.nome.trim() || !form.cpf.trim()) {
-      toast.error("Preencha pelo menos nome e CPF");
+    setTouched({
+      nome: true, cpf: true, rg: true, data_nascimento: true,
+      endereco: true, telefone: true, email: true,
+    });
+    if (!canSubmit) {
+      toast.error("Verifique os campos destacados");
       return;
     }
     setSaving(true);
-    const { error } = await supabase.from("patients").update(form).eq("token", token);
+    const payload = {
+      nome: form.nome.trim(),
+      cpf: form.cpf,
+      rg: form.rg,
+      data_nascimento: dateBRtoISO(form.data_nascimento),
+      endereco: form.endereco.trim(),
+      telefone: form.telefone,
+      email: form.email.trim().toLowerCase(),
+    };
+    const { error } = await supabase.from("patients").update(payload).eq("token", token);
     setSaving(false);
     if (error) { toast.error("Erro ao salvar dados"); return; }
     setStep("contract");
@@ -121,7 +166,9 @@ function PatientFlow() {
           </div>
           <div>
             <h1 className="text-base font-semibold leading-tight">OdontoClinic</h1>
-            <p className="text-xs text-muted-foreground">Prontuário {patient.prontuario}</p>
+            <p className="text-xs text-muted-foreground">
+              {patient.prontuario ? `Prontuário ${patient.prontuario}` : "Cadastro digital"}
+            </p>
           </div>
         </div>
       </header>
@@ -135,14 +182,79 @@ function PatientFlow() {
             <p className="mt-1 text-sm text-muted-foreground">
               Preencha as informações abaixo. Leva menos de 2 minutos.
             </p>
-            <form onSubmit={submitForm} className="mt-6 grid gap-4">
-              <Field label="Nome completo" value={form.nome} onChange={(v) => setForm({ ...form, nome: v })} required />
+            <form onSubmit={submitForm} className="mt-6 grid gap-4" noValidate>
+              <Field
+                label="Nome completo" required
+                value={form.nome}
+                placeholder="João da Silva"
+                onChange={(v) => setForm((f) => ({ ...f, nome: filterNomeInput(v) }))}
+                onBlur={() => setTouched((t) => ({ ...t, nome: true }))}
+                error={touched.nome ? errors.nome : undefined}
+                inputMode="text"
+              />
+
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="CPF" value={form.cpf} onChange={(v) => setForm({ ...form, cpf: v })} required />
-                <Field label="RG" value={form.rg} onChange={(v) => setForm({ ...form, rg: v })} />
+                <Field
+                  label="CPF" required
+                  value={form.cpf}
+                  placeholder="000.000.000-00"
+                  onChange={(v) => setForm((f) => ({ ...f, cpf: maskCPF(v) }))}
+                  onBlur={() => setTouched((t) => ({ ...t, cpf: true }))}
+                  error={touched.cpf ? errors.cpf : undefined}
+                  inputMode="numeric"
+                />
+                <Field
+                  label="RG" required
+                  value={form.rg}
+                  placeholder="00.000.000-X"
+                  onChange={(v) => setForm((f) => ({ ...f, rg: maskRG(v) }))}
+                  onBlur={() => setTouched((t) => ({ ...t, rg: true }))}
+                  error={touched.rg ? errors.rg : undefined}
+                  inputMode="text"
+                />
               </div>
-              <Field label="Endereço" value={form.endereco} onChange={(v) => setForm({ ...form, endereco: v })} />
-              <Field label="Telefone" value={form.telefone} onChange={(v) => setForm({ ...form, telefone: v })} />
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field
+                  label="Data de nascimento" required
+                  value={form.data_nascimento}
+                  placeholder="DD/MM/AAAA"
+                  onChange={(v) => setForm((f) => ({ ...f, data_nascimento: maskDate(v) }))}
+                  onBlur={() => setTouched((t) => ({ ...t, data_nascimento: true }))}
+                  error={touched.data_nascimento ? errors.data_nascimento : undefined}
+                  inputMode="numeric"
+                />
+                <Field
+                  label="Telefone" required
+                  value={form.telefone}
+                  placeholder="(00) 00000-0000"
+                  onChange={(v) => setForm((f) => ({ ...f, telefone: maskPhone(v) }))}
+                  onBlur={() => setTouched((t) => ({ ...t, telefone: true }))}
+                  error={touched.telefone ? errors.telefone : undefined}
+                  inputMode="tel"
+                />
+              </div>
+
+              <Field
+                label="Email" required
+                value={form.email}
+                placeholder="nome@exemplo.com"
+                onChange={(v) => setForm((f) => ({ ...f, email: v.replace(/\s/g, "") }))}
+                onBlur={() => setTouched((t) => ({ ...t, email: true }))}
+                error={touched.email ? errors.email : undefined}
+                inputMode="email"
+                type="email"
+              />
+
+              <Field
+                label="Endereço completo" required
+                value={form.endereco}
+                placeholder="Rua, número, bairro, cidade — UF"
+                onChange={(v) => setForm((f) => ({ ...f, endereco: v }))}
+                onBlur={() => setTouched((t) => ({ ...t, endereco: true }))}
+                inputMode="text"
+              />
+
               <Button type="submit" size="lg" disabled={saving} className="mt-2">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Continuar"}
               </Button>
@@ -205,7 +317,9 @@ function PatientFlow() {
               Obrigado! Seu contrato foi assinado e enviado à clínica.
               Você já pode fechar esta página.
             </p>
-            <p className="mt-4 font-mono text-xs text-muted-foreground">{patient.prontuario}</p>
+            {patient.prontuario && (
+              <p className="mt-4 font-mono text-xs text-muted-foreground">{patient.prontuario}</p>
+            )}
           </Card>
         )}
       </main>
@@ -214,12 +328,32 @@ function PatientFlow() {
 }
 
 function Field({
-  label, value, onChange, required,
-}: { label: string; value: string; onChange: (v: string) => void; required?: boolean }) {
+  label, value, onChange, onBlur, required, error, placeholder, inputMode, type,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  onBlur?: () => void;
+  required?: boolean;
+  error?: string;
+  placeholder?: string;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  type?: string;
+}) {
   return (
     <div className="grid gap-1.5">
       <Label>{label}{required && <span className="text-destructive"> *</span>}</Label>
-      <Input value={value} onChange={(e) => onChange(e.target.value)} required={required} />
+      <Input
+        type={type}
+        value={value}
+        placeholder={placeholder}
+        inputMode={inputMode}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={onBlur}
+        aria-invalid={!!error}
+        className={cn(error && "border-destructive focus-visible:ring-destructive/40")}
+      />
+      {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   );
 }
