@@ -20,6 +20,8 @@ export type Database = {
           convenio: string | null
           cpf: string | null
           created_at: string
+          data_nascimento: string | null
+          email: string | null
           endereco: string | null
           id: string
           nome: string | null
@@ -36,6 +38,8 @@ export type Database = {
           convenio?: string | null
           cpf?: string | null
           created_at?: string
+          data_nascimento?: string | null
+          email?: string | null
           endereco?: string | null
           id?: string
           nome?: string | null
@@ -52,6 +56,8 @@ export type Database = {
           convenio?: string | null
           cpf?: string | null
           created_at?: string
+          data_nascimento?: string | null
+          email?: string | null
           endereco?: string | null
           id?: string
           nome?: string | null
