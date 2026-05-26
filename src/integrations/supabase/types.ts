@@ -14,12 +14,35 @@ export type Database = {
   }
   public: {
     Tables: {
+      companies: {
+        Row: {
+          company_email: string
+          company_name: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          company_email: string
+          company_name: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          company_email?: string
+          company_name?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
       patients: {
         Row: {
+          company_id: string
           contract_accepted: boolean
           convenio: string | null
           cpf: string | null
           created_at: string
+          created_by_user: string | null
           data_nascimento: string | null
           email: string | null
           endereco: string | null
@@ -34,10 +57,12 @@ export type Database = {
           token: string
         }
         Insert: {
+          company_id: string
           contract_accepted?: boolean
           convenio?: string | null
           cpf?: string | null
           created_at?: string
+          created_by_user?: string | null
           data_nascimento?: string | null
           email?: string | null
           endereco?: string | null
@@ -52,10 +77,12 @@ export type Database = {
           token?: string
         }
         Update: {
+          company_id?: string
           contract_accepted?: boolean
           convenio?: string | null
           cpf?: string | null
           created_at?: string
+          created_by_user?: string | null
           data_nascimento?: string | null
           email?: string | null
           endereco?: string | null
@@ -69,13 +96,70 @@ export type Database = {
           telefone?: string | null
           token?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "patients_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patients_created_by_user_fkey"
+            columns: ["created_by_user"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          company_id: string
+          created_at: string
+          email: string
+          first_name: string | null
+          id: string
+          last_name: string | null
+          profile_image_url: string | null
+          status: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          email: string
+          first_name?: string | null
+          id: string
+          last_name?: string | null
+          profile_image_url?: string | null
+          status?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          email?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          profile_image_url?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      get_user_company_id: { Args: { _user_id: string }; Returns: string }
       next_prontuario: { Args: never; Returns: string }
     }
     Enums: {
