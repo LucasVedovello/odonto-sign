@@ -9,54 +9,179 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as CriarEmpresaRouteImport } from './routes/criar-empresa'
+import { Route as AceitarConviteRouteImport } from './routes/aceitar-convite'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as CadastroTokenRouteImport } from './routes/cadastro.$token'
+import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
+import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 
-const IndexRoute = IndexRouteImport.update({
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CriarEmpresaRoute = CriarEmpresaRouteImport.update({
+  id: '/criar-empresa',
+  path: '/criar-empresa',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AceitarConviteRoute = AceitarConviteRouteImport.update({
+  id: '/aceitar-convite',
+  path: '/aceitar-convite',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
 const CadastroTokenRoute = CadastroTokenRouteImport.update({
   id: '/cadastro/$token',
   path: '/cadastro/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedUsuariosRoute = AuthenticatedUsuariosRouteImport.update({
+  id: '/usuarios',
+  path: '/usuarios',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/': typeof AuthenticatedIndexRoute
+  '/aceitar-convite': typeof AceitarConviteRoute
+  '/criar-empresa': typeof CriarEmpresaRoute
+  '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/perfil': typeof AuthenticatedPerfilRoute
+  '/usuarios': typeof AuthenticatedUsuariosRoute
   '/cadastro/$token': typeof CadastroTokenRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
+  '/aceitar-convite': typeof AceitarConviteRoute
+  '/criar-empresa': typeof CriarEmpresaRoute
+  '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/perfil': typeof AuthenticatedPerfilRoute
+  '/usuarios': typeof AuthenticatedUsuariosRoute
   '/cadastro/$token': typeof CadastroTokenRoute
+  '/': typeof AuthenticatedIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteWithChildren
+  '/aceitar-convite': typeof AceitarConviteRoute
+  '/criar-empresa': typeof CriarEmpresaRoute
+  '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
+  '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/cadastro/$token': typeof CadastroTokenRoute
+  '/_authenticated/': typeof AuthenticatedIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/cadastro/$token'
+  fullPaths:
+    | '/'
+    | '/aceitar-convite'
+    | '/criar-empresa'
+    | '/login'
+    | '/reset-password'
+    | '/perfil'
+    | '/usuarios'
+    | '/cadastro/$token'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/cadastro/$token'
-  id: '__root__' | '/' | '/cadastro/$token'
+  to:
+    | '/aceitar-convite'
+    | '/criar-empresa'
+    | '/login'
+    | '/reset-password'
+    | '/perfil'
+    | '/usuarios'
+    | '/cadastro/$token'
+    | '/'
+  id:
+    | '__root__'
+    | '/_authenticated'
+    | '/aceitar-convite'
+    | '/criar-empresa'
+    | '/login'
+    | '/reset-password'
+    | '/_authenticated/perfil'
+    | '/_authenticated/usuarios'
+    | '/cadastro/$token'
+    | '/_authenticated/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
+  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
+  AceitarConviteRoute: typeof AceitarConviteRoute
+  CriarEmpresaRoute: typeof CriarEmpresaRoute
+  LoginRoute: typeof LoginRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   CadastroTokenRoute: typeof CadastroTokenRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/criar-empresa': {
+      id: '/criar-empresa'
+      path: '/criar-empresa'
+      fullPath: '/criar-empresa'
+      preLoaderRoute: typeof CriarEmpresaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/aceitar-convite': {
+      id: '/aceitar-convite'
+      path: '/aceitar-convite'
+      fullPath: '/aceitar-convite'
+      preLoaderRoute: typeof AceitarConviteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/': {
+      id: '/_authenticated/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/cadastro/$token': {
       id: '/cadastro/$token'
@@ -65,23 +190,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CadastroTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/usuarios': {
+      id: '/_authenticated/usuarios'
+      path: '/usuarios'
+      fullPath: '/usuarios'
+      preLoaderRoute: typeof AuthenticatedUsuariosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/perfil': {
+      id: '/_authenticated/perfil'
+      path: '/perfil'
+      fullPath: '/perfil'
+      preLoaderRoute: typeof AuthenticatedPerfilRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
+interface AuthenticatedRouteChildren {
+  AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
+  AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
+  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+}
+
+const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
+  AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
+  AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+}
+
+const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
+  AuthenticatedRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
+  AuthenticatedRoute: AuthenticatedRouteWithChildren,
+  AceitarConviteRoute: AceitarConviteRoute,
+  CriarEmpresaRoute: CriarEmpresaRoute,
+  LoginRoute: LoginRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   CadastroTokenRoute: CadastroTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

@@ -1,6 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, useDeferredValue, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,12 +16,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import {
-  Copy, ExternalLink, Plus, Download, FileText, Stethoscope, Loader2, Search, Trash2,
+  Copy, ExternalLink, Plus, Download, FileText, Loader2, Search, Trash2, User,
 } from "lucide-react";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/_authenticated/")({
   component: ReceptionDashboard,
-  head: () => ({ meta: [{ title: "Recepção — OdontoClinic" }] }),
+  head: () => ({ meta: [{ title: "Contratos — OdontoClinic" }] }),
 });
 
 type Patient = {
@@ -38,6 +39,8 @@ type Patient = {
   signed_at: string | null;
   status: string;
   created_at: string;
+  created_by_user: string | null;
+  creator?: { first_name: string | null; last_name: string | null } | null;
 };
 
 const statusMap: Record<string, { label: string; cls: string }> = {
@@ -49,6 +52,7 @@ const statusMap: Record<string, { label: string; cls: string }> = {
 type FilterKey = "todos" | "pendente" | "finalizado";
 
 function ReceptionDashboard() {
+  const { profile } = useAuth();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -65,11 +69,11 @@ function ReceptionDashboard() {
   const load = useCallback(async () => {
     const { data, error } = await supabase
       .from("patients")
-      .select("id,token,prontuario,nome,cpf,rg,data_nascimento,endereco,telefone,email,signature_data,signed_at,status,created_at")
+      .select("id,token,prontuario,nome,cpf,rg,data_nascimento,endereco,telefone,email,signature_data,signed_at,status,created_at,created_by_user,creator:profiles!patients_created_by_user_fkey(first_name,last_name)")
       .order("created_at", { ascending: false })
       .limit(200);
     if (error) toast.error("Erro ao carregar pacientes");
-    else setPatients((data ?? []) as Patient[]);
+    else setPatients((data ?? []) as unknown as Patient[]);
     setLoading(false);
   }, []);
 
@@ -104,11 +108,12 @@ function ReceptionDashboard() {
   }), [patients]);
 
   const handleCreate = async () => {
+    if (!profile) return;
     setCreating(true);
     const prontuario = newProntuario.trim() || null;
     const { data, error } = await supabase
       .from("patients")
-      .insert({ prontuario })
+      .insert({ prontuario, company_id: profile.company_id, created_by_user: profile.id })
       .select("id,token,prontuario")
       .single();
     setCreating(false);
@@ -127,7 +132,10 @@ function ReceptionDashboard() {
 
   const downloadPdf = useCallback(async (p: Patient) => {
     const { generatePatientPdf } = await import("@/lib/pdf");
-    const doc = await generatePatientPdf(p);
+    const creatorName = p.creator
+      ? `${p.creator.first_name ?? ""} ${p.creator.last_name ?? ""}`.trim()
+      : null;
+    const doc = await generatePatientPdf({ ...p, creator_name: creatorName, created_at: p.created_at });
     const fname = `${p.prontuario || "cadastro"}-${(p.nome || "paciente").replace(/\s+/g, "_")}.pdf`;
     doc.save(fname);
     if (p.status !== "pdf_gerado") {
@@ -155,71 +163,54 @@ function ReceptionDashboard() {
   const canConfirmDelete = !isFinalized || confirmTwice;
 
   return (
-    <div className="min-h-screen">
-      <header className="border-b border-border bg-card/60 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
-          <div className="flex items-center gap-3">
-            <div
-              className="flex h-10 w-10 items-center justify-center rounded-xl text-primary-foreground"
-              style={{ background: "var(--gradient-clinical)" }}
-            >
-              <Stethoscope className="h-5 w-5" />
-            </div>
-            <div>
-              <h1 className="text-base font-semibold leading-tight">OdontoClinic</h1>
-              <p className="text-xs text-muted-foreground">Recepção • Cadastro Digital</p>
-            </div>
-          </div>
-          <Button onClick={() => setDialogOpen(true)} size="lg" className="gap-2">
-            <Plus className="h-4 w-4" /> Novo Cadastro
-          </Button>
+    <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Contratos</h1>
+          <p className="text-sm text-muted-foreground">Gerencie cadastros e contratos digitais.</p>
         </div>
-      </header>
+        <Button onClick={() => setDialogOpen(true)} size="lg" className="gap-2">
+          <Plus className="h-4 w-4" /> Novo Cadastro
+        </Button>
+      </div>
 
-      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-        {newLink && (
-          <Card className="mb-6 border-primary/30 p-5 shadow-[var(--shadow-lift)]">
-            <div className="flex items-start justify-between gap-4 flex-col sm:flex-row">
-              <div className="min-w-0 flex-1">
-                <div className="mb-1 flex items-center gap-2 flex-wrap">
-                  {newLink.prontuario && (
-                    <Badge className="bg-primary text-primary-foreground hover:bg-primary">{newLink.prontuario}</Badge>
-                  )}
-                  <span className="text-sm font-medium">Link gerado — envie ao paciente</span>
-                </div>
-                <p className="break-all rounded-md bg-muted px-3 py-2 font-mono text-xs text-muted-foreground">
-                  {newLink.url}
-                </p>
+      {newLink && (
+        <Card className="mb-6 border-primary/30 p-5 shadow-[var(--shadow-lift)]">
+          <div className="flex items-start justify-between gap-4 flex-col sm:flex-row">
+            <div className="min-w-0 flex-1">
+              <div className="mb-1 flex items-center gap-2 flex-wrap">
+                {newLink.prontuario && (
+                  <Badge className="bg-primary text-primary-foreground hover:bg-primary">{newLink.prontuario}</Badge>
+                )}
+                <span className="text-sm font-medium">Link gerado — envie ao paciente</span>
               </div>
-              <div className="flex shrink-0 gap-2">
-                <Button variant="outline" onClick={() => copyLink(newLink.url)} className="gap-2">
-                  <Copy className="h-4 w-4" /> Copiar
-                </Button>
-                <Button onClick={() => window.open(newLink.url, "_blank")} className="gap-2">
-                  <ExternalLink className="h-4 w-4" /> Abrir
-                </Button>
-              </div>
+              <p className="break-all rounded-md bg-muted px-3 py-2 font-mono text-xs text-muted-foreground">
+                {newLink.url}
+              </p>
             </div>
-          </Card>
-        )}
+            <div className="flex shrink-0 gap-2">
+              <Button variant="outline" onClick={() => copyLink(newLink.url)} className="gap-2">
+                <Copy className="h-4 w-4" /> Copiar
+              </Button>
+              <Button onClick={() => window.open(newLink.url, "_blank")} className="gap-2">
+                <ExternalLink className="h-4 w-4" /> Abrir
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
 
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h2 className="text-xl font-semibold">Pacientes</h2>
-            <p className="text-sm text-muted-foreground">Busque por nome, CPF, email ou prontuário.</p>
-          </div>
-          <div className="relative w-full sm:w-80">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar paciente..."
-              className="pl-9"
-            />
-          </div>
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="relative w-full sm:w-80">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar por nome, CPF, email ou prontuário..."
+            className="pl-9"
+          />
         </div>
-
-        <div className="mb-4 flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2">
           {([
             ["todos", "Todos"],
             ["pendente", "Pendentes"],
@@ -237,25 +228,25 @@ function ReceptionDashboard() {
             </Button>
           ))}
         </div>
+      </div>
 
-        {loading ? (
-          <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-        ) : filtered.length === 0 ? (
-          <Card className="flex flex-col items-center justify-center py-16 text-center">
-            <FileText className="mb-3 h-10 w-10 text-muted-foreground" />
-            <p className="font-medium">{patients.length === 0 ? "Nenhum cadastro ainda" : "Nenhum resultado"}</p>
-            <p className="text-sm text-muted-foreground">
-              {patients.length === 0 ? 'Clique em "Novo Cadastro" para começar.' : "Tente outro termo ou filtro."}
-            </p>
-          </Card>
-        ) : (
-          <div className="grid gap-3">
-            {filtered.map((p) => (
-              <PatientRow key={p.id} p={p} onCopy={copyLink} onDownload={downloadPdf} onDelete={askDelete} />
-            ))}
-          </div>
-        )}
-      </main>
+      {loading ? (
+        <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+      ) : filtered.length === 0 ? (
+        <Card className="flex flex-col items-center justify-center py-16 text-center">
+          <FileText className="mb-3 h-10 w-10 text-muted-foreground" />
+          <p className="font-medium">{patients.length === 0 ? "Nenhum cadastro ainda" : "Nenhum resultado"}</p>
+          <p className="text-sm text-muted-foreground">
+            {patients.length === 0 ? 'Clique em "Novo Cadastro" para começar.' : "Tente outro termo ou filtro."}
+          </p>
+        </Card>
+      ) : (
+        <div className="grid gap-3">
+          {filtered.map((p) => (
+            <PatientRow key={p.id} p={p} onCopy={copyLink} onDownload={downloadPdf} onDelete={askDelete} />
+          ))}
+        </div>
+      )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
@@ -288,7 +279,7 @@ function ReceptionDashboard() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {isFinalized ? "Tem certeza que deseja excluir este paciente?" : "Tem certeza que deseja excluir este contrato?"}
+              {isFinalized ? "Excluir paciente?" : "Excluir contrato pendente?"}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {isFinalized
@@ -319,7 +310,7 @@ function ReceptionDashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </main>
   );
 }
 
@@ -334,6 +325,8 @@ function PatientRow({
   const st = statusMap[p.status] ?? statusMap.aguardando;
   const url = typeof window !== "undefined" ? `${window.location.origin}/cadastro/${p.token}` : "";
   const canDownload = !!p.signature_data;
+  const creator = p.creator ? `${p.creator.first_name ?? ""} ${p.creator.last_name ?? ""}`.trim() : "";
+
   return (
     <Card className="p-4 transition hover:shadow-[var(--shadow-card)]">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -347,8 +340,13 @@ function PatientRow({
           <p className="mt-1 truncate font-medium">
             {p.nome || <span className="text-muted-foreground italic">Aguardando preenchimento</span>}
           </p>
-          <p className="text-xs text-muted-foreground">
-            Criado em {new Date(p.created_at).toLocaleString("pt-BR")}
+          <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+            {creator && (
+              <span className="inline-flex items-center gap-1">
+                <User className="h-3 w-3" /> Criado por {creator}
+              </span>
+            )}
+            <span>{new Date(p.created_at).toLocaleString("pt-BR")}</span>
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

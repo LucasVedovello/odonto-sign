@@ -12,6 +12,8 @@ export interface PatientPdfData {
   email: string | null;
   signature_data: string | null;
   signed_at: string | null;
+  creator_name?: string | null;
+  created_at?: string | null;
 }
 
 export const CONTRACT_TEXT = `CONTRATO DE PRESTAÇÃO DE SERVIÇOS ODONTOLÓGICOS
@@ -80,7 +82,18 @@ export async function generatePatientPdf(p: PatientPdfData): Promise<jsPDF> {
     y += Math.max(16, lines.length * 14);
   });
 
-  y += 12;
+  if (p.creator_name || p.created_at) {
+    y += 8;
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(9);
+    doc.setTextColor(110, 120, 140);
+    const parts: string[] = [];
+    if (p.creator_name) parts.push(`Criado por ${p.creator_name}`);
+    if (p.created_at) parts.push(new Date(p.created_at).toLocaleString("pt-BR"));
+    doc.text(parts.join(" • "), margin, y);
+  }
+
+  y += 16;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(14);
   doc.setTextColor(34, 40, 60);
