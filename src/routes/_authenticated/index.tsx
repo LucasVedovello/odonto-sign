@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import {
-  Copy, ExternalLink, Plus, Download, FileText, Loader2, Search, Trash2, User,
+  Copy, ExternalLink, Plus, Download, FileText, Loader2, Search, Trash2, User, MessageCircle,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/")({
@@ -64,6 +64,7 @@ function ReceptionDashboard() {
   const [toDelete, setToDelete] = useState<Patient | null>(null);
   const [confirmTwice, setConfirmTwice] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [whatsappAsk, setWhatsappAsk] = useState<string | null>(null);
   const deferredQuery = useDeferredValue(query);
 
   const load = useCallback(async () => {
@@ -122,7 +123,22 @@ function ReceptionDashboard() {
     setNewLink({ url, prontuario: data.prontuario });
     setDialogOpen(false);
     setNewProntuario("");
+    setWhatsappAsk(url);
     toast.success("Link gerado");
+  };
+
+  const handleWhatsappYes = () => {
+    if (!whatsappAsk) return;
+    const msg = `Olá! 😊 Segue o link para assinatura do seu contrato com a OdontoClinic. ⚠️ Este link expira em 5 minutos. Acesse: ${whatsappAsk}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+    setWhatsappAsk(null);
+  };
+
+  const handleWhatsappNo = async () => {
+    if (!whatsappAsk) return;
+    try { await navigator.clipboard.writeText(whatsappAsk); } catch { /* noop */ }
+    toast.success("Link copiado com sucesso");
+    setWhatsappAsk(null);
   };
 
   const copyLink = useCallback((url: string) => {
