@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Stethoscope, Moon, Sun, LogOut, UserCircle, Users, LayoutDashboard, MoreVertical } from "lucide-react";
+import { Stethoscope, Moon, Sun, LogOut, UserCircle, Users, LayoutDashboard, MoreVertical, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -15,13 +15,14 @@ export function AppHeader() {
   const navigate = useNavigate();
 
   const initials = `${profile?.first_name?.[0] ?? ""}${profile?.last_name?.[0] ?? ""}`.toUpperCase() || "U";
+  const isAdmin = !!profile?.is_admin;
 
   return (
-    <header className="border-b border-border bg-card/60 backdrop-blur sticky top-0 z-40">
+    <header className="border-b border-border bg-card/70 backdrop-blur-md sticky top-0 z-40">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
         <Link to="/" className="flex items-center gap-3 min-w-0">
           <div
-            className="flex h-10 w-10 items-center justify-center rounded-xl text-primary-foreground shrink-0"
+            className="flex h-10 w-10 items-center justify-center rounded-xl text-primary-foreground shrink-0 shadow-[var(--shadow-card)]"
             style={{ background: "var(--gradient-clinical)" }}
           >
             <Stethoscope className="h-5 w-5" />
@@ -39,6 +40,11 @@ export function AppHeader() {
           <Link to="/usuarios" className="[&.active]:bg-secondary [&.active]:text-secondary-foreground inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-medium text-muted-foreground hover:bg-secondary/60">
             <Users className="h-4 w-4" /> Usuários
           </Link>
+          {isAdmin && (
+            <Link to="/admin" className="[&.active]:bg-primary/15 [&.active]:text-primary inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-medium text-primary hover:bg-primary/10">
+              <ShieldCheck className="h-4 w-4" /> Admin
+            </Link>
+          )}
         </nav>
 
         <DropdownMenu>
@@ -55,6 +61,7 @@ export function AppHeader() {
             <DropdownMenuLabel className="font-normal">
               <p className="text-sm font-medium truncate">{profile?.first_name} {profile?.last_name}</p>
               <p className="text-xs text-muted-foreground truncate">{profile?.email}</p>
+              {isAdmin && <p className="mt-1 text-[10px] uppercase tracking-wider text-primary font-semibold">Super Admin</p>}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => navigate({ to: "/perfil" })}>
@@ -63,6 +70,11 @@ export function AppHeader() {
             <DropdownMenuItem onClick={() => navigate({ to: "/usuarios" })} className="sm:hidden">
               <Users className="mr-2 h-4 w-4" /> Usuários
             </DropdownMenuItem>
+            {isAdmin && (
+              <DropdownMenuItem onClick={() => navigate({ to: "/admin" })} className="sm:hidden">
+                <ShieldCheck className="mr-2 h-4 w-4" /> Admin
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onClick={toggle}>
               {theme === "dark" ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
               {theme === "dark" ? "Tema claro" : "Tema escuro"}
