@@ -68,24 +68,27 @@ function ReceptionDashboard() {
   const deferredQuery = useDeferredValue(query);
 
   const load = useCallback(async () => {
+    if (!profile?.company_id) return;
     const { data, error } = await supabase
       .from("patients")
       .select("id,token,prontuario,nome,cpf,rg,data_nascimento,endereco,telefone,email,signature_data,signed_at,status,created_at,created_by_user,creator:profiles!patients_created_by_user_fkey(first_name,last_name)")
+      .eq("company_id", profile.company_id)
       .order("created_at", { ascending: false })
       .limit(200);
     if (error) toast.error("Erro ao carregar pacientes");
     else setPatients((data ?? []) as unknown as Patient[]);
     setLoading(false);
-  }, []);
+  }, [profile?.company_id]);
 
   useEffect(() => {
+    if (!profile?.company_id) return;
     load();
     const ch = supabase
       .channel("patients-live")
       .on("postgres_changes", { event: "*", schema: "public", table: "patients" }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [load]);
+  }, [load, profile?.company_id]);
 
   const filtered = useMemo(() => {
     const q = deferredQuery.trim().toLowerCase();
