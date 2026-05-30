@@ -18,6 +18,7 @@ import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/
 import { Route as CadastroTokenRouteImport } from './routes/cadastro.$token'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
+import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -63,6 +64,11 @@ const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
   path: '/perfil',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -70,6 +76,7 @@ export interface FileRoutesByFullPath {
   '/criar-empresa': typeof CriarEmpresaRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/admin': typeof AuthenticatedAdminRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/cadastro/$token': typeof CadastroTokenRoute
@@ -79,6 +86,7 @@ export interface FileRoutesByTo {
   '/criar-empresa': typeof CriarEmpresaRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/admin': typeof AuthenticatedAdminRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/cadastro/$token': typeof CadastroTokenRoute
@@ -91,6 +99,7 @@ export interface FileRoutesById {
   '/criar-empresa': typeof CriarEmpresaRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/cadastro/$token': typeof CadastroTokenRoute
@@ -104,6 +113,7 @@ export interface FileRouteTypes {
     | '/criar-empresa'
     | '/login'
     | '/reset-password'
+    | '/admin'
     | '/perfil'
     | '/usuarios'
     | '/cadastro/$token'
@@ -113,6 +123,7 @@ export interface FileRouteTypes {
     | '/criar-empresa'
     | '/login'
     | '/reset-password'
+    | '/admin'
     | '/perfil'
     | '/usuarios'
     | '/cadastro/$token'
@@ -124,6 +135,7 @@ export interface FileRouteTypes {
     | '/criar-empresa'
     | '/login'
     | '/reset-password'
+    | '/_authenticated/admin'
     | '/_authenticated/perfil'
     | '/_authenticated/usuarios'
     | '/cadastro/$token'
@@ -204,16 +216,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPerfilRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
 interface AuthenticatedRouteChildren {
+  AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,

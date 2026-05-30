@@ -11,6 +11,7 @@ export type Profile = {
   email: string;
   profile_image_url: string | null;
   status: string;
+  is_admin: boolean;
 };
 
 type AuthState = {
@@ -35,7 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loadProfile = async (uid: string) => {
     const { data } = await supabase
       .from("profiles")
-      .select("id,company_id,first_name,last_name,email,profile_image_url,status")
+      .select("id,company_id,first_name,last_name,email,profile_image_url,status,is_admin")
       .eq("id", uid)
       .maybeSingle();
     setProfile((data as Profile) ?? null);

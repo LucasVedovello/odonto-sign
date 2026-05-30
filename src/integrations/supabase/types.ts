@@ -120,6 +120,7 @@ export type Database = {
           email: string
           first_name: string | null
           id: string
+          is_admin: boolean
           last_name: string | null
           profile_image_url: string | null
           status: string
@@ -130,6 +131,7 @@ export type Database = {
           email: string
           first_name?: string | null
           id: string
+          is_admin?: boolean
           last_name?: string | null
           profile_image_url?: string | null
           status?: string
@@ -140,6 +142,7 @@ export type Database = {
           email?: string
           first_name?: string | null
           id?: string
+          is_admin?: boolean
           last_name?: string | null
           profile_image_url?: string | null
           status?: string
@@ -160,6 +163,7 @@ export type Database = {
     }
     Functions: {
       get_user_company_id: { Args: { _user_id: string }; Returns: string }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       next_prontuario: { Args: never; Returns: string }
     }
     Enums: {
