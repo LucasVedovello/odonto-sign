@@ -52,15 +52,19 @@ function UsersPage() {
   const resend = useServerFn(resendInvite);
 
   const load = useCallback(async () => {
+    if (!me?.company_id) return;
     const { data } = await supabase
       .from("profiles")
       .select("id,first_name,last_name,email,profile_image_url,status,created_at")
+      .eq("company_id", me.company_id)
       .order("created_at", { ascending: true });
     setUsers((data ?? []) as Profile[]);
     setLoading(false);
-  }, []);
+  }, [me?.company_id]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    if (me?.company_id) load();
+  }, [load, me?.company_id]);
 
   const handleInvite = async () => {
     if (!inviteEmail) return;
