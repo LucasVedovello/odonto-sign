@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, useDeferredValue, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -68,7 +68,10 @@ function ReceptionDashboard() {
   const deferredQuery = useDeferredValue(query);
 
   const load = useCallback(async () => {
-    if (!profile?.company_id) return;
+    if (!profile?.company_id) {
+      setLoading(false);
+      return;
+    }
     const { data, error } = await supabase
       .from("patients")
       .select("id,token,prontuario,nome,cpf,rg,data_nascimento,endereco,telefone,email,signature_data,signed_at,status,created_at,created_by_user,creator:profiles!patients_created_by_user_fkey(first_name,last_name)")
@@ -78,17 +81,17 @@ function ReceptionDashboard() {
     if (error) toast.error("Erro ao carregar pacientes");
     else setPatients((data ?? []) as unknown as Patient[]);
     setLoading(false);
-  }, [profile?.company_id]);
+  }, [profile]);
 
   useEffect(() => {
-    if (!profile?.company_id) return;
+    if (!profile) return;
     load();
     const ch = supabase
       .channel("patients-live")
       .on("postgres_changes", { event: "*", schema: "public", table: "patients" }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [load, profile?.company_id]);
+  }, [load, profile]);
 
   const filtered = useMemo(() => {
     const q = deferredQuery.trim().toLowerCase();
