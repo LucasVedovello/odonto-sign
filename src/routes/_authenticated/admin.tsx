@@ -24,8 +24,7 @@ function AdminPage() {
   const [q, setQ] = useState("");
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!profile?.is_admin) return;
+    if (authLoading || !profile?.is_admin) return;
     (async () => {
       const [c, p, pa] = await Promise.all([
         supabase.from("companies").select("id,company_name,company_email,created_at").order("created_at", { ascending: false }),
@@ -47,10 +46,14 @@ function AdminPage() {
     return m;
   }, [data]);
 
-  if (authLoading) return <Center><Loader2 className="h-6 w-6 animate-spin" /></Center>;
-  if (!profile?.is_admin) {
-    throw redirect({ to: "/" });
+  if (authLoading || (!profile && !authLoading)) {
+    return <Center><Loader2 className="h-6 w-6 animate-spin" /></Center>;
   }
+
+  if (!profile?.is_admin) {
+    return <Center><p className="text-muted-foreground">Acesso negado.</p></Center>;
+  }
+
   if (loading || !data) return <Center><Loader2 className="h-6 w-6 animate-spin" /></Center>;
 
   const ql = q.trim().toLowerCase();
@@ -95,7 +98,7 @@ function AdminPage() {
             const usersInCompany = data.profiles.filter((p) => p.company_id === c.id).length;
             const patientsInCompany = data.patients.filter((p) => p.company_id === c.id).length;
             return (
-              <Card key={c.id} className="p-4 lift-on-hover">
+              <Card key={c.id} className="p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-semibold truncate">{c.company_name}</p>
@@ -114,7 +117,7 @@ function AdminPage() {
 
         <TabsContent value="users" className="mt-4 grid gap-2">
           {filteredProfiles.map((p) => (
-            <Card key={p.id} className="p-4 lift-on-hover">
+            <Card key={p.id} className="p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="min-w-0">
                   <p className="font-medium truncate">{p.first_name} {p.last_name}</p>
@@ -135,7 +138,7 @@ function AdminPage() {
 
         <TabsContent value="patients" className="mt-4 grid gap-2">
           {filteredPatients.map((p) => (
-            <Card key={p.id} className="p-4 lift-on-hover">
+            <Card key={p.id} className="p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="min-w-0">
                   <p className="font-medium truncate">
@@ -148,10 +151,7 @@ function AdminPage() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Badge variant="outline">{companyMap.get(p.company_id) ?? "—"}</Badge>
-                  <Badge
-                    variant="outline"
-                    className={p.signed_at ? "border-success/40 text-success" : "border-warning/40 text-warning"}
-                  >
+                  <Badge variant="outline" className={p.signed_at ? "border-success/40 text-success" : "border-warning/40 text-warning"}>
                     {p.signed_at ? "Assinado" : "Pendente"}
                   </Badge>
                 </div>
@@ -167,7 +167,7 @@ function AdminPage() {
 
 function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
   return (
-    <Card className="p-4 flex items-center gap-3 lift-on-hover">
+    <Card className="p-4 flex items-center gap-3">
       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">{icon}</div>
       <div>
         <p className="text-xs text-muted-foreground">{label}</p>
