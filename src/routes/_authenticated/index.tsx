@@ -326,6 +326,28 @@ function ReceptionDashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!whatsappAsk} onOpenChange={(o) => !o && setWhatsappAsk(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageCircle className="h-5 w-5 text-success" />
+              Deseja enviar por WhatsApp?
+            </DialogTitle>
+            <DialogDescription>
+              Envie o link diretamente pelo WhatsApp ou copie para usar em outro canal.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" onClick={handleWhatsappNo} className="flex-1">
+              Não, apenas copiar
+            </Button>
+            <Button onClick={handleWhatsappYes} className="flex-1 gap-2 bg-success text-primary-foreground hover:bg-success/90">
+              <MessageCircle className="h-4 w-4" /> Sim, enviar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }
@@ -344,7 +366,7 @@ function PatientRow({
   const creator = p.creator ? `${p.creator.first_name ?? ""} ${p.creator.last_name ?? ""}`.trim() : "";
 
   return (
-    <Card className="p-4 transition hover:shadow-[var(--shadow-card)]">
+    <Card className="p-4 lift-on-hover">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
