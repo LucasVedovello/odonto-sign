@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
 import type { Database } from './types';
 
 function createSupabaseClient() {
@@ -15,13 +15,9 @@ function createSupabaseClient() {
     throw new Error(message);
   }
 
-  return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-    auth: {
-      storage: typeof window !== 'undefined' ? localStorage : undefined,
-      persistSession: true,
-      autoRefreshToken: true,
-    }
-  });
+  // createBrowserClient stores the session in cookies instead of localStorage,
+  // making it available to the Cloudflare Worker on every SSR request.
+  return createBrowserClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 }
 
 let _supabase: ReturnType<typeof createSupabaseClient> | undefined;
