@@ -12,11 +12,14 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as CriarEmpresaRouteImport } from './routes/criar-empresa'
+import { Route as AguardandoAprovacaoRouteImport } from './routes/aguardando-aprovacao'
+import { Route as AcessoNegadoRouteImport } from './routes/acesso-negado'
 import { Route as AceitarConviteRouteImport } from './routes/aceitar-convite'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as CadastroTokenRouteImport } from './routes/cadastro.$token'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
+import { Route as AuthenticatedSuporteRouteImport } from './routes/_authenticated/suporte'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 
@@ -33,6 +36,16 @@ const LoginRoute = LoginRouteImport.update({
 const CriarEmpresaRoute = CriarEmpresaRouteImport.update({
   id: '/criar-empresa',
   path: '/criar-empresa',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AguardandoAprovacaoRoute = AguardandoAprovacaoRouteImport.update({
+  id: '/aguardando-aprovacao',
+  path: '/aguardando-aprovacao',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AcessoNegadoRoute = AcessoNegadoRouteImport.update({
+  id: '/acesso-negado',
+  path: '/acesso-negado',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AceitarConviteRoute = AceitarConviteRouteImport.update({
@@ -59,6 +72,11 @@ const AuthenticatedUsuariosRoute = AuthenticatedUsuariosRouteImport.update({
   path: '/usuarios',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedSuporteRoute = AuthenticatedSuporteRouteImport.update({
+  id: '/suporte',
+  path: '/suporte',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
   id: '/perfil',
   path: '/perfil',
@@ -73,21 +91,27 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/aceitar-convite': typeof AceitarConviteRoute
+  '/acesso-negado': typeof AcessoNegadoRoute
+  '/aguardando-aprovacao': typeof AguardandoAprovacaoRoute
   '/criar-empresa': typeof CriarEmpresaRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/perfil': typeof AuthenticatedPerfilRoute
+  '/suporte': typeof AuthenticatedSuporteRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/cadastro/$token': typeof CadastroTokenRoute
 }
 export interface FileRoutesByTo {
   '/aceitar-convite': typeof AceitarConviteRoute
+  '/acesso-negado': typeof AcessoNegadoRoute
+  '/aguardando-aprovacao': typeof AguardandoAprovacaoRoute
   '/criar-empresa': typeof CriarEmpresaRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/perfil': typeof AuthenticatedPerfilRoute
+  '/suporte': typeof AuthenticatedSuporteRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/cadastro/$token': typeof CadastroTokenRoute
   '/': typeof AuthenticatedIndexRoute
@@ -96,11 +120,14 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/aceitar-convite': typeof AceitarConviteRoute
+  '/acesso-negado': typeof AcessoNegadoRoute
+  '/aguardando-aprovacao': typeof AguardandoAprovacaoRoute
   '/criar-empresa': typeof CriarEmpresaRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
+  '/_authenticated/suporte': typeof AuthenticatedSuporteRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/cadastro/$token': typeof CadastroTokenRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
@@ -110,21 +137,27 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/aceitar-convite'
+    | '/acesso-negado'
+    | '/aguardando-aprovacao'
     | '/criar-empresa'
     | '/login'
     | '/reset-password'
     | '/admin'
     | '/perfil'
+    | '/suporte'
     | '/usuarios'
     | '/cadastro/$token'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/aceitar-convite'
+    | '/acesso-negado'
+    | '/aguardando-aprovacao'
     | '/criar-empresa'
     | '/login'
     | '/reset-password'
     | '/admin'
     | '/perfil'
+    | '/suporte'
     | '/usuarios'
     | '/cadastro/$token'
     | '/'
@@ -132,11 +165,14 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_authenticated'
     | '/aceitar-convite'
+    | '/acesso-negado'
+    | '/aguardando-aprovacao'
     | '/criar-empresa'
     | '/login'
     | '/reset-password'
     | '/_authenticated/admin'
     | '/_authenticated/perfil'
+    | '/_authenticated/suporte'
     | '/_authenticated/usuarios'
     | '/cadastro/$token'
     | '/_authenticated/'
@@ -145,6 +181,8 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AceitarConviteRoute: typeof AceitarConviteRoute
+  AcessoNegadoRoute: typeof AcessoNegadoRoute
+  AguardandoAprovacaoRoute: typeof AguardandoAprovacaoRoute
   CriarEmpresaRoute: typeof CriarEmpresaRoute
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -172,6 +210,20 @@ declare module '@tanstack/react-router' {
       path: '/criar-empresa'
       fullPath: '/criar-empresa'
       preLoaderRoute: typeof CriarEmpresaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/aguardando-aprovacao': {
+      id: '/aguardando-aprovacao'
+      path: '/aguardando-aprovacao'
+      fullPath: '/aguardando-aprovacao'
+      preLoaderRoute: typeof AguardandoAprovacaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/acesso-negado': {
+      id: '/acesso-negado'
+      path: '/acesso-negado'
+      fullPath: '/acesso-negado'
+      preLoaderRoute: typeof AcessoNegadoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/aceitar-convite': {
@@ -209,6 +261,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedUsuariosRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/suporte': {
+      id: '/_authenticated/suporte'
+      path: '/suporte'
+      fullPath: '/suporte'
+      preLoaderRoute: typeof AuthenticatedSuporteRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/perfil': {
       id: '/_authenticated/perfil'
       path: '/perfil'
@@ -229,6 +288,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
+  AuthenticatedSuporteRoute: typeof AuthenticatedSuporteRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
@@ -236,6 +296,7 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
+  AuthenticatedSuporteRoute: AuthenticatedSuporteRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
 }
@@ -247,6 +308,8 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AceitarConviteRoute: AceitarConviteRoute,
+  AcessoNegadoRoute: AcessoNegadoRoute,
+  AguardandoAprovacaoRoute: AguardandoAprovacaoRoute,
   CriarEmpresaRoute: CriarEmpresaRoute,
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,

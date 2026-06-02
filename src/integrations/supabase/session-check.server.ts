@@ -16,9 +16,9 @@ function parseCookieHeader(header: string): { name: string; value: string }[] {
     });
 }
 
-// Reads the Supabase session from cookies during SSR (Cloudflare Workers).
-// createBrowserClient stores the session in cookies on login, so they are
-// available here on every subsequent request.
+// Reads the Supabase session from cookies during SSR (Cloudflare Workers) and
+// also returns the user's admin flag and company approval status so the
+// authenticated route guard can redirect pending/rejected companies server-side.
 export const getServerSession = createServerFn().handler(async () => {
   const url = import.meta.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
   const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || '';
@@ -30,6 +30,20 @@ export const getServerSession = createServerFn().handler(async () => {
     cookies: { getAll: () => cookies, setAll: () => {} },
   });
 
-  const { data } = await serverSupabase.auth.getUser();
-  return { authenticated: !!data.user };
+  const { data: userData } = await serverSupabase.auth.getUser();
+  if (!userData?.user) return { authenticated: false, isAdmin: false, approvalStatus: 'approved' as string };
+
+  const { data: profile } = await serverSupabase
+    .from('profiles')
+    .select('is_admin, companies!inner(approval_status)')
+    .eq('id', userData.user.id)
+    .maybeSingle();
+
+  const approvalStatus = (profile?.companies as { approval_status: string } | null)?.approval_status ?? 'approved';
+
+  return {
+    authenticated: true,
+    isAdmin: profile?.is_admin ?? false,
+    approvalStatus,
+  };
 });

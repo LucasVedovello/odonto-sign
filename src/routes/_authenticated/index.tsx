@@ -133,19 +133,21 @@ function ReceptionDashboard() {
     toast.success("Link gerado");
   };
 
-  const whatsappMsg = whatsappAsk
-    ? `Olá! 😊 Segue o link para assinatura do seu contrato com a OdontoClinic. ⚠️ Este link expira em 5 minutos. Acesse: ${whatsappAsk}`
-    : "";
+  const buildWhatsappMsg = (url: string) =>
+    `Olá! Segue o link para assinatura do seu contrato com a OdontoClinic. Este link expira em 5 minutos. Acesse: ${url}`;
 
   const handleOpenWhatsApp = () => {
     if (!whatsappAsk) return;
-    window.open(`https://wa.me/?text=${encodeURIComponent(whatsappMsg)}`, "_blank");
+    const mensagem = buildWhatsappMsg(whatsappAsk);
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
+    window.open(whatsappUrl, "_blank");
     setWhatsappAsk(null);
   };
 
   const handleCopyMessage = async () => {
     if (!whatsappAsk) return;
-    try { await navigator.clipboard.writeText(whatsappMsg); } catch { /* noop */ }
+    const mensagem = buildWhatsappMsg(whatsappAsk);
+    try { await navigator.clipboard.writeText(mensagem); } catch { /* noop */ }
     toast.success("Mensagem copiada");
     setWhatsappAsk(null);
   };
@@ -348,7 +350,7 @@ function ReceptionDashboard() {
             </DialogDescription>
           </DialogHeader>
           <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground leading-relaxed">
-            {whatsappMsg}
+            {whatsappAsk ? buildWhatsappMsg(whatsappAsk) : ""}
           </p>
           <DialogFooter className="gap-2 sm:gap-2">
             <Button variant="outline" onClick={handleCopyMessage} className="flex-1 gap-2">

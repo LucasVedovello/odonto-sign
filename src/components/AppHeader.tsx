@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Stethoscope, Moon, Sun, LogOut, UserCircle, Users, LayoutDashboard, MoreVertical, ShieldCheck } from "lucide-react";
+import { Stethoscope, Moon, Sun, LogOut, UserCircle, Users, LayoutDashboard, MoreVertical, ShieldCheck, Headset } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -75,6 +75,9 @@ export function AppHeader() {
                 <ShieldCheck className="mr-2 h-4 w-4" /> Admin
               </DropdownMenuItem>
             )}
+            <DropdownMenuItem onClick={() => navigate({ to: "/suporte" })}>
+              <Headset className="mr-2 h-4 w-4" /> Contato com Suporte
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={toggle}>
               {theme === "dark" ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
               {theme === "dark" ? "Tema claro" : "Tema escuro"}
