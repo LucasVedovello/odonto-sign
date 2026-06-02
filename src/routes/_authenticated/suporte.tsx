@@ -93,7 +93,20 @@ function SupportPage() {
       if (authError || !user) throw new Error("Sessão expirada. Faça login novamente.");
 
       const userId = user.id;
-      const companyId = profile.company_id;
+
+      // Fetch company_id directly from DB — never rely on React context which
+      // may still be loading when the form is submitted.
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("company_id")
+        .eq("id", userId)
+        .single();
+
+      if (profileError || !profileData?.company_id) {
+        throw new Error("Empresa não encontrada. Recarregue a página e tente novamente.");
+      }
+
+      const companyId = profileData.company_id;
 
       // Upload images — sanitize filename before sending to Storage
       const imagePaths: string[] = [];
