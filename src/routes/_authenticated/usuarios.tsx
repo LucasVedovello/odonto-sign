@@ -116,10 +116,10 @@ function UsersPage() {
         <div>
           <h1 className="text-2xl font-bold">Usuários</h1>
           <p className="text-sm text-muted-foreground">
-            Equipe da clínica • {users.length}/10 contas
+            Equipe da clínica • {users.length}/20 contas
           </p>
         </div>
-        <Button onClick={() => setDialogOpen(true)} disabled={users.length >= 10} className="gap-2">
+        <Button onClick={() => setDialogOpen(true)} disabled={users.length >= 20} className="gap-2">
           <Plus className="h-4 w-4" /> Adicionar conta
         </Button>
       </div>

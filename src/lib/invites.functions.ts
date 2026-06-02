@@ -23,14 +23,14 @@ export const inviteUser = createServerFn({ method: "POST" })
 
     if (!profile?.company_id) throw new Error("Empresa não encontrada");
 
-    // Enforce 10-user limit
+    // Enforce 20-user limit
     const { count } = await supabaseAdmin
       .from("profiles")
       .select("id", { count: "exact", head: true })
       .eq("company_id", profile.company_id);
 
-    if ((count ?? 0) >= 10) {
-      throw new Error("Limite de 10 contas atingido para esta empresa");
+    if ((count ?? 0) >= 20) {
+      throw new Error("Limite de 20 contas atingido para esta empresa");
     }
 
     // Check duplicates

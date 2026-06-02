@@ -115,7 +115,7 @@ function ReceptionDashboard() {
   }), [patients]);
 
   const handleCreate = async () => {
-    if (!profile) return;
+    if (!profile?.company_id) return;
     setCreating(true);
     const prontuario = newProntuario.trim() || null;
     const { data, error } = await supabase
@@ -136,7 +136,15 @@ function ReceptionDashboard() {
   const handleWhatsappYes = () => {
     if (!whatsappAsk) return;
     const msg = `Olá! 😊 Segue o link para assinatura do seu contrato com a OdontoClinic. ⚠️ Este link expira em 5 minutos. Acesse: ${whatsappAsk}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (isMobile) {
+      window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+    } else {
+      // Desktop: open WhatsApp Desktop app via protocol; copy link as automatic fallback
+      window.open(`whatsapp://send?text=${encodeURIComponent(msg)}`);
+      navigator.clipboard.writeText(whatsappAsk).catch(() => {});
+      toast.success("WhatsApp solicitado • Link copiado como backup");
+    }
     setWhatsappAsk(null);
   };
 
@@ -263,7 +271,7 @@ function ReceptionDashboard() {
           </p>
         </Card>
       ) : (
-        <div className="grid gap-3">
+        <div className="grid gap-3 card-list">
           {filtered.map((p) => (
             <PatientRow key={p.id} p={p} onCopy={copyLink} onDownload={downloadPdf} onDelete={askDelete} />
           ))}
