@@ -349,7 +349,8 @@ function ReceptionDashboard() {
               Mensagem pronta para envio ao paciente.
             </DialogDescription>
           </DialogHeader>
-          <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground leading-relaxed">
+          <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground leading-relaxed break-words overflow-wrap-anywhere overflow-y-auto max-h-40"
+             style={{ wordBreak: "break-word", overflowWrap: "break-word", whiteSpace: "pre-wrap" }}>
             {whatsappAsk ? buildWhatsappMsg(whatsappAsk) : ""}
           </p>
           <DialogFooter className="gap-2 sm:gap-2">
