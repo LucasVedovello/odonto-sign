@@ -32,7 +32,15 @@ type Patient = {
   cpf: string | null;
   rg: string | null;
   data_nascimento: string | null;
+  estado_civil: string | null;
+  estado_nascimento: string | null;
+  cep: string | null;
+  rua: string | null;
+  bairro: string | null;
+  numero: string | null;
   endereco: string | null;
+  profissao: string | null;
+  escolaridade: string | null;
   telefone: string | null;
   email: string | null;
   signature_data: string | null;
@@ -74,7 +82,7 @@ function ReceptionDashboard() {
     }
     const { data, error } = await supabase
       .from("patients")
-      .select("id,token,prontuario,nome,cpf,rg,data_nascimento,endereco,telefone,email,signature_data,signed_at,status,created_at,created_by_user,creator:profiles!patients_created_by_user_fkey(first_name,last_name)")
+      .select("id,token,prontuario,nome,cpf,rg,data_nascimento,estado_civil,estado_nascimento,cep,rua,bairro,numero,endereco,profissao,escolaridade,telefone,email,signature_data,signed_at,status,created_at,created_by_user,creator:profiles!patients_created_by_user_fkey(first_name,last_name)")
       .eq("company_id", profile.company_id)
       .order("created_at", { ascending: false })
       .limit(200);
@@ -349,8 +357,8 @@ function ReceptionDashboard() {
               Mensagem pronta para envio ao paciente.
             </DialogDescription>
           </DialogHeader>
-          <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground leading-relaxed break-words overflow-wrap-anywhere overflow-y-auto max-h-40"
-             style={{ wordBreak: "break-word", overflowWrap: "break-word", whiteSpace: "pre-wrap" }}>
+          <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground leading-relaxed overflow-y-auto max-h-40"
+             style={{ wordBreak: "break-all", overflowWrap: "break-word", whiteSpace: "pre-wrap", overflow: "hidden" }}>
             {whatsappAsk ? buildWhatsappMsg(whatsappAsk) : ""}
           </p>
           <DialogFooter className="gap-2 sm:gap-2">

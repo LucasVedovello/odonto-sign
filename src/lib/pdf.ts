@@ -7,7 +7,15 @@ export interface PatientPdfData {
   cpf: string | null;
   rg: string | null;
   data_nascimento: string | null;
-  endereco: string | null;
+  estado_civil?: string | null;
+  estado_nascimento?: string | null;
+  cep?: string | null;
+  rua?: string | null;
+  bairro?: string | null;
+  numero?: string | null;
+  endereco?: string | null;
+  profissao?: string | null;
+  escolaridade?: string | null;
   telefone: string | null;
   email: string | null;
   signature_data: string | null;
@@ -60,18 +68,28 @@ export async function generatePatientPdf(p: PatientPdfData): Promise<jsPDF> {
   doc.line(margin, y, pageW - margin, y);
   y += 18;
 
+  // Build full address string
+  const fullAddress = p.rua
+    ? `${p.rua}, ${p.numero || "s/n"} - ${p.bairro || ""} (CEP: ${p.cep || "—"})`
+    : (p.endereco || "—");
+
   const rows: [string, string][] = [
-    ["Nome completo", p.nome || "—"],
-    ["CPF", p.cpf || "—"],
-    ["RG", p.rg || "—"],
+    ["Nome completo",      p.nome             || "—"],
+    ["CPF",               p.cpf              || "—"],
+    ["RG",                p.rg               || "—"],
     ["Data de nascimento", dateISOtoBR(p.data_nascimento) || "—"],
-    ["Endereço", p.endereco || "—"],
-    ["Telefone", p.telefone || "—"],
-    ["Email", p.email || "—"],
+    ["Estado civil",      p.estado_civil      || "—"],
+    ["Estado de nascimento", p.estado_nascimento || "—"],
+    ["Profissão",         p.profissao         || "—"],
+    ["Escolaridade",      p.escolaridade      || "—"],
+    ["Telefone",          p.telefone          || "—"],
+    ["Email",             p.email             || "—"],
+    ["Endereço",          fullAddress],
   ];
 
   doc.setFontSize(10);
   rows.forEach(([k, v]) => {
+    if (y > 720) { doc.addPage(); y = margin; }
     doc.setFont("helvetica", "bold");
     doc.setTextColor(90, 100, 120);
     doc.text(k, margin, y);
@@ -94,6 +112,7 @@ export async function generatePatientPdf(p: PatientPdfData): Promise<jsPDF> {
   }
 
   y += 16;
+  if (y > 720) { doc.addPage(); y = margin; }
   doc.setFont("helvetica", "bold");
   doc.setFontSize(14);
   doc.setTextColor(34, 40, 60);

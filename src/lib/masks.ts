@@ -84,6 +84,25 @@ export const isValidEmail = (s: string) =>
 export const isValidNome = (s: string) =>
   s.trim().length >= 3 && /^[A-Za-zÀ-ÖØ-öø-ÿ' \-]+$/.test(s.trim()) && /\s/.test(s.trim());
 
+export const maskCEP = (v: string) => {
+  const d = onlyDigits(v).slice(0, 8);
+  return d.replace(/(\d{5})(\d)/, "$1-$2");
+};
+
+export async function fetchViaCEP(cep: string): Promise<{ logradouro: string; bairro: string } | null> {
+  const raw = onlyDigits(cep);
+  if (raw.length !== 8) return null;
+  try {
+    const res = await fetch(`https://viacep.com.br/ws/${raw}/json/`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.erro) return null;
+    return { logradouro: data.logradouro || "", bairro: data.bairro || "" };
+  } catch {
+    return null;
+  }
+}
+
 // Converte DD/MM/AAAA -> AAAA-MM-DD (para coluna date do Postgres)
 export const dateBRtoISO = (s: string) => {
   const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s);

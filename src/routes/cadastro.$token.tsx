@@ -7,11 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { CheckCircle2, Loader2, Stethoscope, PenLine, Eraser } from "lucide-react";
+import { CheckCircle2, Loader2, PenLine, Eraser } from "lucide-react";
 import { SignaturePad, type SignaturePadHandle } from "@/components/SignaturePad";
 import { CONTRACT_TEXT } from "@/lib/pdf";
+import { OdontoLogo } from "@/components/OdontoLogo";
 import {
-  maskCPF, maskRG, maskDate, maskPhone, filterNomeInput,
+  maskCPF, maskRG, maskDate, maskPhone, maskCEP, fetchViaCEP, filterNomeInput,
   isValidCPF, isValidRG, isValidDate, isValidPhone, isValidEmail, isValidNome,
   dateBRtoISO, dateISOtoBR,
 } from "@/lib/masks";
@@ -26,7 +27,38 @@ type Step = "form" | "contract" | "signature" | "done";
 
 type FormState = {
   nome: string; cpf: string; rg: string; data_nascimento: string;
-  endereco: string; telefone: string; email: string;
+  estado_civil: string; estado_nascimento: string;
+  telefone: string; email: string;
+  cep: string; rua: string; bairro: string; numero: string;
+  profissao: string; escolaridade: string;
+};
+
+const ESTADOS_CIVIS = ["Solteiro(a)", "Casado(a)", "Divorciado(a)", "Viúvo(a)", "União Estável"];
+
+const ESTADOS_BR = [
+  "AC","AL","AP","AM","BA","CE","DF","ES","GO","MA",
+  "MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN",
+  "RS","RO","RR","SC","SP","SE","TO",
+];
+
+const ESCOLARIDADES = [
+  "Ensino Fundamental Incompleto",
+  "Ensino Fundamental Completo",
+  "Ensino Médio Incompleto",
+  "Ensino Médio Completo",
+  "Ensino Superior Incompleto",
+  "Ensino Superior Completo",
+  "Pós-graduação",
+  "Mestrado",
+  "Doutorado",
+];
+
+const EMPTY: FormState = {
+  nome: "", cpf: "", rg: "", data_nascimento: "",
+  estado_civil: "", estado_nascimento: "",
+  telefone: "", email: "",
+  cep: "", rua: "", bairro: "", numero: "",
+  profissao: "", escolaridade: "",
 };
 
 function PatientFlow() {
@@ -36,33 +68,35 @@ function PatientFlow() {
   const [step, setStep] = useState<Step>("form");
   const [saving, setSaving] = useState(false);
   const [accepted, setAccepted] = useState(false);
+  const [cepLoading, setCepLoading] = useState(false);
   const sigRef = useRef<SignaturePadHandle>(null);
 
-  const [form, setForm] = useState<FormState>({
-    nome: "", cpf: "", rg: "", data_nascimento: "",
-    endereco: "", telefone: "", email: "",
-  });
+  const [form, setForm] = useState<FormState>(EMPTY);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     (async () => {
-      const { data, error } = await supabase
-        .from("patients")
-        .select("*")
-        .eq("token", token)
-        .maybeSingle();
+      const { data, error } = await supabase.from("patients").select("*").eq("token", token).maybeSingle();
       if (error || !data) { setLoading(false); return; }
       setPatient(data);
-      if (data.signature_data) setStep("done");
-      else if (data.nome) {
+      if (data.signature_data) {
+        setStep("done");
+      } else if (data.nome) {
         setForm({
           nome: data.nome || "",
           cpf: data.cpf ? maskCPF(data.cpf) : "",
           rg: data.rg ? maskRG(data.rg) : "",
-          data_nascimento: dateISOtoBR((data as any).data_nascimento),
-          endereco: data.endereco || "",
+          data_nascimento: dateISOtoBR(data.data_nascimento),
+          estado_civil: data.estado_civil || "",
+          estado_nascimento: data.estado_nascimento || "",
           telefone: data.telefone ? maskPhone(data.telefone) : "",
-          email: (data as any).email || "",
+          email: data.email || "",
+          cep: data.cep ? maskCEP(data.cep) : "",
+          rua: data.rua || "",
+          bairro: data.bairro || "",
+          numero: data.numero || "",
+          profissao: data.profissao || "",
+          escolaridade: data.escolaridade || "",
         });
         setStep("contract");
       }
@@ -70,39 +104,62 @@ function PatientFlow() {
     })();
   }, [token]);
 
+  const handleCEPChange = async (raw: string) => {
+    const masked = maskCEP(raw);
+    setForm((f) => ({ ...f, cep: masked }));
+    if (raw.replace(/\D/g, "").length === 8) {
+      setCepLoading(true);
+      const result = await fetchViaCEP(masked);
+      setCepLoading(false);
+      if (result) {
+        setForm((f) => ({ ...f, rua: result.logradouro, bairro: result.bairro }));
+      }
+    }
+  };
+
   const errors = useMemo(() => {
     const e: Partial<Record<keyof FormState, string>> = {};
     if (form.nome && !isValidNome(form.nome)) e.nome = "Digite seu nome completo (apenas letras)";
-    if (form.cpf && !isValidCPF(form.cpf)) e.cpf = "Digite um CPF válido";
-    if (form.rg && !isValidRG(form.rg)) e.rg = "Digite um RG válido";
-    if (form.data_nascimento && !isValidDate(form.data_nascimento)) e.data_nascimento = "Digite uma data válida";
-    if (form.telefone && !isValidPhone(form.telefone)) e.telefone = "Digite um telefone válido";
-    if (form.email && !isValidEmail(form.email)) e.email = "Digite um email válido";
+    if (form.cpf && !isValidCPF(form.cpf)) e.cpf = "CPF inválido";
+    if (form.rg && !isValidRG(form.rg)) e.rg = "RG inválido";
+    if (form.data_nascimento && !isValidDate(form.data_nascimento)) e.data_nascimento = "Data inválida";
+    if (form.telefone && !isValidPhone(form.telefone)) e.telefone = "Telefone inválido";
+    if (form.email && !isValidEmail(form.email)) e.email = "Email inválido";
     return e;
   }, [form]);
 
-  const requiredFilled = form.nome && form.cpf && form.rg && form.data_nascimento && form.endereco && form.telefone && form.email;
+  const requiredFilled =
+    form.nome && form.cpf && form.rg && form.data_nascimento &&
+    form.estado_civil && form.estado_nascimento &&
+    form.telefone && form.email &&
+    form.cep && form.rua && form.bairro && form.numero &&
+    form.profissao && form.escolaridade;
+
   const canSubmit = requiredFilled && Object.keys(errors).length === 0;
 
   const submitForm = async (e: React.FormEvent) => {
     e.preventDefault();
-    setTouched({
-      nome: true, cpf: true, rg: true, data_nascimento: true,
-      endereco: true, telefone: true, email: true,
-    });
-    if (!canSubmit) {
-      toast.error("Verifique os campos destacados");
-      return;
-    }
+    const allKeys = Object.keys(EMPTY) as (keyof FormState)[];
+    setTouched(Object.fromEntries(allKeys.map((k) => [k, true])));
+    if (!canSubmit) { toast.error("Verifique os campos destacados"); return; }
     setSaving(true);
+    const endereco = `${form.rua}, ${form.numero} - ${form.bairro}, CEP: ${form.cep}`;
     const payload = {
       nome: form.nome.trim(),
       cpf: form.cpf,
       rg: form.rg,
       data_nascimento: dateBRtoISO(form.data_nascimento),
-      endereco: form.endereco.trim(),
+      estado_civil: form.estado_civil,
+      estado_nascimento: form.estado_nascimento,
       telefone: form.telefone,
       email: form.email.trim().toLowerCase(),
+      cep: form.cep,
+      rua: form.rua.trim(),
+      bairro: form.bairro.trim(),
+      numero: form.numero.trim(),
+      endereco,
+      profissao: form.profissao.trim(),
+      escolaridade: form.escolaridade,
     };
     const { error } = await supabase.from("patients").update(payload).eq("token", token);
     setSaving(false);
@@ -118,52 +175,38 @@ function PatientFlow() {
     }
     setSaving(true);
     const dataUrl = sigRef.current.toDataURL();
-    const { error } = await supabase
-      .from("patients")
-      .update({
-        contract_accepted: true,
-        signature_data: dataUrl,
-        signed_at: new Date().toISOString(),
-        status: "assinado",
-      })
-      .eq("token", token);
+    const { error } = await supabase.from("patients").update({
+      contract_accepted: true, signature_data: dataUrl,
+      signed_at: new Date().toISOString(), status: "assinado",
+    }).eq("token", token);
     setSaving(false);
     if (error) { toast.error("Erro ao salvar assinatura"); return; }
     setStep("done");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="flex min-h-screen items-center justify-center">
+      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+    </div>
+  );
 
-  if (!patient) {
-    return (
-      <div className="flex min-h-screen items-center justify-center px-4">
-        <Card className="max-w-md p-8 text-center">
-          <h2 className="text-lg font-semibold">Link inválido</h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Este link de cadastro não existe ou já expirou. Solicite um novo à recepção.
-          </p>
-        </Card>
-      </div>
-    );
-  }
+  if (!patient) return (
+    <div className="flex min-h-screen items-center justify-center px-4">
+      <Card className="max-w-md p-8 text-center">
+        <h2 className="text-lg font-semibold">Link inválido</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Este link de cadastro não existe ou já expirou. Solicite um novo à recepção.
+        </p>
+      </Card>
+    </div>
+  );
 
   return (
     <div className="min-h-screen">
       <header className="border-b border-border bg-card/60 backdrop-blur">
         <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-4">
-          <div
-            className="flex h-10 w-10 items-center justify-center rounded-xl text-primary-foreground"
-            style={{ background: "var(--gradient-clinical)" }}
-          >
-            <Stethoscope className="h-5 w-5" />
-          </div>
+          <OdontoLogo size={40} />
           <div>
             <h1 className="text-base font-semibold leading-tight">OdontoClinic</h1>
             <p className="text-xs text-muted-foreground">
@@ -179,81 +222,108 @@ function PatientFlow() {
         {step === "form" && (
           <Card className="mt-6 p-5 sm:p-8 shadow-[var(--shadow-card)]">
             <h2 className="text-xl font-semibold">Seus dados</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Preencha as informações abaixo. Leva menos de 2 minutos.
-            </p>
-            <form onSubmit={submitForm} className="mt-6 grid gap-4" noValidate>
-              <Field
-                label="Nome completo" required
-                value={form.nome}
-                placeholder="João da Silva"
+            <p className="mt-1 text-sm text-muted-foreground">Preencha as informações abaixo.</p>
+            <form onSubmit={submitForm} className="mt-6 grid gap-5" noValidate>
+
+              {/* Identificação */}
+              <Section title="Identificação" />
+              <Field label="Nome completo" required
+                value={form.nome} placeholder="João da Silva"
                 onChange={(v) => setForm((f) => ({ ...f, nome: filterNomeInput(v) }))}
                 onBlur={() => setTouched((t) => ({ ...t, nome: true }))}
-                error={touched.nome ? errors.nome : undefined}
-                inputMode="text"
-              />
+                error={touched.nome ? errors.nome : undefined} />
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field
-                  label="CPF" required
-                  value={form.cpf}
-                  placeholder="000.000.000-00"
+                <Field label="CPF" required value={form.cpf} placeholder="000.000.000-00"
                   onChange={(v) => setForm((f) => ({ ...f, cpf: maskCPF(v) }))}
                   onBlur={() => setTouched((t) => ({ ...t, cpf: true }))}
-                  error={touched.cpf ? errors.cpf : undefined}
-                  inputMode="numeric"
-                />
-                <Field
-                  label="RG" required
-                  value={form.rg}
-                  placeholder="00.000.000-X"
+                  error={touched.cpf ? errors.cpf : undefined} inputMode="numeric" />
+                <Field label="RG" required value={form.rg} placeholder="00.000.000-X"
                   onChange={(v) => setForm((f) => ({ ...f, rg: maskRG(v) }))}
                   onBlur={() => setTouched((t) => ({ ...t, rg: true }))}
-                  error={touched.rg ? errors.rg : undefined}
-                  inputMode="text"
-                />
+                  error={touched.rg ? errors.rg : undefined} />
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field
-                  label="Data de nascimento" required
-                  value={form.data_nascimento}
-                  placeholder="DD/MM/AAAA"
+                <Field label="Data de nascimento" required value={form.data_nascimento} placeholder="DD/MM/AAAA"
                   onChange={(v) => setForm((f) => ({ ...f, data_nascimento: maskDate(v) }))}
                   onBlur={() => setTouched((t) => ({ ...t, data_nascimento: true }))}
-                  error={touched.data_nascimento ? errors.data_nascimento : undefined}
-                  inputMode="numeric"
-                />
-                <Field
-                  label="Telefone" required
-                  value={form.telefone}
-                  placeholder="(00) 00000-0000"
-                  onChange={(v) => setForm((f) => ({ ...f, telefone: maskPhone(v) }))}
-                  onBlur={() => setTouched((t) => ({ ...t, telefone: true }))}
-                  error={touched.telefone ? errors.telefone : undefined}
-                  inputMode="tel"
-                />
+                  error={touched.data_nascimento ? errors.data_nascimento : undefined} inputMode="numeric" />
+                <SelectField label="Estado onde nasceu" required
+                  value={form.estado_nascimento}
+                  onChange={(v) => setForm((f) => ({ ...f, estado_nascimento: v }))}
+                  error={touched.estado_nascimento && !form.estado_nascimento ? "Selecione um estado" : undefined}>
+                  <option value="">Selecione...</option>
+                  {ESTADOS_BR.map((uf) => <option key={uf} value={uf}>{uf}</option>)}
+                </SelectField>
               </div>
 
-              <Field
-                label="Email" required
-                value={form.email}
-                placeholder="nome@exemplo.com"
-                onChange={(v) => setForm((f) => ({ ...f, email: v.replace(/\s/g, "") }))}
-                onBlur={() => setTouched((t) => ({ ...t, email: true }))}
-                error={touched.email ? errors.email : undefined}
-                inputMode="email"
-                type="email"
-              />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <SelectField label="Estado civil" required
+                  value={form.estado_civil}
+                  onChange={(v) => setForm((f) => ({ ...f, estado_civil: v }))}
+                  error={touched.estado_civil && !form.estado_civil ? "Selecione" : undefined}>
+                  <option value="">Selecione...</option>
+                  {ESTADOS_CIVIS.map((s) => <option key={s} value={s}>{s}</option>)}
+                </SelectField>
+                <Field label="Profissão" required value={form.profissao} placeholder="Ex: Advogado, Professor..."
+                  onChange={(v) => setForm((f) => ({ ...f, profissao: v }))}
+                  onBlur={() => setTouched((t) => ({ ...t, profissao: true }))}
+                  error={touched.profissao && !form.profissao ? "Campo obrigatório" : undefined} />
+              </div>
 
-              <Field
-                label="Endereço completo" required
-                value={form.endereco}
-                placeholder="Rua, número, bairro, cidade — UF"
-                onChange={(v) => setForm((f) => ({ ...f, endereco: v }))}
-                onBlur={() => setTouched((t) => ({ ...t, endereco: true }))}
-                inputMode="text"
-              />
+              <SelectField label="Escolaridade" required
+                value={form.escolaridade}
+                onChange={(v) => setForm((f) => ({ ...f, escolaridade: v }))}
+                error={touched.escolaridade && !form.escolaridade ? "Selecione" : undefined}>
+                <option value="">Selecione...</option>
+                {ESCOLARIDADES.map((s) => <option key={s} value={s}>{s}</option>)}
+              </SelectField>
+
+              {/* Contato */}
+              <Section title="Contato" />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Telefone" required value={form.telefone} placeholder="(00) 00000-0000"
+                  onChange={(v) => setForm((f) => ({ ...f, telefone: maskPhone(v) }))}
+                  onBlur={() => setTouched((t) => ({ ...t, telefone: true }))}
+                  error={touched.telefone ? errors.telefone : undefined} inputMode="tel" />
+                <Field label="Email" required value={form.email} placeholder="nome@exemplo.com"
+                  onChange={(v) => setForm((f) => ({ ...f, email: v.replace(/\s/g, "") }))}
+                  onBlur={() => setTouched((t) => ({ ...t, email: true }))}
+                  error={touched.email ? errors.email : undefined} inputMode="email" type="email" />
+              </div>
+
+              {/* Endereço */}
+              <Section title="Endereço" />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-1.5">
+                  <Label>CEP <span className="text-destructive">*</span></Label>
+                  <div className="relative">
+                    <Input
+                      value={form.cep} placeholder="00000-000" inputMode="numeric"
+                      onChange={(e) => handleCEPChange(e.target.value)}
+                      onBlur={() => setTouched((t) => ({ ...t, cep: true }))}
+                      className={cn(touched.cep && !form.cep && "border-destructive focus-visible:ring-destructive/40")}
+                    />
+                    {cepLoading && <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />}
+                  </div>
+                  {touched.cep && !form.cep && <p className="text-xs text-destructive">CEP obrigatório</p>}
+                </div>
+                <Field label="Número" required value={form.numero} placeholder="123"
+                  onChange={(v) => setForm((f) => ({ ...f, numero: v }))}
+                  onBlur={() => setTouched((t) => ({ ...t, numero: true }))}
+                  error={touched.numero && !form.numero ? "Campo obrigatório" : undefined} />
+              </div>
+
+              <Field label="Rua" required value={form.rua} placeholder="Preenchida pelo CEP"
+                onChange={(v) => setForm((f) => ({ ...f, rua: v }))}
+                onBlur={() => setTouched((t) => ({ ...t, rua: true }))}
+                error={touched.rua && !form.rua ? "Campo obrigatório" : undefined} />
+
+              <Field label="Bairro" required value={form.bairro} placeholder="Preenchido pelo CEP"
+                onChange={(v) => setForm((f) => ({ ...f, bairro: v }))}
+                onBlur={() => setTouched((t) => ({ ...t, bairro: true }))}
+                error={touched.bairro && !form.bairro ? "Campo obrigatório" : undefined} />
 
               <Button type="submit" size="lg" disabled={saving} className="mt-2">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Continuar"}
@@ -273,12 +343,7 @@ function PatientFlow() {
               <Checkbox checked={accepted} onCheckedChange={(v) => setAccepted(!!v)} className="mt-0.5" />
               <span className="text-sm">Li e concordo com os termos do contrato.</span>
             </label>
-            <Button
-              onClick={() => setStep("signature")}
-              disabled={!accepted}
-              size="lg"
-              className="mt-6 w-full"
-            >
+            <Button onClick={() => setStep("signature")} disabled={!accepted} size="lg" className="mt-6 w-full">
               Avançar para assinatura
             </Button>
           </Card>
@@ -290,9 +355,7 @@ function PatientFlow() {
               <PenLine className="h-5 w-5 text-primary" />
               <h2 className="text-xl font-semibold">Assinatura digital</h2>
             </div>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Assine no quadro abaixo usando o dedo ou o mouse.
-            </p>
+            <p className="mt-1 text-sm text-muted-foreground">Assine no quadro abaixo usando o dedo ou o mouse.</p>
             <div className="mt-5 rounded-xl border-2 border-dashed border-border bg-background">
               <SignaturePad ref={sigRef} className="block h-56 w-full rounded-xl" />
             </div>
@@ -314,8 +377,7 @@ function PatientFlow() {
             </div>
             <h2 className="mt-4 text-2xl font-semibold">Cadastro finalizado!</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              Obrigado! Seu contrato foi assinado e enviado à clínica.
-              Você já pode fechar esta página.
+              Obrigado! Seu contrato foi assinado e enviado à clínica. Você já pode fechar esta página.
             </p>
             {patient.prontuario && (
               <p className="mt-4 font-mono text-xs text-muted-foreground">{patient.prontuario}</p>
@@ -327,32 +389,46 @@ function PatientFlow() {
   );
 }
 
-function Field({
-  label, value, onChange, onBlur, required, error, placeholder, inputMode, type,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  onBlur?: () => void;
-  required?: boolean;
-  error?: string;
-  placeholder?: string;
-  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
-  type?: string;
+function Section({ title }: { title: string }) {
+  return (
+    <div className="-mb-1">
+      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</p>
+      <div className="mt-1 h-px bg-border" />
+    </div>
+  );
+}
+
+function Field({ label, value, onChange, onBlur, required, error, placeholder, inputMode, type }: {
+  label: string; value: string; onChange: (v: string) => void;
+  onBlur?: () => void; required?: boolean; error?: string;
+  placeholder?: string; inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"]; type?: string;
 }) {
   return (
     <div className="grid gap-1.5">
       <Label>{label}{required && <span className="text-destructive"> *</span>}</Label>
-      <Input
-        type={type}
-        value={value}
-        placeholder={placeholder}
-        inputMode={inputMode}
-        onChange={(e) => onChange(e.target.value)}
-        onBlur={onBlur}
-        aria-invalid={!!error}
-        className={cn(error && "border-destructive focus-visible:ring-destructive/40")}
-      />
+      <Input type={type} value={value} placeholder={placeholder} inputMode={inputMode}
+        onChange={(e) => onChange(e.target.value)} onBlur={onBlur}
+        className={cn(error && "border-destructive focus-visible:ring-destructive/40")} />
+      {error && <p className="text-xs text-destructive">{error}</p>}
+    </div>
+  );
+}
+
+function SelectField({ label, value, onChange, required, error, children }: {
+  label: string; value: string; onChange: (v: string) => void;
+  required?: boolean; error?: string; children: React.ReactNode;
+}) {
+  return (
+    <div className="grid gap-1.5">
+      <Label>{label}{required && <span className="text-destructive"> *</span>}</Label>
+      <select value={value} onChange={(e) => onChange(e.target.value)}
+        className={cn(
+          "flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background",
+          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+          error && "border-destructive focus-visible:ring-destructive/40"
+        )}>
+        {children}
+      </select>
       {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   );
@@ -368,15 +444,10 @@ function Stepper({ step }: { step: Step }) {
   return (
     <div className="flex items-center gap-2">
       {steps.map((s, i) => {
-        const active = i === idx;
-        const done = i < idx;
+        const active = i === idx, done = i < idx;
         return (
           <div key={s.id} className="flex flex-1 items-center gap-2">
-            <div
-              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition ${
-                done ? "bg-success text-white" : active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-              }`}
-            >
+            <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition ${done ? "bg-success text-white" : active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
               {done ? "✓" : i + 1}
             </div>
             <span className={`text-xs font-medium ${active ? "text-foreground" : "text-muted-foreground"}`}>{s.label}</span>

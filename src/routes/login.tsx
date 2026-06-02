@@ -6,7 +6,8 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, Stethoscope } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { OdontoLogo } from "@/components/OdontoLogo";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -46,9 +47,8 @@ function LoginPage() {
     <div className="flex min-h-screen items-center justify-center px-4 py-10">
       <div className="w-full max-w-md">
         <div className="mb-6 flex flex-col items-center gap-3">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl text-primary-foreground"
-               style={{ background: "var(--gradient-clinical)" }}>
-            <Stethoscope className="h-7 w-7" />
+          <div className="rounded-2xl overflow-hidden shadow-[var(--shadow-lift)]">
+            <OdontoLogo size={56} />
           </div>
           <div className="text-center">
             <h1 className="text-2xl font-bold">OdontoClinic</h1>
