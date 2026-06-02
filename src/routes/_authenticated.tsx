@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, redirect, useLocation } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { AppHeader } from "@/components/AppHeader";
 import { getServerSession } from "@/integrations/supabase/session-check.server";
@@ -20,11 +20,10 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 function AuthLayout() {
-  const loc = useLocation();
   return (
     <div className="min-h-screen">
       <AppHeader />
-      <div key={loc.pathname} className="page-enter">
+      <div className="page-enter">
         <Outlet />
       </div>
     </div>

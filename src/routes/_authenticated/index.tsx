@@ -133,25 +133,20 @@ function ReceptionDashboard() {
     toast.success("Link gerado");
   };
 
-  const handleWhatsappYes = () => {
+  const whatsappMsg = whatsappAsk
+    ? `Olá! 😊 Segue o link para assinatura do seu contrato com a OdontoClinic. ⚠️ Este link expira em 5 minutos. Acesse: ${whatsappAsk}`
+    : "";
+
+  const handleOpenWhatsApp = () => {
     if (!whatsappAsk) return;
-    const msg = `Olá! 😊 Segue o link para assinatura do seu contrato com a OdontoClinic. ⚠️ Este link expira em 5 minutos. Acesse: ${whatsappAsk}`;
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    if (isMobile) {
-      window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
-    } else {
-      // Desktop: open WhatsApp Desktop app via protocol; copy link as automatic fallback
-      window.open(`whatsapp://send?text=${encodeURIComponent(msg)}`);
-      navigator.clipboard.writeText(whatsappAsk).catch(() => {});
-      toast.success("WhatsApp solicitado • Link copiado como backup");
-    }
+    window.open(`https://wa.me/?text=${encodeURIComponent(whatsappMsg)}`, "_blank");
     setWhatsappAsk(null);
   };
 
-  const handleWhatsappNo = async () => {
+  const handleCopyMessage = async () => {
     if (!whatsappAsk) return;
-    try { await navigator.clipboard.writeText(whatsappAsk); } catch { /* noop */ }
-    toast.success("Link copiado com sucesso");
+    try { await navigator.clipboard.writeText(whatsappMsg); } catch { /* noop */ }
+    toast.success("Mensagem copiada");
     setWhatsappAsk(null);
   };
 
@@ -346,18 +341,21 @@ function ReceptionDashboard() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <MessageCircle className="h-5 w-5 text-success" />
-              Deseja enviar por WhatsApp?
+              Enviar por WhatsApp
             </DialogTitle>
             <DialogDescription>
-              Envie o link diretamente pelo WhatsApp ou copie para usar em outro canal.
+              Mensagem pronta para envio ao paciente.
             </DialogDescription>
           </DialogHeader>
+          <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground leading-relaxed">
+            {whatsappMsg}
+          </p>
           <DialogFooter className="gap-2 sm:gap-2">
-            <Button variant="outline" onClick={handleWhatsappNo} className="flex-1">
-              Não, apenas copiar
+            <Button variant="outline" onClick={handleCopyMessage} className="flex-1 gap-2">
+              <Copy className="h-4 w-4" /> Copiar mensagem
             </Button>
-            <Button onClick={handleWhatsappYes} className="flex-1 gap-2 bg-success text-primary-foreground hover:bg-success/90">
-              <MessageCircle className="h-4 w-4" /> Sim, enviar
+            <Button onClick={handleOpenWhatsApp} className="flex-1 gap-2 bg-success text-primary-foreground hover:bg-success/90">
+              <MessageCircle className="h-4 w-4" /> Abrir WhatsApp Web
             </Button>
           </DialogFooter>
         </DialogContent>
