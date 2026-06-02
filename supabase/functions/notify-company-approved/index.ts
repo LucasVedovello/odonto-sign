@@ -46,8 +46,8 @@ ${rejectionReason ? `<div style="background:#fef2f2;border-left:4px solid #dc262
       method: "POST",
       headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from: "OdontoClinic <onboarding@resend.dev>",
-        to: [ownerEmail],
+        from: "onboarding@resend.dev",
+        to: ["lucas.vedovelloo09@gmail.com"],
         subject,
         html,
       }),

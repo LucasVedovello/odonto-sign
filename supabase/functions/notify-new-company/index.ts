@@ -49,8 +49,8 @@ Deno.serve(async (req) => {
       method: "POST",
       headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from: "OdontoClinic <onboarding@resend.dev>",
-        to: ["odonto.sign@gmail.com"],
+        from: "onboarding@resend.dev",
+        to: ["lucas.vedovelloo09@gmail.com"],
         subject: `[OdontoClinic] Nova clínica aguardando aprovação: ${companyName}`,
         html,
       }),
