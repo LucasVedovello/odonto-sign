@@ -88,11 +88,18 @@ function SupportPage() {
     setSubmitting(true);
 
     try {
+      // Get auth user directly so user_id matches auth.uid() in RLS exactly
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) throw new Error("Sessão expirada. Faça login novamente.");
+
+      const userId = user.id;
+      const companyId = profile.company_id;
+
       // Upload images — sanitize filename before sending to Storage
       const imagePaths: string[] = [];
       for (const file of files) {
         const safeName = sanitizeFilename(file.name);
-        const path = `${profile.id}/${Date.now()}_${safeName}`;
+        const path = `${userId}/${Date.now()}_${safeName}`;
         const { error } = await supabase.storage.from("support-images").upload(path, file);
         if (error) throw error;
         imagePaths.push(path);
@@ -102,8 +109,8 @@ function SupportPage() {
       const { data: ticket, error: insertError } = await supabase
         .from("support_tickets")
         .insert({
-          user_id: profile.id,
-          company_id: profile.company_id,
+          user_id: userId,
+          company_id: companyId,
           title: title.trim(),
           message: message.trim(),
           images: imagePaths,
