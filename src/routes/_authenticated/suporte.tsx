@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -30,6 +30,13 @@ const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
 
 const MAX_IMAGES = 5;
 const MAX_FILE_MB = 5;
+
+function sanitizeFilename(name: string): string {
+  return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9._-]/g, "_");
+}
 
 function SupportPage() {
   const { profile } = useAuth();
@@ -81,10 +88,11 @@ function SupportPage() {
     setSubmitting(true);
 
     try {
-      // Upload images
+      // Upload images — sanitize filename before sending to Storage
       const imagePaths: string[] = [];
       for (const file of files) {
-        const path = `${profile.id}/${Date.now()}_${file.name.replace(/\s+/g, "_")}`;
+        const safeName = sanitizeFilename(file.name);
+        const path = `${profile.id}/${Date.now()}_${safeName}`;
         const { error } = await supabase.storage.from("support-images").upload(path, file);
         if (error) throw error;
         imagePaths.push(path);
@@ -137,14 +145,9 @@ function SupportPage() {
     }
   };
 
-  const getSignedUrl = async (path: string) => {
-    const { data } = await supabase.storage.from("support-images").createSignedUrl(path, 3600);
-    return data?.signedUrl ?? null;
-  };
-
   const openImage = async (path: string) => {
-    const url = await getSignedUrl(path);
-    if (url) setLightboxUrl(url);
+    const { data } = await supabase.storage.from("support-images").createSignedUrl(path, 3600);
+    if (data?.signedUrl) setLightboxUrl(data.signedUrl);
   };
 
   return (
