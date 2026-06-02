@@ -16,9 +16,6 @@ function parseCookieHeader(header: string): { name: string; value: string }[] {
     });
 }
 
-// Reads the Supabase session from cookies during SSR (Cloudflare Workers) and
-// also returns the user's admin flag and company approval status so the
-// authenticated route guard can redirect pending/rejected companies server-side.
 export const getServerSession = createServerFn().handler(async () => {
   const url = import.meta.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
   const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || '';
@@ -31,19 +28,33 @@ export const getServerSession = createServerFn().handler(async () => {
   });
 
   const { data: userData } = await serverSupabase.auth.getUser();
-  if (!userData?.user) return { authenticated: false, isAdmin: false, approvalStatus: 'approved' as string };
+  if (!userData?.user) {
+    return { authenticated: false, isAdmin: false, approvalStatus: 'approved' as string };
+  }
 
+  // Fetch profile WITHOUT a join — a missing/blocked company row must never
+  // make is_admin appear falsy, which would accidentally block the admin.
   const { data: profile } = await serverSupabase
     .from('profiles')
-    .select('is_admin, companies!inner(approval_status)')
+    .select('is_admin, company_id')
     .eq('id', userData.user.id)
     .maybeSingle();
 
-  const approvalStatus = (profile?.companies as { approval_status: string } | null)?.approval_status ?? 'approved';
+  // Admins always pass: return early with isAdmin = true
+  if (profile?.is_admin) {
+    return { authenticated: true, isAdmin: true, approvalStatus: 'approved' as string };
+  }
 
-  return {
-    authenticated: true,
-    isAdmin: profile?.is_admin ?? false,
-    approvalStatus,
-  };
+  // Non-admins: check company approval status separately
+  let approvalStatus = 'approved';
+  if (profile?.company_id) {
+    const { data: company } = await serverSupabase
+      .from('companies')
+      .select('approval_status')
+      .eq('id', profile.company_id)
+      .maybeSingle();
+    approvalStatus = company?.approval_status ?? 'approved';
+  }
+
+  return { authenticated: true, isAdmin: false, approvalStatus };
 });

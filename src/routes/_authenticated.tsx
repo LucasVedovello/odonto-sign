@@ -9,28 +9,42 @@ export const Route = createFileRoute("/_authenticated")({
       // Server-side (Cloudflare Workers): read session + approval from cookies.
       const { authenticated, isAdmin, approvalStatus } = await getServerSession();
       if (!authenticated) throw redirect({ to: "/login" });
-      if (!isAdmin) {
-        if (approvalStatus === 'pending') throw redirect({ to: "/aguardando-aprovacao" });
-        if (approvalStatus === 'rejected' &&
-            location.pathname !== '/acesso-negado' &&
-            !location.pathname.startsWith('/suporte')) {
-          throw redirect({ to: "/acesso-negado" });
-        }
+
+      // Admins always pass — never blocked by company approval
+      if (isAdmin) return;
+
+      if (approvalStatus === 'pending') throw redirect({ to: "/aguardando-aprovacao" });
+      if (approvalStatus === 'rejected' &&
+          location.pathname !== '/acesso-negado' &&
+          !location.pathname.startsWith('/suporte')) {
+        throw redirect({ to: "/acesso-negado" });
       }
     } else {
-      // Client-side: verify auth and company approval status.
+      // Client-side: verify auth, then check company approval for non-admins only.
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw redirect({ to: "/login" });
 
+      // Fetch profile WITHOUT a join so a missing/blocked company row
+      // never accidentally makes is_admin appear falsy.
       const { data: profile } = await supabase
         .from("profiles")
-        .select("is_admin, companies!inner(approval_status)")
+        .select("is_admin, company_id")
         .eq("id", userData.user.id)
         .maybeSingle();
 
-      if (!profile?.is_admin) {
-        const approvalStatus =
-          (profile?.companies as { approval_status: string } | null)?.approval_status ?? 'approved';
+      // Admins always pass — never blocked by company approval
+      if (profile?.is_admin) return;
+
+      // Non-admins: check the company's approval status separately
+      if (profile?.company_id) {
+        const { data: company } = await supabase
+          .from("companies")
+          .select("approval_status")
+          .eq("id", profile.company_id)
+          .maybeSingle();
+
+        const approvalStatus = company?.approval_status ?? 'approved';
+
         if (approvalStatus === 'pending') throw redirect({ to: "/aguardando-aprovacao" });
         if (approvalStatus === 'rejected' &&
             location.pathname !== '/acesso-negado' &&
