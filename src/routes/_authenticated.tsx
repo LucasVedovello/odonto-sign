@@ -6,12 +6,13 @@ import { getServerSession } from "@/integrations/supabase/session-check.server";
 export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async ({ location }) => {
     if (typeof window === 'undefined') {
-      // Server-side (Cloudflare Workers): read session + approval from cookies.
+      // ── Server side (Cloudflare Workers) ─────────────────────────────────
       const { authenticated, isAdmin, approvalStatus } = await getServerSession();
-      if (!authenticated) throw redirect({ to: "/login" });
 
-      // Admins always pass — never blocked by company approval
-      if (isAdmin) return;
+      console.log('[auth-guard:server] authenticated:', authenticated, '| isAdmin:', isAdmin, '| approval_status:', approvalStatus);
+
+      if (!authenticated) throw redirect({ to: "/login" });
+      if (isAdmin) return; // admins always pass
 
       if (approvalStatus === 'pending') throw redirect({ to: "/aguardando-aprovacao" });
       if (approvalStatus === 'rejected' &&
@@ -20,37 +21,43 @@ export const Route = createFileRoute("/_authenticated")({
         throw redirect({ to: "/acesso-negado" });
       }
     } else {
-      // Client-side: verify auth, then check company approval for non-admins only.
+      // ── Client side ───────────────────────────────────────────────────────
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw redirect({ to: "/login" });
 
-      // Fetch profile WITHOUT a join so a missing/blocked company row
-      // never accidentally makes is_admin appear falsy.
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("is_admin, company_id")
         .eq("id", userData.user.id)
         .maybeSingle();
 
-      // Admins always pass — never blocked by company approval
+      console.log('[auth-guard:client] profile:', profile, '| profileError:', profileError);
+
+      // Admins always pass
       if (profile?.is_admin) return;
 
-      // Non-admins: check the company's approval status separately
-      if (profile?.company_id) {
-        const { data: company } = await supabase
-          .from("companies")
-          .select("approval_status")
-          .eq("id", profile.company_id)
-          .maybeSingle();
+      // No profile or no company_id → something is wrong, re-send to login
+      if (!profile || !profile.company_id) {
+        console.log('[auth-guard:client] no profile or company_id — redirecting to login');
+        throw redirect({ to: "/login" });
+      }
 
-        const approvalStatus = company?.approval_status ?? 'approved';
+      const { data: company, error: companyError } = await supabase
+        .from("companies")
+        .select("approval_status")
+        .eq("id", profile.company_id)
+        .maybeSingle();
 
-        if (approvalStatus === 'pending') throw redirect({ to: "/aguardando-aprovacao" });
-        if (approvalStatus === 'rejected' &&
-            location.pathname !== '/acesso-negado' &&
-            !location.pathname.startsWith('/suporte')) {
-          throw redirect({ to: "/acesso-negado" });
-        }
+      // Safe default: if company can't be read, treat as pending
+      const approvalStatus = company?.approval_status ?? 'pending';
+
+      console.log('[auth-guard:client] company:', company, '| companyError:', companyError, '| approval_status:', approvalStatus);
+
+      if (approvalStatus === 'pending') throw redirect({ to: "/aguardando-aprovacao" });
+      if (approvalStatus === 'rejected' &&
+          location.pathname !== '/acesso-negado' &&
+          !location.pathname.startsWith('/suporte')) {
+        throw redirect({ to: "/acesso-negado" });
       }
     }
   },

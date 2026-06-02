@@ -64,12 +64,15 @@ function CreateCompanyPage() {
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-success/15">
             <CheckCircle2 className="h-8 w-8 text-success" />
           </div>
-          <h2 className="mt-4 text-xl font-semibold">Empresa criada!</h2>
+          <h2 className="mt-4 text-xl font-semibold">Solicitação enviada!</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Enviamos um email de confirmação para <strong>{form.email}</strong>.
-            Confirme antes de fazer login.
+            Sua solicitação foi recebida. Você receberá um email em{" "}
+            <strong>{form.email}</strong> para confirmar seu cadastro.
           </p>
-          <Button onClick={() => navigate({ to: "/login" })} className="mt-6 w-full">Ir para login</Button>
+          <p className="mt-3 text-sm font-medium text-warning">
+            Aguarde a aprovação do administrador antes de fazer login. Você será notificado por email quando sua clínica for aprovada.
+          </p>
+          <Button onClick={() => navigate({ to: "/login" })} className="mt-6 w-full">Voltar para o login</Button>
         </Card>
       </div>
     );

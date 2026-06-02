@@ -29,32 +29,39 @@ export const getServerSession = createServerFn().handler(async () => {
 
   const { data: userData } = await serverSupabase.auth.getUser();
   if (!userData?.user) {
-    return { authenticated: false, isAdmin: false, approvalStatus: 'approved' as string };
+    return { authenticated: false, isAdmin: false, approvalStatus: 'pending' as string };
   }
 
-  // Fetch profile WITHOUT a join — a missing/blocked company row must never
-  // make is_admin appear falsy, which would accidentally block the admin.
   const { data: profile } = await serverSupabase
     .from('profiles')
     .select('is_admin, company_id')
     .eq('id', userData.user.id)
     .maybeSingle();
 
-  // Admins always pass: return early with isAdmin = true
+  console.log('[getServerSession] userId:', userData.user.id, '| profile:', JSON.stringify(profile));
+
+  // Admins always pass
   if (profile?.is_admin) {
     return { authenticated: true, isAdmin: true, approvalStatus: 'approved' as string };
   }
 
-  // Non-admins: check company approval status separately
-  let approvalStatus = 'approved';
-  if (profile?.company_id) {
-    const { data: company } = await serverSupabase
-      .from('companies')
-      .select('approval_status')
-      .eq('id', profile.company_id)
-      .maybeSingle();
-    approvalStatus = company?.approval_status ?? 'approved';
+  // No profile or no company_id → send back to login
+  if (!profile || !profile.company_id) {
+    console.log('[getServerSession] no profile or company_id — treating as unauthenticated');
+    return { authenticated: false, isAdmin: false, approvalStatus: 'pending' as string };
   }
+
+  // Check company approval
+  const { data: company } = await serverSupabase
+    .from('companies')
+    .select('approval_status')
+    .eq('id', profile.company_id)
+    .maybeSingle();
+
+  // Safe default: if company row can't be read, treat as pending
+  const approvalStatus = company?.approval_status ?? 'pending';
+
+  console.log('[getServerSession] company_id:', profile.company_id, '| approval_status:', approvalStatus);
 
   return { authenticated: true, isAdmin: false, approvalStatus };
 });
