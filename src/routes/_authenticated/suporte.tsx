@@ -119,6 +119,15 @@ function SupportPage() {
       }
 
       // Insert ticket
+      const insertPayload = {
+        user_id: userId,
+        company_id: companyId,
+        title: title.trim(),
+        message: message.trim(),
+        images: imagePaths,
+      };
+      console.log('Inserindo ticket:', insertPayload);
+
       const { data: ticket, error: insertError } = await supabase
         .from("support_tickets")
         .insert({
