@@ -102,6 +102,7 @@ function ProntuarioPage() {
   const [patientSearch, setPatientSearch] = useState("");
   const [patientResults, setPatientResults] = useState<any[]>([]);
   const [patientSearchFocused, setPatientSearchFocused] = useState(false);
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!profile?.company_id) return;
@@ -132,6 +133,7 @@ function ProntuarioPage() {
   }, [patientSearch, profile?.company_id]);
 
   const selectPatient = (p: any) => {
+    setSelectedPatientId(p.id ?? null);
     setForm((f) => ({
       ...f,
       nome: p.nome ?? "",
@@ -148,6 +150,7 @@ function ProntuarioPage() {
   const openEdit = async (id: string) => {
     const { data: row } = await db.from("prontuarios").select("*").eq("id", id).single();
     if (!row) return;
+    setSelectedPatientId(row.patient_id ?? null);
     setForm({
       ...EMPTY_FORM(),
       ...row,
@@ -174,6 +177,7 @@ function ProntuarioPage() {
   const openNew = () => {
     setForm(EMPTY_FORM());
     setPatientSearch("");
+    setSelectedPatientId(null);
     setEventos([]);
     setEditingId("new");
     setStep(1);
@@ -181,15 +185,20 @@ function ProntuarioPage() {
 
   // ── Save ────────────────────────────────────────────────────────────────
   const handleSave = async () => {
-    if (!profile?.company_id) return;
+    if (!profile?.company_id) { toast.error("Perfil sem empresa vinculada"); return; }
     setSaving(true);
     try {
       const sigPac = sigPacienteRef.current?.isEmpty() ? null : sigPacienteRef.current?.toDataURL();
       const sigDoc = sigDoutorRef.current?.isEmpty() ? null : sigDoutorRef.current?.toDataURL();
+
+      // company_id and patient_id are outside FormData — set them explicitly
+      // so they are never accidentally overwritten by the form spread.
       const payload: any = {
-        company_id: profile.company_id,
-        updated_at: new Date().toISOString(),
         ...form,
+        // explicit overrides (always win over form spread)
+        company_id: profile.company_id,
+        patient_id: selectedPatientId ?? null,  // null when no patient selected — never ""
+        updated_at: new Date().toISOString(),
         assinatura_paciente_planejamento: sigPac,
         assinatura_doutor: sigDoc,
       };
@@ -200,27 +209,36 @@ function ProntuarioPage() {
         .upsert(payload)
         .select("id")
         .single();
-      if (error || !saved) throw error ?? new Error("Erro ao salvar");
 
-      await db.from("prontuario_eventos").delete().eq("prontuario_id", saved.id);
+      if (error) {
+        console.error("[prontuario] upsert error:", JSON.stringify(error, null, 2));
+        throw new Error(error.message ?? "Erro ao salvar prontuário");
+      }
+      if (!saved) throw new Error("Upsert não retornou dados");
+
+      const evDelete = await db.from("prontuario_eventos").delete().eq("prontuario_id", saved.id);
+      if (evDelete.error) console.error("[prontuario] eventos delete error:", evDelete.error.message);
+
       if (eventos.length > 0) {
-        await db.from("prontuario_eventos").insert(
+        const evInsert = await db.from("prontuario_eventos").insert(
           eventos.map((e) => ({
             prontuario_id: saved.id,
             data: e.data || null,
-            dente: e.dente,
-            procedimento: e.procedimento,
-            dentista: e.dentista,
+            dente: e.dente || null,
+            procedimento: e.procedimento || null,
+            dentista: e.dentista || null,
             assinatura_paciente: e.assinatura_paciente || null,
           }))
         );
+        if (evInsert.error) console.error("[prontuario] eventos insert error:", evInsert.error.message);
       }
 
       toast.success("Prontuário salvo com sucesso!");
       setEditingId(null);
       load();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erro ao salvar prontuário");
+      const msg = e instanceof Error ? e.message : "Erro ao salvar prontuário";
+      toast.error(msg);
     } finally {
       setSaving(false);
     }
@@ -355,7 +373,7 @@ function ProntuarioPage() {
                     <Label className="text-xs">{label}</Label>
                     <Input className="h-8 text-sm" value={(form as any)[k]}
                       onChange={(e) => sf(k as keyof FormData)(e.target.value)}
-                      placeholder="Sim/Não" />
+                      placeholder="Descreva..." />
                   </div>
                 ))}
               </div>
