@@ -132,6 +132,39 @@ export async function generatePatientPdf(p: PatientPdfData): Promise<jsPDF> {
     y += Math.max(16, lines.length * 14);
   });
 
+  // ── Serviços Contratados ─────────────────────────────────────────────────
+  const PROC_NAMES: Record<string, string> = {
+    protese:  "Prótese Dentária",
+    implante: "Implante Dentário",
+    ortho:    "Ortodontia",
+  };
+  const procList = (p.procedimentos ?? []).filter((k) => k in PROC_NAMES);
+  y += 6;
+  if (y > 720) { doc.addPage(); y = margin; }
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.setTextColor(34, 40, 60);
+  doc.text("Serviços Contratados", margin, y);
+  y += 6;
+  doc.setDrawColor(220, 228, 240);
+  doc.line(margin, y, pageW - margin, y);
+  y += 14;
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  if (procList.length === 0) {
+    doc.setTextColor(120, 130, 150);
+    doc.text("Nenhum procedimento adicional contratado.", margin, y);
+    y += 16;
+  } else {
+    doc.setTextColor(34, 40, 60);
+    procList.forEach((k) => {
+      if (y > 720) { doc.addPage(); y = margin; }
+      doc.text(`✓  ${PROC_NAMES[k]}`, margin, y);
+      y += 16;
+    });
+  }
+  y += 4;
+
   if (p.creator_name || p.created_at) {
     y += 8;
     doc.setFont("helvetica", "italic");
@@ -188,15 +221,19 @@ export async function generatePatientPdf(p: PatientPdfData): Promise<jsPDF> {
 
   // ── Seções de contrato por procedimento ──────────────────────────────────
   const procs = p.procedimentos ?? [];
+  const refDate = p.signed_at || p.created_at || new Date().toISOString();
+  const d = new Date(refDate);
+  const dateStr = `${String(d.getDate()).padStart(2, "0")} / ${String(d.getMonth() + 1).padStart(2, "0")} / ${d.getFullYear()}`;
+  const patientName = p.nome || "";
 
   if (procs.includes("protese")) {
-    addProcedureSection(doc, margin, pageW, CONTRATO_PROTESE);
+    addProcedureSection(doc, margin, pageW, CONTRATO_PROTESE, patientName, dateStr);
   }
   if (procs.includes("implante")) {
-    addProcedureSection(doc, margin, pageW, CONTRATO_IMPLANTE);
+    addProcedureSection(doc, margin, pageW, CONTRATO_IMPLANTE, patientName, dateStr);
   }
   if (procs.includes("ortho")) {
-    addProcedureSection(doc, margin, pageW, CONTRATO_ORTODONTIA);
+    addProcedureSection(doc, margin, pageW, CONTRATO_ORTODONTIA, patientName, dateStr);
   }
 
   return doc;
@@ -274,7 +311,7 @@ Os valores e condições de pagamento foram acordados previamente e constam em d
 Declaro ter lido, compreendido e concordado com todas as cláusulas acima.`;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function addProcedureSection(doc: any, margin: number, pageW: number, text: string) {
+function addProcedureSection(doc: any, margin: number, pageW: number, text: string, patientName = "", dateStr = "") {
   // Always start on a new page
   doc.addPage();
   let y = margin;
@@ -319,6 +356,6 @@ function addProcedureSection(doc: any, margin: number, pageW: number, text: stri
   doc.setTextColor(34, 40, 60);
 
   doc.text("Assinatura do Paciente: _________________________________", margin, y); y += 22;
-  doc.text("Nome completo: ________________________________________", margin, y); y += 22;
-  doc.text("Data: _____ / _____ / _________", margin, y);
+  doc.text(`Nome completo: ${patientName || "________________________________________"}`, margin, y); y += 22;
+  doc.text(`Data: ${dateStr || "_____ / _____ / _________"}`, margin, y);
 }

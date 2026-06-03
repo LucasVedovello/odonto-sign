@@ -60,7 +60,42 @@ const EMPTY: FormState = {
   profissao: "", escolaridade: "",
 };
 
-// Procedure labels shown to the patient on the contract step
+// Procedure terms shown to the patient on the contract step
+const TERMOS_MAP: Record<string, { titulo: string; clausulas: string[] }> = {
+  protese: {
+    titulo: "Contrato de Prótese Dentária",
+    clausulas: [
+      "Cláusula 1 — Do Objeto: A clínica se compromete a realizar o procedimento de prótese dentária conforme planejamento clínico previamente apresentado e aceito pelo paciente, utilizando materiais de qualidade compatíveis com o procedimento indicado.",
+      "Cláusula 2 — Do Prazo: O prazo estimado para conclusão do tratamento será informado pelo profissional responsável na consulta de avaliação, podendo ser alterado em razão de fatores clínicos supervenientes.",
+      "Cláusula 3 — Da Garantia: A prótese instalada possui garantia de 12 (doze) meses contra defeitos de fabricação, desde que o paciente siga as orientações de higiene e conservação fornecidas pela equipe clínica.",
+      "Cláusula 4 — Das Obrigações do Paciente: O paciente se compromete a comparecer a todas as consultas agendadas, comunicar imediatamente qualquer desconforto e seguir as orientações pós-instalação.",
+      "Cláusula 5 — Do Pagamento: Os valores e condições de pagamento foram acordados previamente. O não pagamento nas datas acordadas poderá implicar na suspensão do tratamento.",
+    ],
+  },
+  implante: {
+    titulo: "Contrato de Implante Dentário",
+    clausulas: [
+      "Cláusula 1 — Do Objeto: A clínica se compromete a realizar o procedimento de implante dentário osseointegrado conforme planejamento cirúrgico aprovado, utilizando implantes de titânio certificados.",
+      "Cláusula 2 — Dos Riscos: O paciente declara estar ciente de que o sucesso do implante depende de fatores biológicos individuais, incluindo qualidade óssea, higiene bucal e ausência de doenças sistêmicas não controladas.",
+      "Cláusula 3 — Do Período de Osseointegração: Após a instalação, será necessário aguardar entre 3 e 6 meses para osseointegração. O paciente deverá seguir todas as orientações e comparecer às consultas de acompanhamento.",
+      "Cláusula 4 — Da Garantia: O implante possui garantia de 5 (cinco) anos contra falha de osseointegração primária, condicionada ao seguimento das orientações pós-operatórias.",
+      "Cláusula 5 — Das Obrigações do Paciente: O paciente se compromete a não fumar durante a osseointegração, manter higiene bucal rigorosa e comunicar qualquer sintoma de dor intensa ou mobilidade do implante.",
+      "Cláusula 6 — Do Pagamento: Os valores foram acordados previamente. A inadimplência poderá resultar na suspensão do tratamento.",
+    ],
+  },
+  ortho: {
+    titulo: "Contrato de Ortodontia",
+    clausulas: [
+      "Cláusula 1 — Do Objeto: A clínica se compromete a realizar o tratamento ortodôntico conforme planejamento apresentado, utilizando aparelhos e materiais adequados ao caso clínico.",
+      "Cláusula 2 — Do Prazo: O prazo estimado será informado pelo profissional, podendo variar conforme resposta biológica do paciente e colaboração nos comparecimentos.",
+      "Cláusula 3 — Das Obrigações do Paciente: O paciente se compromete a comparecer às consultas mensais, usar os elásticos conforme orientado, evitar alimentos que danifiquem o aparelho e manter higiene bucal rigorosa.",
+      "Cláusula 4 — Da Contenção Pós-Tratamento: Ao término do tratamento, o paciente deverá utilizar contenção pelo período indicado. O não uso pode resultar em recidiva, sem responsabilidade da clínica.",
+      "Cláusula 5 — Da Garantia: A clínica se responsabiliza pela qualidade técnica. Quebras por mau uso poderão gerar custos adicionais.",
+      "Cláusula 6 — Do Pagamento: Inadimplência por mais de 30 dias poderá resultar na suspensão das manutenções.",
+    ],
+  },
+};
+
 const PROC_LABELS: Record<string, string> = {
   protese:  "Prótese",
   implante: "Implante",
@@ -364,19 +399,35 @@ function PatientFlow() {
               <span className="text-sm">Li e concordo com os termos do contrato.</span>
             </label>
 
-            {/* Extra procedure checkboxes — one per selected procedure */}
-            {proc.map((p) => (
-              <label key={p} className="mt-3 flex items-start gap-3 cursor-pointer">
-                <Checkbox
-                  checked={!!procAccepted[p]}
-                  onCheckedChange={(v) => setProcAccepted((prev) => ({ ...prev, [p]: !!v }))}
-                  className="mt-0.5"
-                />
-                <span className="text-sm">
-                  Li e concordo com os termos do contrato de <strong>{PROC_LABELS[p]}</strong>.
-                </span>
-              </label>
-            ))}
+            {/* Extra procedure terms + checkboxes — one block per selected procedure */}
+            {proc.map((p) => {
+              const termos = TERMOS_MAP[p];
+              if (!termos) return null;
+              return (
+                <div key={p} className="mt-4 rounded-lg border border-border">
+                  <div className="border-b border-border bg-muted/30 px-4 py-2.5">
+                    <p className="text-sm font-semibold">{termos.titulo}</p>
+                  </div>
+                  <div className="max-h-48 overflow-y-auto px-4 py-3 space-y-2 bg-muted/20">
+                    {termos.clausulas.map((c, i) => (
+                      <p key={i} className="text-xs leading-relaxed text-muted-foreground">{c}</p>
+                    ))}
+                  </div>
+                  <div className="px-4 py-3 border-t border-border">
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <Checkbox
+                        checked={!!procAccepted[p]}
+                        onCheckedChange={(v) => setProcAccepted((prev) => ({ ...prev, [p]: !!v }))}
+                        className="mt-0.5"
+                      />
+                      <span className="text-sm font-medium">
+                        Li e concordo com os termos do {termos.titulo}.
+                      </span>
+                    </label>
+                  </div>
+                </div>
+              );
+            })}
 
             <Button
               onClick={() => setStep("signature")}
