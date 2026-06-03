@@ -97,8 +97,6 @@ function ProntuarioPage() {
   const [saving, setSaving] = useState(false);
   const sigDoutorRef = useRef<SignaturePadHandle>(null);
   const sigPacienteRef = useRef<SignaturePadHandle>(null);
-  const [signingEventIdx, setSigningEventIdx] = useState<number | null>(null);
-  const sigEventRef = useRef<SignaturePadHandle>(null);
 
   // Patient autocomplete
   const [patientSearch, setPatientSearch] = useState("");
@@ -504,7 +502,7 @@ function ProntuarioPage() {
               <table className="min-w-full text-sm border-collapse">
                 <thead>
                   <tr className="border-b border-border">
-                    {["Data", "Dente", "Procedimento", "Dentista", "Paciente", ""].map((h) => (
+                    {["Data", "Dente", "Procedimento", "Dentista", ""].map((h) => (
                       <th key={h} className="text-left py-2 px-2 font-medium text-muted-foreground text-xs">{h}</th>
                     ))}
                   </tr>
@@ -512,21 +510,18 @@ function ProntuarioPage() {
                 <tbody>
                   {eventos.map((ev, i) => (
                     <tr key={i} className="border-b border-border/40">
-                      <td className="py-1.5 px-1"><Input className="h-7 w-28 text-xs" type="date" value={ev.data} onChange={(e) => setEventos((prev) => prev.map((x, j) => j === i ? { ...x, data: e.target.value } : x))} /></td>
-                      <td className="py-1.5 px-1"><Input className="h-7 w-16 text-xs" value={ev.dente} onChange={(e) => setEventos((prev) => prev.map((x, j) => j === i ? { ...x, dente: e.target.value } : x))} /></td>
-                      <td className="py-1.5 px-1"><Input className="h-7 w-40 text-xs" value={ev.procedimento} onChange={(e) => setEventos((prev) => prev.map((x, j) => j === i ? { ...x, procedimento: e.target.value } : x))} /></td>
-                      <td className="py-1.5 px-1"><Input className="h-7 w-28 text-xs" value={ev.dentista} onChange={(e) => setEventos((prev) => prev.map((x, j) => j === i ? { ...x, dentista: e.target.value } : x))} /></td>
                       <td className="py-1.5 px-1">
-                        {ev.assinatura_paciente ? (
-                          <button onClick={() => setSigningEventIdx(i)} className="block">
-                            <img src={ev.assinatura_paciente} alt="sig" className="h-7 w-20 object-contain border border-border rounded" />
-                          </button>
-                        ) : (
-                          <Button size="sm" variant="outline" className="h-7 text-xs px-2" onClick={() => setSigningEventIdx(i)}>
-                            <PenLine className="h-3 w-3 mr-1" /> Assinar
-                          </Button>
-                        )}
+                        <input
+                          type="date"
+                          value={ev.data ?? ""}
+                          onChange={(e) => setEventos((prev) => prev.map((x, j) => j === i ? { ...x, data: e.target.value } : x))}
+                          className="h-7 rounded border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                          style={{ width: 140 }}
+                        />
                       </td>
+                      <td className="py-1.5 px-1"><Input className="h-7 w-16 text-xs" value={ev.dente} onChange={(e) => setEventos((prev) => prev.map((x, j) => j === i ? { ...x, dente: e.target.value } : x))} /></td>
+                      <td className="py-1.5 px-1"><Input className="h-7 w-48 text-xs" value={ev.procedimento} onChange={(e) => setEventos((prev) => prev.map((x, j) => j === i ? { ...x, procedimento: e.target.value } : x))} /></td>
+                      <td className="py-1.5 px-1"><Input className="h-7 w-32 text-xs" value={ev.dentista} onChange={(e) => setEventos((prev) => prev.map((x, j) => j === i ? { ...x, dentista: e.target.value } : x))} /></td>
                       <td className="py-1.5 px-1">
                         <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"
                           onClick={() => setEventos((prev) => prev.filter((_, j) => j !== i))}>
@@ -597,30 +592,6 @@ function ProntuarioPage() {
           )}
         </div>
 
-        {/* Event signature modal */}
-        <Dialog open={signingEventIdx !== null} onOpenChange={(o) => !o && setSigningEventIdx(null)}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Assinatura do Paciente</DialogTitle>
-              <DialogDescription>Assine no campo abaixo para confirmar o procedimento.</DialogDescription>
-            </DialogHeader>
-            <div className="rounded-xl border-2 border-dashed border-border bg-white dark:bg-background overflow-hidden">
-              <SignaturePad ref={sigEventRef} className="block h-40 w-full" />
-            </div>
-            <DialogFooter className="gap-2">
-              <Button variant="outline" size="sm" onClick={() => sigEventRef.current?.clear()}>
-                <Eraser className="h-3.5 w-3.5 mr-1" /> Limpar
-              </Button>
-              <Button onClick={() => {
-                if (signingEventIdx === null || !sigEventRef.current || sigEventRef.current.isEmpty()) return;
-                const dataUrl = sigEventRef.current.toDataURL();
-                setEventos((prev) => prev.map((e, i) => i === signingEventIdx ? { ...e, assinatura_paciente: dataUrl } : e));
-                sigEventRef.current.clear();
-                setSigningEventIdx(null);
-              }}>Confirmar</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </main>
     );
   }
