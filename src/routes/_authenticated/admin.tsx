@@ -217,9 +217,13 @@ function AdminPage() {
   };
 
   const handleAdminSend = async () => {
-    if (!chatTicket || (!adminReply.trim() && !adminAttach) || !me) return;
+    if (!chatTicket || (!adminReply.trim() && !adminAttach)) return;
     setSendingReply(true);
     try {
+      // Always get sender_id directly from auth so it matches auth.uid() in RLS
+      const { data: { user }, error: authErr } = await supabase.auth.getUser();
+      if (authErr || !user) throw new Error("Sessão expirada. Recarregue a página.");
+
       let attachmentUrl: string | null = null;
       let attachmentName: string | null = null;
       if (adminAttach) {
@@ -232,15 +236,28 @@ function AdminPage() {
         }
         setAdminAttach(null);
       }
-      const { error } = await db.from("support_messages").insert({
-        ticket_id: chatTicket.id, sender_id: me.id, sender_role: "admin",
-        content: adminReply.trim() || null, attachment_url: attachmentUrl, attachment_name: attachmentName,
-      });
-      if (error) throw error;
+
+      const payload = {
+        ticket_id: chatTicket.id,
+        sender_id: user.id,
+        sender_role: "admin",
+        content: adminReply.trim() || null,
+        attachment_url: attachmentUrl,
+        attachment_name: attachmentName,
+      };
+
+      const { error } = await db.from("support_messages").insert(payload);
+
+      if (error) {
+        console.error("[admin-chat] Erro detalhado support_messages INSERT:", JSON.stringify(error, null, 2));
+        throw error;
+      }
+
       setAdminReply("");
       await reloadChatMessages(chatTicket.id);
-    } catch { toast.error("Erro ao enviar mensagem"); }
-    finally { setSendingReply(false); }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao enviar mensagem");
+    } finally { setSendingReply(false); }
   };
 
   const handleSaveStatus = async () => {
