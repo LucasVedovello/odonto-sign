@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import {
   Copy, ExternalLink, Plus, Download, FileText, Loader2, Search, Trash2, User, MessageCircle,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export const Route = createFileRoute("/_authenticated/")({
   component: ReceptionDashboard,
@@ -41,6 +42,7 @@ type Patient = {
   endereco: string | null;
   profissao: string | null;
   escolaridade: string | null;
+  procedimentos: string[] | null;
   telefone: string | null;
   email: string | null;
   signature_data: string | null;
@@ -66,6 +68,9 @@ function ReceptionDashboard() {
   const [creating, setCreating] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newProntuario, setNewProntuario] = useState("");
+  const [newProcedimentos, setNewProcedimentos] = useState<string[]>([]);
+  const toggleProc = (v: string) =>
+    setNewProcedimentos((prev) => prev.includes(v) ? prev.filter((p) => p !== v) : [...prev, v]);
   const [newLink, setNewLink] = useState<{ url: string; prontuario: string | null } | null>(null);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterKey>("todos");
@@ -82,7 +87,7 @@ function ReceptionDashboard() {
     }
     const { data, error } = await supabase
       .from("patients")
-      .select("id,token,prontuario,nome,cpf,rg,data_nascimento,estado_civil,estado_nascimento,cep,rua,bairro,numero,endereco,profissao,escolaridade,telefone,email,signature_data,signed_at,status,created_at,created_by_user,creator:profiles!patients_created_by_user_fkey(first_name,last_name)")
+      .select("id,token,prontuario,nome,cpf,rg,data_nascimento,estado_civil,estado_nascimento,cep,rua,bairro,numero,endereco,profissao,escolaridade,procedimentos,telefone,email,signature_data,signed_at,status,created_at,created_by_user,creator:profiles!patients_created_by_user_fkey(first_name,last_name)")
       .eq("company_id", profile.company_id)
       .order("created_at", { ascending: false })
       .limit(200);
@@ -128,15 +133,17 @@ function ReceptionDashboard() {
     const prontuario = newProntuario.trim() || null;
     const { data, error } = await supabase
       .from("patients")
-      .insert({ prontuario, company_id: profile.company_id, created_by_user: profile.id })
+      .insert({ prontuario, company_id: profile.company_id, created_by_user: profile.id, procedimentos: newProcedimentos })
       .select("id,token,prontuario")
       .single();
     setCreating(false);
     if (error || !data) { toast.error("Erro ao criar cadastro"); return; }
-    const url = `${window.location.origin}/cadastro/${data.token}`;
+    const procParam = newProcedimentos.length > 0 ? `?proc=${newProcedimentos.join(",")}` : "";
+    const url = `${window.location.origin}/cadastro/${data.token}${procParam}`;
     setNewLink({ url, prontuario: data.prontuario });
     setDialogOpen(false);
     setNewProntuario("");
+    setNewProcedimentos([]);
     setWhatsappAsk(url);
     toast.success("Link gerado");
   };
@@ -291,18 +298,36 @@ function ReceptionDashboard() {
               Informe o número de prontuário do sistema oficial (opcional). Um link único será gerado para o paciente.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-2 py-2">
-            <Label htmlFor="pront">Prontuário (opcional)</Label>
-            <Input
-              id="pront"
-              value={newProntuario}
-              onChange={(e) => setNewProntuario(e.target.value)}
-              placeholder="Ex: 12345"
-              autoFocus
-            />
+          <div className="grid gap-4 py-2">
+            <div className="grid gap-2">
+              <Label htmlFor="pront">Prontuário (opcional)</Label>
+              <Input
+                id="pront"
+                value={newProntuario}
+                onChange={(e) => setNewProntuario(e.target.value)}
+                placeholder="Ex: 12345"
+                autoFocus
+              />
+            </div>
+            <div className="grid gap-2">
+              <p className="text-sm font-medium">Contratos adicionais (opcional)</p>
+              {([
+                { value: "protese",  label: "Prótese" },
+                { value: "implante", label: "Implante" },
+                { value: "ortho",    label: "Ortodontia" },
+              ] as const).map(({ value, label }) => (
+                <label key={value} className="flex items-center gap-2 cursor-pointer select-none">
+                  <Checkbox
+                    checked={newProcedimentos.includes(value)}
+                    onCheckedChange={() => toggleProc(value)}
+                  />
+                  <span className="text-sm">{label}</span>
+                </label>
+              ))}
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => { setDialogOpen(false); setNewProcedimentos([]); }}>Cancelar</Button>
             <Button onClick={handleCreate} disabled={creating}>
               {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Gerar link"}
             </Button>

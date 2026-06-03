@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,6 +60,13 @@ const EMPTY: FormState = {
   profissao: "", escolaridade: "",
 };
 
+// Procedure labels shown to the patient on the contract step
+const PROC_LABELS: Record<string, string> = {
+  protese:  "Prótese",
+  implante: "Implante",
+  ortho:    "Ortodontia",
+};
+
 function PatientFlow() {
   const { token } = Route.useParams();
   const [loading, setLoading] = useState(true);
@@ -69,6 +76,16 @@ function PatientFlow() {
   const [accepted, setAccepted] = useState(false);
   const [cepLoading, setCepLoading] = useState(false);
   const sigRef = useRef<SignaturePadHandle>(null);
+
+  // Procedures requested for this link (read once from URL query params)
+  const proc = useMemo(() => {
+    if (typeof window === "undefined") return [];
+    const raw = new URL(window.location.href).searchParams.get("proc");
+    return raw ? raw.split(",").filter((p) => p in PROC_LABELS) : [];
+  }, []);
+
+  // One checked state per extra procedure
+  const [procAccepted, setProcAccepted] = useState<Record<string, boolean>>({});
 
   const [form, setForm] = useState<FormState>(EMPTY);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -346,7 +363,27 @@ function PatientFlow() {
               <Checkbox checked={accepted} onCheckedChange={(v) => setAccepted(!!v)} className="mt-0.5" />
               <span className="text-sm">Li e concordo com os termos do contrato.</span>
             </label>
-            <Button onClick={() => setStep("signature")} disabled={!accepted} size="lg" className="mt-6 w-full">
+
+            {/* Extra procedure checkboxes — one per selected procedure */}
+            {proc.map((p) => (
+              <label key={p} className="mt-3 flex items-start gap-3 cursor-pointer">
+                <Checkbox
+                  checked={!!procAccepted[p]}
+                  onCheckedChange={(v) => setProcAccepted((prev) => ({ ...prev, [p]: !!v }))}
+                  className="mt-0.5"
+                />
+                <span className="text-sm">
+                  Li e concordo com os termos do contrato de <strong>{PROC_LABELS[p]}</strong>.
+                </span>
+              </label>
+            ))}
+
+            <Button
+              onClick={() => setStep("signature")}
+              disabled={!accepted || proc.some((p) => !procAccepted[p])}
+              size="lg"
+              className="mt-6 w-full"
+            >
               Avançar para assinatura
             </Button>
           </Card>

@@ -22,6 +22,7 @@ export interface PatientPdfData {
   signed_at: string | null;
   creator_name?: string | null;
   created_at?: string | null;
+  procedimentos?: string[] | null;
 }
 
 export const CONTRACT_TEXT = `CONTRATO DE PRESTAÇÃO DE SERVIÇOS ODONTOLÓGICOS
@@ -185,5 +186,139 @@ export async function generatePatientPdf(p: PatientPdfData): Promise<jsPDF> {
     doc.text(`Assinado em ${new Date(p.signed_at).toLocaleString("pt-BR")}`, margin, y + 12);
   }
 
+  // ── Seções de contrato por procedimento ──────────────────────────────────
+  const procs = p.procedimentos ?? [];
+
+  if (procs.includes("protese")) {
+    addProcedureSection(doc, margin, pageW, CONTRATO_PROTESE);
+  }
+  if (procs.includes("implante")) {
+    addProcedureSection(doc, margin, pageW, CONTRATO_IMPLANTE);
+  }
+  if (procs.includes("ortho")) {
+    addProcedureSection(doc, margin, pageW, CONTRATO_ORTODONTIA);
+  }
+
   return doc;
+}
+
+// ── Texts for each procedure contract section ──────────────────────────────
+
+const CONTRATO_PROTESE = `CONTRATO DE PRESTAÇÃO DE SERVIÇOS — PRÓTESE DENTÁRIA
+
+O presente contrato regula a prestação de serviços odontológicos referentes à confecção e instalação de prótese dentária, celebrado entre a clínica e o paciente identificado neste documento.
+
+CLÁUSULA 1 — DO OBJETO
+A clínica se compromete a realizar o procedimento de prótese dentária conforme planejamento clínico previamente apresentado e aceito pelo paciente, utilizando materiais de qualidade compatíveis com o procedimento indicado.
+
+CLÁUSULA 2 — DO PRAZO
+O prazo estimado para conclusão do tratamento será informado pelo profissional responsável na consulta de avaliação, podendo ser alterado em razão de fatores clínicos supervenientes, como necessidade de cicatrização ou ajustes oclusais.
+
+CLÁUSULA 3 — DA GARANTIA
+A prótese instalada possui garantia de 12 (doze) meses contra defeitos de fabricação, desde que o paciente siga as orientações de higiene e conservação fornecidas pela equipe clínica. Danos causados por mau uso, queda ou acidente não estão cobertos pela garantia.
+
+CLÁUSULA 4 — DAS OBRIGAÇÕES DO PACIENTE
+O paciente se compromete a comparecer a todas as consultas agendadas, comunicar imediatamente qualquer desconforto ou intercorrência, e seguir rigorosamente as orientações pós-instalação fornecidas pelo profissional.
+
+CLÁUSULA 5 — DO PAGAMENTO
+Os valores e condições de pagamento foram acordados previamente e constam em documento financeiro separado. O não pagamento nas datas acordadas poderá implicar na suspensão do tratamento.
+
+Declaro ter lido, compreendido e concordado com todas as cláusulas acima.`;
+
+const CONTRATO_IMPLANTE = `CONTRATO DE PRESTAÇÃO DE SERVIÇOS — IMPLANTE DENTÁRIO
+
+O presente contrato regula a prestação de serviços odontológicos referentes à instalação de implante dentário osseointegrado, celebrado entre a clínica e o paciente identificado neste documento.
+
+CLÁUSULA 1 — DO OBJETO
+A clínica se compromete a realizar o procedimento de implante dentário conforme planejamento cirúrgico aprovado, utilizando implantes de titânio certificados e seguindo os protocolos clínicos vigentes.
+
+CLÁUSULA 2 — DOS RISCOS E LIMITAÇÕES
+O paciente declara estar ciente de que o sucesso do implante depende de fatores biológicos individuais, incluindo qualidade óssea, higiene bucal e ausência de doenças sistêmicas não controladas. A taxa de sucesso é elevada, porém não pode ser garantida em 100% dos casos.
+
+CLÁUSULA 3 — DO PERÍODO DE OSSEOINTEGRAÇÃO
+Após a instalação do implante, será necessário aguardar o período de osseointegração, que varia entre 3 e 6 meses conforme avaliação clínica. Durante esse período, o paciente deverá seguir todas as orientações fornecidas e comparecer às consultas de acompanhamento.
+
+CLÁUSULA 4 — DA GARANTIA
+O implante possui garantia de 5 (cinco) anos contra falha de osseointegração primária, desde que o paciente não apresente histórico de tabagismo, diabetes descontrolada ou outras condições que comprometam a cicatrização, e que siga todas as orientações pós-operatórias.
+
+CLÁUSULA 5 — DAS OBRIGAÇÕES DO PACIENTE
+O paciente se compromete a não fumar durante o período de osseointegração, manter higiene bucal rigorosa, comparecer a todas as consultas de acompanhamento e comunicar imediatamente qualquer sintoma como dor intensa, sangramento ou mobilidade do implante.
+
+CLÁUSULA 6 — DO PAGAMENTO
+Os valores e condições de pagamento foram acordados previamente e constam em documento financeiro separado.
+
+Declaro ter lido, compreendido e concordado com todas as cláusulas acima.`;
+
+const CONTRATO_ORTODONTIA = `CONTRATO DE PRESTAÇÃO DE SERVIÇOS — ORTODONTIA
+
+O presente contrato regula a prestação de serviços odontológicos referentes ao tratamento ortodôntico, celebrado entre a clínica e o paciente identificado neste documento.
+
+CLÁUSULA 1 — DO OBJETO
+A clínica se compromete a realizar o tratamento ortodôntico conforme planejamento apresentado ao paciente, utilizando aparelhos e materiais adequados ao caso clínico.
+
+CLÁUSULA 2 — DO PRAZO DE TRATAMENTO
+O prazo estimado para o tratamento ortodôntico será informado pelo profissional responsável, podendo variar em função da resposta biológica do paciente, da colaboração nos comparecimentos e do uso correto dos dispositivos prescritos.
+
+CLÁUSULA 3 — DAS OBRIGAÇÕES DO PACIENTE
+O paciente se compromete a comparecer às consultas mensais de manutenção, usar os elásticos e demais dispositivos conforme orientado, evitar alimentos que possam danificar o aparelho, e manter higiene bucal rigorosa para prevenir desmineralização e cáries durante o tratamento.
+
+CLÁUSULA 4 — DA CONTENÇÃO PÓS-TRATAMENTO
+Ao término do tratamento ativo, o paciente deverá utilizar contenção (fixa ou removível) pelo período indicado pelo profissional. O não uso da contenção pode resultar em recidiva do apinhamento, não sendo a clínica responsável por tais resultados.
+
+CLÁUSULA 5 — DA GARANTIA E RESPONSABILIDADE
+A clínica se responsabiliza pela qualidade técnica do tratamento. Quebras de braquetes decorrentes do consumo de alimentos inadequados ou trauma poderão gerar custos adicionais de manutenção.
+
+CLÁUSULA 6 — DO PAGAMENTO
+Os valores e condições de pagamento foram acordados previamente e constam em documento financeiro separado. A inadimplência por mais de 30 dias poderá resultar na suspensão das manutenções até regularização.
+
+Declaro ter lido, compreendido e concordado com todas as cláusulas acima.`;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function addProcedureSection(doc: any, margin: number, pageW: number, text: string) {
+  // Always start on a new page
+  doc.addPage();
+  let y = margin;
+
+  // Blue header bar
+  doc.setFillColor(38, 99, 176);
+  doc.rect(0, 0, pageW, 56, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+  // Extract title from first line of text
+  const firstLine = text.split("\n")[0];
+  doc.text(firstLine, margin, 32);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9.5);
+  doc.text("OdontoClinic — Cadastro Digital de Paciente", margin, 47);
+  y = 78;
+
+  // Contract body (skip the first title line)
+  doc.setTextColor(34, 40, 60);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9.5);
+  const body = text.split("\n").slice(1).join("\n").trim();
+  const lines = doc.splitTextToSize(body, pageW - margin * 2);
+  lines.forEach((line: string) => {
+    if (y > 740) { doc.addPage(); y = margin; }
+    // Bold for clause headings
+    if (/^CLÁUSULA/.test(line)) {
+      doc.setFont("helvetica", "bold");
+    } else {
+      doc.setFont("helvetica", "normal");
+    }
+    doc.text(line, margin, y);
+    y += 13;
+  });
+
+  // Signature block
+  if (y > 640) { doc.addPage(); y = margin; }
+  y += 20;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9.5);
+  doc.setTextColor(34, 40, 60);
+
+  doc.text("Assinatura do Paciente: _________________________________", margin, y); y += 22;
+  doc.text("Nome completo: ________________________________________", margin, y); y += 22;
+  doc.text("Data: _____ / _____ / _________", margin, y);
 }
