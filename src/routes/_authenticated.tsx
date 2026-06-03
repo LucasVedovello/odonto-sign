@@ -3,13 +3,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppHeader } from "@/components/AppHeader";
 import { getServerSession } from "@/integrations/supabase/session-check.server";
 
+const DEV = import.meta.env.DEV;
+
 export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async ({ location }) => {
     if (typeof window === 'undefined') {
-      // ── Server side (Cloudflare Workers) ─────────────────────────────────
+      // Server-side (Cloudflare Workers): read session + approval from cookies.
       const { authenticated, isAdmin, approvalStatus } = await getServerSession();
 
-      console.log('[auth-guard:server] authenticated:', authenticated, '| isAdmin:', isAdmin, '| approval_status:', approvalStatus);
+      if (DEV) console.log('[auth-guard:server] authenticated:', authenticated, '| isAdmin:', isAdmin, '| approval_status:', approvalStatus);
 
       if (!authenticated) throw redirect({ to: "/login" });
       if (isAdmin) return; // admins always pass
@@ -21,7 +23,7 @@ export const Route = createFileRoute("/_authenticated")({
         throw redirect({ to: "/acesso-negado" });
       }
     } else {
-      // ── Client side ───────────────────────────────────────────────────────
+      // Client-side: verify auth, then check company approval for non-admins only.
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw redirect({ to: "/login" });
 
@@ -31,14 +33,14 @@ export const Route = createFileRoute("/_authenticated")({
         .eq("id", userData.user.id)
         .maybeSingle();
 
-      console.log('[auth-guard:client] profile:', profile, '| profileError:', profileError);
+      if (DEV) console.log('[auth-guard:client] is_admin:', profile?.is_admin, '| has_company:', !!profile?.company_id, '| profileError:', !!profileError);
 
       // Admins always pass
       if (profile?.is_admin) return;
 
       // No profile or no company_id → something is wrong, re-send to login
       if (!profile || !profile.company_id) {
-        console.log('[auth-guard:client] no profile or company_id — redirecting to login');
+        if (DEV) console.log('[auth-guard:client] no profile or company_id — redirecting to login');
         throw redirect({ to: "/login" });
       }
 
@@ -51,7 +53,7 @@ export const Route = createFileRoute("/_authenticated")({
       // Safe default: if company can't be read, treat as pending
       const approvalStatus = company?.approval_status ?? 'pending';
 
-      console.log('[auth-guard:client] company:', company, '| companyError:', companyError, '| approval_status:', approvalStatus);
+      if (DEV) console.log('[auth-guard:client] approval_status:', approvalStatus, '| companyError:', !!companyError);
 
       if (approvalStatus === 'pending') throw redirect({ to: "/aguardando-aprovacao" });
       if (approvalStatus === 'rejected' &&

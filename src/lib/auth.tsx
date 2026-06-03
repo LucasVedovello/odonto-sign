@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
       if (s?.user) {
         setTimeout(() => loadProfile(s.user.id), 0);
@@ -51,6 +51,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfile(null);
       }
       qc.invalidateQueries();
+
+      // On explicit sign-out or token expiry, wipe cache and redirect.
+      // window.location.replace prevents going back to protected pages via browser history.
+      if (event === "SIGNED_OUT") {
+        qc.clear();
+        window.location.replace("/login");
+      }
     });
 
     supabase.auth.getSession().then(({ data }) => {
@@ -65,7 +72,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <Ctx.Provider value={{
       session, profile, loading,
-      signOut: async () => { await supabase.auth.signOut(); },
+      signOut: async () => {
+        qc.clear(); // Clear all cached queries before signing out
+        await supabase.auth.signOut();
+        // onAuthStateChange SIGNED_OUT will handle the redirect
+      },
       refreshProfile: async () => { if (session?.user) await loadProfile(session.user.id); },
     }}>
       {children}

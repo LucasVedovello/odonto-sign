@@ -16,6 +16,8 @@ function parseCookieHeader(header: string): { name: string; value: string }[] {
     });
 }
 
+const DEV = import.meta.env.DEV;
+
 export const getServerSession = createServerFn().handler(async () => {
   const url = import.meta.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
   const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || '';
@@ -38,7 +40,7 @@ export const getServerSession = createServerFn().handler(async () => {
     .eq('id', userData.user.id)
     .maybeSingle();
 
-  console.log('[getServerSession] userId:', userData.user.id, '| profile:', JSON.stringify(profile));
+  if (DEV) console.log('[getServerSession] has_profile:', !!profile, '| is_admin:', profile?.is_admin);
 
   // Admins always pass
   if (profile?.is_admin) {
@@ -47,7 +49,6 @@ export const getServerSession = createServerFn().handler(async () => {
 
   // No profile or no company_id → send back to login
   if (!profile || !profile.company_id) {
-    console.log('[getServerSession] no profile or company_id — treating as unauthenticated');
     return { authenticated: false, isAdmin: false, approvalStatus: 'pending' as string };
   }
 
@@ -61,7 +62,7 @@ export const getServerSession = createServerFn().handler(async () => {
   // Safe default: if company row can't be read, treat as pending
   const approvalStatus = company?.approval_status ?? 'pending';
 
-  console.log('[getServerSession] company_id:', profile.company_id, '| approval_status:', approvalStatus);
+  if (DEV) console.log('[getServerSession] approval_status:', approvalStatus);
 
   return { authenticated: true, isAdmin: false, approvalStatus };
 });

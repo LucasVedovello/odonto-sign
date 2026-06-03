@@ -53,10 +53,9 @@ function CreateCompanyPage() {
           createdAt: new Date().toISOString(),
         },
       });
-      if (fnError) console.error("[criar-empresa] notify-new-company error:", fnError);
-      else console.log("[criar-empresa] notify-new-company invocado com sucesso");
+      if (import.meta.env.DEV && fnError) console.error("[criar-empresa] notify-new-company error:", fnError);
     } catch (e) {
-      console.error("[criar-empresa] Erro ao notificar admin:", e);
+      if (import.meta.env.DEV) console.error("[criar-empresa] Erro ao notificar admin:", e);
     }
 
     setSuccess(true);

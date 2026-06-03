@@ -249,7 +249,7 @@ function AdminPage() {
       const { error } = await db.from("support_messages").insert(payload);
 
       if (error) {
-        console.error("[admin-chat] Erro detalhado support_messages INSERT:", JSON.stringify(error, null, 2));
+        if (import.meta.env.DEV) console.error("[admin-chat] support_messages INSERT error:", JSON.stringify(error, null, 2));
         throw error;
       }
 
