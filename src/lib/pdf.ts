@@ -19,6 +19,7 @@ export interface PatientPdfData {
   telefone: string | null;
   email: string | null;
   signature_data: string | null;
+  assinatura?: string | null;
   signed_at: string | null;
   creator_name?: string | null;
   created_at?: string | null;
@@ -204,36 +205,38 @@ export async function generatePatientPdf(p: PatientPdfData): Promise<jsPDF> {
   doc.line(margin, y, pageW - margin, y);
   y += 16;
 
-  if (p.signature_data) {
-    try { doc.addImage(p.signature_data, "PNG", margin, y, 240, 90); } catch (e) { console.error(e); }
-  }
-  y += 100;
-  doc.setDrawColor(34, 40, 60);
-  doc.line(margin, y, margin + 260, y);
-  y += 14;
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  doc.setTextColor(90, 100, 120);
-  doc.text(p.nome || "Paciente", margin, y);
-  if (p.signed_at) {
-    doc.text(`Assinado em ${new Date(p.signed_at).toLocaleString("pt-BR")}`, margin, y + 12);
-  }
+  // Signature image: prefer new `assinatura` field, fall back to legacy `signature_data`
+  const sigImg = p.assinatura || p.signature_data || "";
 
-  // ── Seções de contrato por procedimento ──────────────────────────────────
-  const procs = p.procedimentos ?? [];
+  // Date string for all signature blocks
   const refDate = p.signed_at || p.created_at || new Date().toISOString();
   const d = new Date(refDate);
   const dateStr = `${String(d.getDate()).padStart(2, "0")} / ${String(d.getMonth() + 1).padStart(2, "0")} / ${d.getFullYear()}`;
-  const patientName = p.nome || "";
+
+  // Main contract signature block
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9.5);
+  doc.setTextColor(34, 40, 60);
+  if (sigImg) {
+    try { doc.addImage(sigImg, "PNG", margin, y, 200, 55); } catch { /* skip if image fails */ }
+    y += 60;
+  } else {
+    doc.text("Assinatura do Paciente: _________________________________", margin, y);
+    y += 22;
+  }
+  doc.text(`Data: ${dateStr}`, margin, y);
+
+  // ── Seções de contrato por procedimento ──────────────────────────────────
+  const procs = p.procedimentos ?? [];
 
   if (procs.includes("protese")) {
-    addProcedureSection(doc, margin, pageW, CONTRATO_PROTESE, patientName, dateStr);
+    addProcedureSection(doc, margin, pageW, CONTRATO_PROTESE, dateStr, sigImg);
   }
   if (procs.includes("implante")) {
-    addProcedureSection(doc, margin, pageW, CONTRATO_IMPLANTE, patientName, dateStr);
+    addProcedureSection(doc, margin, pageW, CONTRATO_IMPLANTE, dateStr, sigImg);
   }
   if (procs.includes("ortho")) {
-    addProcedureSection(doc, margin, pageW, CONTRATO_ORTODONTIA, patientName, dateStr);
+    addProcedureSection(doc, margin, pageW, CONTRATO_ORTODONTIA, dateStr, sigImg);
   }
 
   return doc;
@@ -311,7 +314,7 @@ Os valores e condições de pagamento foram acordados previamente e constam em d
 Declaro ter lido, compreendido e concordado com todas as cláusulas acima.`;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function addProcedureSection(doc: any, margin: number, pageW: number, text: string, patientName = "", dateStr = "") {
+function addProcedureSection(doc: any, margin: number, pageW: number, text: string, dateStr = "", sigImg = "") {
   // Always start on a new page
   doc.addPage();
   let y = margin;
@@ -355,7 +358,12 @@ function addProcedureSection(doc: any, margin: number, pageW: number, text: stri
   doc.setFontSize(9.5);
   doc.setTextColor(34, 40, 60);
 
-  doc.text("Assinatura do Paciente: _________________________________", margin, y); y += 22;
-  doc.text(`Nome completo: ${patientName || "________________________________________"}`, margin, y); y += 22;
+  if (sigImg) {
+    try { doc.addImage(sigImg, "PNG", margin, y, 200, 55); } catch { /* skip if image fails */ }
+    y += 60;
+  } else {
+    doc.text("Assinatura do Paciente: _________________________________", margin, y);
+    y += 22;
+  }
   doc.text(`Data: ${dateStr || "_____ / _____ / _________"}`, margin, y);
 }

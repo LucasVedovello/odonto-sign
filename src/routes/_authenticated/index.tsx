@@ -43,6 +43,7 @@ type Patient = {
   profissao: string | null;
   escolaridade: string | null;
   procedimentos: string[] | null;
+  assinatura: string | null;
   telefone: string | null;
   email: string | null;
   signature_data: string | null;
@@ -87,7 +88,7 @@ function ReceptionDashboard() {
     }
     const { data, error } = await supabase
       .from("patients")
-      .select("id,token,prontuario,nome,cpf,rg,data_nascimento,estado_civil,estado_nascimento,cep,rua,bairro,numero,endereco,profissao,escolaridade,procedimentos,telefone,email,signature_data,signed_at,status,created_at,created_by_user,creator:profiles!patients_created_by_user_fkey(first_name,last_name)")
+      .select("id,token,prontuario,nome,cpf,rg,data_nascimento,estado_civil,estado_nascimento,cep,rua,bairro,numero,endereco,profissao,escolaridade,procedimentos,assinatura,telefone,email,signature_data,signed_at,status,created_at,created_by_user,creator:profiles!patients_created_by_user_fkey(first_name,last_name)")
       .eq("company_id", profile.company_id)
       .order("created_at", { ascending: false })
       .limit(200);

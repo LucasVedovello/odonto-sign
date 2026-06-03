@@ -22,7 +22,7 @@ export const Route = createFileRoute("/cadastro/$token")({
   head: () => ({ meta: [{ title: "Cadastro do Paciente — OdontoClinic" }] }),
 });
 
-type Step = "form" | "contract" | "signature" | "done";
+type Step = "form" | "contract" | "signature" | "done"; // "signature" kept for backward compat
 
 type FormState = {
   nome: string; cpf: string; rg: string; data_nascimento: string;
@@ -220,6 +220,10 @@ function PatientFlow() {
   };
 
   const submitSignature = async () => {
+    if (!accepted || proc.some((p) => !procAccepted[p])) {
+      toast.error("Confirme todos os termos antes de finalizar");
+      return;
+    }
     if (!sigRef.current || sigRef.current.isEmpty()) {
       toast.error("Por favor, assine antes de finalizar");
       return;
@@ -227,8 +231,11 @@ function PatientFlow() {
     setSaving(true);
     const dataUrl = sigRef.current.toDataURL();
     const { error } = await supabase.from("patients").update({
-      contract_accepted: true, signature_data: dataUrl,
-      signed_at: new Date().toISOString(), status: "assinado",
+      contract_accepted: true,
+      signature_data: dataUrl, // backward compat
+      assinatura: dataUrl,     // new field — used in all PDF signature blocks
+      signed_at: new Date().toISOString(),
+      status: "assinado",
     }).eq("token", token);
     setSaving(false);
     if (error) { toast.error("Erro ao salvar assinatura"); return; }
@@ -429,35 +436,43 @@ function PatientFlow() {
               );
             })}
 
+            {/* Signature canvas — same signature applies to all contracts */}
+            <div className="mt-6">
+              <div className="flex items-center gap-2 mb-1">
+                <PenLine className="h-4 w-4 text-primary" />
+                <p className="text-sm font-semibold">Assinatura digital</p>
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">
+                Assine abaixo com o dedo ou mouse. A mesma assinatura será aplicada a todos os contratos.
+              </p>
+              <div className="rounded-xl border-2 border-dashed border-border bg-white dark:bg-background overflow-hidden">
+                <SignaturePad ref={sigRef} className="block h-44 w-full" />
+              </div>
+              <div className="mt-1.5 flex justify-end">
+                <Button type="button" variant="ghost" size="sm"
+                  onClick={() => sigRef.current?.clear()}
+                  className="gap-1.5 text-xs text-muted-foreground h-7">
+                  <Eraser className="h-3.5 w-3.5" /> Limpar assinatura
+                </Button>
+              </div>
+            </div>
+
             <Button
-              onClick={() => setStep("signature")}
-              disabled={!accepted || proc.some((p) => !procAccepted[p])}
+              onClick={submitSignature}
+              disabled={saving || !accepted || proc.some((p) => !procAccepted[p])}
               size="lg"
               className="mt-6 w-full"
             >
-              Avançar para assinatura
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Finalizar cadastro"}
             </Button>
           </Card>
         )}
 
+        {/* "signature" step kept for backward compat — redirect to contract if somehow reached */}
         {step === "signature" && (
-          <Card className="mt-6 p-5 sm:p-8 shadow-[var(--shadow-card)]">
-            <div className="flex items-center gap-2">
-              <PenLine className="h-5 w-5 text-primary" />
-              <h2 className="text-xl font-semibold">Assinatura digital</h2>
-            </div>
-            <p className="mt-1 text-sm text-muted-foreground">Assine no quadro abaixo usando o dedo ou o mouse.</p>
-            <div className="mt-5 rounded-xl border-2 border-dashed border-border bg-background">
-              <SignaturePad ref={sigRef} className="block h-56 w-full rounded-xl" />
-            </div>
-            <div className="mt-3 flex justify-between gap-3">
-              <Button variant="ghost" onClick={() => sigRef.current?.clear()} className="gap-2">
-                <Eraser className="h-4 w-4" /> Limpar
-              </Button>
-              <Button onClick={submitSignature} disabled={saving} size="lg" className="flex-1 sm:flex-initial">
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Finalizar cadastro"}
-              </Button>
-            </div>
+          <Card className="mt-6 p-8 text-center shadow-[var(--shadow-card)]">
+            <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto" />
+            <p className="mt-3 text-sm text-muted-foreground">Carregando...</p>
           </Card>
         )}
 
@@ -528,10 +543,11 @@ function SelectField({ label, value, onChange, required, error, children }: {
 function Stepper({ step }: { step: Step }) {
   const steps: { id: Step; label: string }[] = [
     { id: "form", label: "Dados" },
-    { id: "contract", label: "Contrato" },
-    { id: "signature", label: "Assinatura" },
+    { id: "contract", label: "Contrato e Assinatura" },
   ];
-  const idx = step === "done" ? 3 : steps.findIndex((s) => s.id === step);
+  // "signature" step maps to contract (backward compat); "done" is past all steps
+  const rawIdx = steps.findIndex((s) => s.id === step);
+  const idx = step === "done" ? steps.length : rawIdx === -1 ? 1 : rawIdx;
   return (
     <div className="flex items-center gap-2">
       {steps.map((s, i) => {
