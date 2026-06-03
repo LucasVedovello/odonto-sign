@@ -40,6 +40,25 @@ Pelo presente instrumento particular, de um lado a OdontoClinic, doravante denom
 
 Este contrato é firmado em meio digital e possui validade jurídica nos termos da legislação vigente.`;
 
+const LOGO_URL =
+  "https://dziinqtztpolawyfbakr.supabase.co/storage/v1/object/public/assets/image_Pippit_202606022141.png";
+
+async function fetchLogoBase64(): Promise<string | null> {
+  try {
+    const res = await fetch(LOGO_URL);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
 export async function generatePatientPdf(p: PatientPdfData): Promise<jsPDF> {
   const { jsPDF } = await import("jspdf");
   const doc = new jsPDF({ unit: "pt", format: "a4" });
@@ -47,15 +66,27 @@ export async function generatePatientPdf(p: PatientPdfData): Promise<jsPDF> {
   const margin = 48;
   let y = margin;
 
+  // Fetch logo before drawing (jsPDF cannot load remote URLs directly)
+  const logoBase64 = await fetchLogoBase64();
+
   doc.setFillColor(38, 99, 176);
   doc.rect(0, 0, pageW, 70, "F");
+
+  // Logo (white background pill so it contrasts with the blue header)
+  if (logoBase64) {
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(margin, 11, 48, 48, 6, 6, "F");
+    try { doc.addImage(logoBase64, "PNG", margin + 4, 15, 40, 40); } catch { /* skip if image fails */ }
+  }
+
+  const textX = logoBase64 ? margin + 58 : margin;
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(20);
-  doc.text("OdontoClinic", margin, 32);
+  doc.text("OdontoClinic", textX, 32);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
-  doc.text("Cadastro Digital de Paciente", margin, 50);
+  doc.text("Cadastro Digital de Paciente", textX, 50);
   if (p.prontuario) doc.text(p.prontuario, pageW - margin, 50, { align: "right" });
 
   y = 110;

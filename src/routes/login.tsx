@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { OdontoLogo } from "@/components/OdontoLogo";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -47,9 +46,11 @@ function LoginPage() {
     <div className="flex min-h-screen items-center justify-center px-4 py-10">
       <div className="w-full max-w-md">
         <div className="mb-6 flex flex-col items-center gap-3">
-          <div className="rounded-2xl overflow-hidden shadow-[var(--shadow-lift)]">
-            <OdontoLogo size={56} />
-          </div>
+          <img
+            src="https://dziinqtztpolawyfbakr.supabase.co/storage/v1/object/public/assets/image_Pippit_202606022141.png"
+            alt="OdontoSistema"
+            className="h-14 w-14 rounded-2xl object-contain shadow-[var(--shadow-lift)]"
+          />
           <div className="text-center">
             <h1 className="text-2xl font-bold">OdontoClinic</h1>
             <p className="text-sm text-muted-foreground">Acesso da equipe</p>

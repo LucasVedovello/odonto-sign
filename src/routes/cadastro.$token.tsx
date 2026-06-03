@@ -10,7 +10,6 @@ import { toast } from "sonner";
 import { CheckCircle2, Loader2, PenLine, Eraser } from "lucide-react";
 import { SignaturePad, type SignaturePadHandle } from "@/components/SignaturePad";
 import { CONTRACT_TEXT } from "@/lib/pdf";
-import { OdontoLogo } from "@/components/OdontoLogo";
 import {
   maskCPF, maskRG, maskDate, maskPhone, maskCEP, fetchViaCEP, filterNomeInput,
   isValidCPF, isValidRG, isValidDate, isValidPhone, isValidEmail, isValidNome,
@@ -206,7 +205,11 @@ function PatientFlow() {
     <div className="min-h-screen">
       <header className="border-b border-border bg-card/60 backdrop-blur">
         <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-4">
-          <OdontoLogo size={40} />
+          <img
+            src="https://dziinqtztpolawyfbakr.supabase.co/storage/v1/object/public/assets/image_Pippit_202606022141.png"
+            alt="OdontoSistema"
+            className="h-10 w-10 rounded-lg object-contain"
+          />
           <div>
             <h1 className="text-base font-semibold leading-tight">OdontoClinic</h1>
             <p className="text-xs text-muted-foreground">

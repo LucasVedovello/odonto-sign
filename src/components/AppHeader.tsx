@@ -1,6 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Moon, Sun, LogOut, UserCircle, Users, LayoutDashboard, MoreVertical, ShieldCheck, Headset } from "lucide-react";
-import { OdontoLogo } from "@/components/OdontoLogo";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -22,9 +21,11 @@ export function AppHeader() {
     <header className="border-b border-border bg-card/70 backdrop-blur-md sticky top-0 z-40">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
         <Link to="/" className="flex items-center gap-3 min-w-0">
-          <div className="shrink-0 shadow-[var(--shadow-card)] rounded-xl overflow-hidden">
-            <OdontoLogo size={40} />
-          </div>
+          <img
+            src="https://dziinqtztpolawyfbakr.supabase.co/storage/v1/object/public/assets/image_Pippit_202606022141.png"
+            alt="OdontoSistema"
+            className="h-10 w-10 shrink-0 rounded-lg object-contain shadow-[var(--shadow-card)]"
+          />
           <div className="min-w-0">
             <h1 className="text-base font-semibold leading-tight truncate">OdontoClinic</h1>
             <p className="text-xs text-muted-foreground truncate">Cadastro Digital</p>
