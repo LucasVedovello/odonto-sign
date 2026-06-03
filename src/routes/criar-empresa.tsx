@@ -1,8 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { triggerNewCompanyNotification } from "@/lib/notify-company.server";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,7 +15,6 @@ export const Route = createFileRoute("/criar-empresa")({
 
 function CreateCompanyPage() {
   const navigate = useNavigate();
-  const notify = useServerFn(triggerNewCompanyNotification);
   const [form, setForm] = useState({
     company_name: "", first_name: "", last_name: "", email: "", password: "", confirm: "",
   });
@@ -44,16 +41,24 @@ function CreateCompanyPage() {
     });
     setLoading(false);
     if (error) { toast.error(error.message); return; }
-    // Notify admin of new company (silent failure — does not block signup)
+
+    // Notify admin directly via edge function (no server function wrapper that could fail silently)
+    // The edge function looks up the companyId internally via service role
     try {
-      await notify({
-        data: {
-          ownerEmail: form.email,
+      const { error: fnError } = await supabase.functions.invoke("notify-new-company", {
+        body: {
           companyName: form.company_name,
           ownerName: `${form.first_name} ${form.last_name}`.trim(),
+          ownerEmail: form.email,
+          createdAt: new Date().toISOString(),
         },
       });
-    } catch { /* silent */ }
+      if (fnError) console.error("[criar-empresa] notify-new-company error:", fnError);
+      else console.log("[criar-empresa] notify-new-company invocado com sucesso");
+    } catch (e) {
+      console.error("[criar-empresa] Erro ao notificar admin:", e);
+    }
+
     setSuccess(true);
   };
 

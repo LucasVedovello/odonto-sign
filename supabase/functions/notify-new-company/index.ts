@@ -11,10 +11,34 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
 
   try {
-    const { companyId, companyName, ownerName, ownerEmail, createdAt } = await req.json();
+    const { companyName, ownerName, ownerEmail, createdAt, companyId: passedCompanyId } =
+      await req.json();
 
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY not set");
+
+    // Resolve companyId via Supabase REST if not provided by caller
+    let companyId = passedCompanyId as string | undefined;
+    if (!companyId) {
+      const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+      const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      if (SUPABASE_URL && SERVICE_ROLE_KEY && ownerEmail) {
+        const lookupRes = await fetch(
+          `${SUPABASE_URL}/rest/v1/companies?company_email=eq.${encodeURIComponent(ownerEmail)}&select=id&limit=1`,
+          {
+            headers: {
+              Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+              apikey: SERVICE_ROLE_KEY,
+            },
+          }
+        );
+        if (lookupRes.ok) {
+          const rows = await lookupRes.json();
+          companyId = rows[0]?.id;
+        }
+        console.log("[notify-new-company] looked up companyId:", companyId);
+      }
+    }
 
     const formattedDate = new Intl.DateTimeFormat("pt-BR", {
       timeZone: "America/Sao_Paulo",
@@ -22,8 +46,12 @@ Deno.serve(async (req) => {
       hour: "2-digit", minute: "2-digit",
     }).format(new Date(createdAt));
 
-    const approveUrl = `${ADMIN_URL}/admin?action=approve&companyId=${companyId}`;
-    const rejectUrl  = `${ADMIN_URL}/admin?action=reject&companyId=${companyId}`;
+    const approveUrl = companyId
+      ? `${ADMIN_URL}/admin?action=approve&companyId=${companyId}`
+      : `${ADMIN_URL}/admin`;
+    const rejectUrl = companyId
+      ? `${ADMIN_URL}/admin?action=reject&companyId=${companyId}`
+      : `${ADMIN_URL}/admin`;
 
     const html = `
 <!DOCTYPE html><html lang="pt-BR"><body style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a">
@@ -56,10 +84,14 @@ Deno.serve(async (req) => {
       }),
     });
 
-    if (!res.ok) throw new Error(`Resend: ${await res.text()}`);
+    const resText = await res.text();
+    console.log("[notify-new-company] Resend status:", res.status, resText);
+
+    if (!res.ok) throw new Error(`Resend error: ${resText}`);
     return new Response(JSON.stringify({ ok: true }), { headers: { ...cors, "Content-Type": "application/json" } });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
+    console.error("[notify-new-company] error:", msg);
     return new Response(JSON.stringify({ error: msg }), {
       status: 500, headers: { ...cors, "Content-Type": "application/json" },
     });
