@@ -99,10 +99,10 @@ export async function generateProntuarioPdf(p: any, eventos: any[]): Promise<any
 
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
 
-  const style = (bold = false, size = 9) => {
+  const style = (bold = false, size = 10) => {
     doc.setFont("helvetica", bold ? "bold" : "normal");
     doc.setFontSize(size);
-    doc.setTextColor(15, 40, 100);
+    doc.setTextColor(10, 35, 100);
   };
 
   const t = (val: string | null | undefined, x: number, y: number, opts?: any) => {
@@ -126,54 +126,59 @@ export async function generateProntuarioPdf(p: any, eventos: any[]): Promise<any
   style(true);
 
   // Cabeçalho linha 1
-  t(fmtDate(p.data),       73,  13);
-  t(p.planejado_por,      138,  13);
-  t(p.num_prontuario,     240,  13);
-  t(p.num_contrato,       275,  13);
+  t(fmtDate(p.data),       73,  11);
+  t(p.planejado_por,      138,  11);
+  t(p.num_prontuario,     240,  11);
+  t(p.num_contrato,       270,  11);
 
   // Cabeçalho linha 2
-  t(p.nome,                73,  20);
-  t(fmtDate(p.data_nasc), 245,  20);
-  t(p.rg,                 268,  20);
+  t(p.nome,                70,  19);
+  t(fmtDate(p.data_nasc), 233,  19);
+  t(p.rg,                 268,  19);
 
   // Cabeçalho linha 3
-  t(p.endereco,            80,  27);
+  t(p.endereco,            70,  27);
   t(p.telefone,           268,  27);
 
   // Anamnese — linha y=37
-  t(p.alergico,            92,  37); t(p.esta_gravida,      140,  37);
-  t(p.fuma,               195,  37); t(p.hepatite,          247,  37);
-  // y=45
-  t(p.hemorragia,          92,  45); t(p.prob_respiratorio, 140,  45);
-  t(p.bebe,               195,  45); t(p.ts_tc,             247,  45);
-  // y=53
-  t(p.diabetes,            92,  53); t(p.dst_aids_sifilis,  140,  53);
-  t(p.gastrointestinal,   195,  53); t(p.convulsivo,        247,  53);
-  // y=61
-  t(p.cardiopatia,         92,  61); t(p.usa_drogas,        140,  61);
-  t(p.cicatrizacao,       195,  61); t(p.pressao_arterial,  247,  61);
+  t(p.alergico,            98,  37); t(p.esta_gravida,      160,  37);
+  t(p.fuma,               215,  37); t(p.hepatite,          260,  37);
+  // y=44
+  t(p.hemorragia,          98,  44); t(p.prob_respiratorio, 160,  44);
+  t(p.bebe,               215,  44); t(p.ts_tc,             260,  44);
+  // y=51
+  t(p.diabetes,            98,  51); t(p.dst_aids_sifilis,  160,  51);
+  t(p.gastrointestinal,   215,  51); t(p.convulsivo,        260,  51);
+  // y=58
+  t(p.cardiopatia,         98,  58); t(p.usa_drogas,        160,  58);
+  t(p.cicatrizacao,       215,  58); t(p.pressao_arterial,  260,  58);
 
-  // Vigência / Médico / Fone — coluna direita
-  t(fmtDate(p.vigencia_de), 228, 37); t(fmtDate(p.vigencia_ate), 255, 37);
-  t(p.medico,               228, 53); t(p.fone_medico,           260, 53);
+  // Vigência / Médico / Fone — coluna separada direita
+  t(fmtDate(p.vigencia_de), 230, 38); t(fmtDate(p.vigencia_ate), 262, 38);
+  t(p.medico,               230, 51); t(p.fone_medico,           267, 58);
 
   // Linha inferior da anamnese
-  t(p.medicamentos,         92,  69);
-  t(p.outro_problema,      165,  69);
-  t(p.queixa_principal,    245,  69);
+  t(p.medicamentos,         50,  65);
+  t(p.outro_problema,      165,  65);
+  t(p.queixa_principal,    255,  65);
+  // Segunda linha se medicamentos for longo
+  if (p.medicamentos) {
+    const medLines = doc.splitTextToSize(p.medicamentos.trim(), 110);
+    if (medLines.length > 1) doc.text(medLines.slice(1), 50, 71);
+  }
 
   // Assinatura do paciente — campo "Atesto..."
   if (p.assinatura_paciente_planejamento) {
-    try { doc.addImage(p.assinatura_paciente_planejamento, "PNG", 230, 67, 58, 10); } catch { /* skip */ }
+    try { doc.addImage(p.assinatura_paciente_planejamento, "PNG", 228, 65, 60, 10); } catch { /* skip */ }
   }
 
   // Planejamento e Prognóstico / Cobertura
   style(true);
   if (p.planejamento_prognostico) {
-    doc.text(doc.splitTextToSize(p.planejamento_prognostico.trim(), 160), 12, 82);
+    doc.text(doc.splitTextToSize(p.planejamento_prognostico.trim(), 155), 12, 80);
   }
   if (p.cobertura) {
-    doc.text(doc.splitTextToSize(p.cobertura.trim(), 110), 180, 82);
+    doc.text(doc.splitTextToSize(p.cobertura.trim(), 105), 180, 80);
   }
 
   // Arcada Superior — X positions in mm (already calibrated)
@@ -240,8 +245,8 @@ export async function generateProntuarioPdf(p: any, eventos: any[]): Promise<any
   // ═══════════════════════════════════════════════════════════════════════
 
   const EV = {
-    colData: 8, colDente: 58, colProc: 80, largProc: 120,
-    colDentista: 205, yPrimeira: 35, espacamento: 8.2,
+    colData: 8, colDente: 55, colProc: 73, largProc: 118,
+    colDentista: 198, yPrimeira: 33, espacamento: 8.0,
   };
   const POR_PAG = 18;
   const totalPags = Math.max(1, Math.ceil(eventos.length / POR_PAG));
@@ -252,9 +257,9 @@ export async function generateProntuarioPdf(p: any, eventos: any[]): Promise<any
     style(true);
 
     // Header
-    t(p.nome,           100, 22);
-    t(p.num_contrato,   215, 22);
-    t(p.num_prontuario, 268, 22);
+    t(p.nome,            82, 22);
+    t(p.num_contrato,   218, 22);
+    t(p.num_prontuario, 262, 22);
 
     // Event rows
     const batch = eventos.slice(pg * POR_PAG, (pg + 1) * POR_PAG);
@@ -272,12 +277,12 @@ export async function generateProntuarioPdf(p: any, eventos: any[]): Promise<any
     });
   }
 
-  // Footer signatures — last events page
+  // Footer signatures — last events page (descer 5mm vs versão anterior)
   if (p.assinatura_doutor) {
-    try { doc.addImage(p.assinatura_doutor, "PNG", 52, 188, 70, 12); } catch { /* skip */ }
+    try { doc.addImage(p.assinatura_doutor, "PNG", 52, 193, 68, 10); } catch { /* skip */ }
   }
   if (p.assinatura_paciente_planejamento) {
-    try { doc.addImage(p.assinatura_paciente_planejamento, "PNG", 188, 188, 70, 12); } catch { /* skip */ }
+    try { doc.addImage(p.assinatura_paciente_planejamento, "PNG", 188, 193, 68, 10); } catch { /* skip */ }
   }
 
   return doc;
