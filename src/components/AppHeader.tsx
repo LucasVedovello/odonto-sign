@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Moon, Sun, LogOut, UserCircle, Users, LayoutDashboard, MoreVertical, ShieldCheck, Headset } from "lucide-react";
+import { Moon, Sun, LogOut, UserCircle, Users, LayoutDashboard, MoreVertical, ShieldCheck, Headset, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -36,6 +36,9 @@ export function AppHeader() {
           <Link to="/" className="[&.active]:bg-secondary [&.active]:text-secondary-foreground inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-medium text-muted-foreground hover:bg-secondary/60">
             <LayoutDashboard className="h-4 w-4" /> Contratos
           </Link>
+          <Link to="/prontuario" className="[&.active]:bg-secondary [&.active]:text-secondary-foreground inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-medium text-muted-foreground hover:bg-secondary/60">
+            <ClipboardList className="h-4 w-4" /> Prontuário
+          </Link>
           <Link to="/usuarios" className="[&.active]:bg-secondary [&.active]:text-secondary-foreground inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-medium text-muted-foreground hover:bg-secondary/60">
             <Users className="h-4 w-4" /> Usuários
           </Link>
@@ -65,6 +68,9 @@ export function AppHeader() {
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => navigate({ to: "/perfil" })}>
               <UserCircle className="mr-2 h-4 w-4" /> Editar perfil
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate({ to: "/prontuario" })} className="sm:hidden">
+              <ClipboardList className="mr-2 h-4 w-4" /> Prontuário
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate({ to: "/usuarios" })} className="sm:hidden">
               <Users className="mr-2 h-4 w-4" /> Usuários

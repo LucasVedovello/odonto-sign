@@ -1,0 +1,655 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
+import {
+  Plus, Loader2, Search, Trash2, Download, FileText, ChevronLeft, ChevronRight,
+  PenLine, Eraser, CheckSquare,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { SignaturePad, type SignaturePadHandle } from "@/components/SignaturePad";
+
+export const Route = createFileRoute("/_authenticated/prontuario")({
+  component: ProntuarioPage,
+  head: () => ({ meta: [{ title: "Prontuários — OdontoClinic" }] }),
+});
+
+// ── Types ───────────────────────────────────────────────────────────────────
+type Arcada = Record<string, Record<string, boolean>>;
+type Evento = {
+  id?: string; data: string; dente: string;
+  procedimento: string; dentista: string; assinatura_paciente: string;
+};
+type ProntuarioRow = {
+  id: string; nome: string | null; data: string | null;
+  num_prontuario: string | null; num_contrato: string | null;
+  assinatura_doutor: string | null; created_at: string;
+};
+type FormData = {
+  data: string; planejado_por: string; nome: string; data_nasc: string;
+  rg: string; endereco: string; telefone: string;
+  num_prontuario: string; num_contrato: string;
+  alergico: string; hemorragia: string; diabetes: string; cardiopatia: string;
+  esta_gravida: string; prob_respiratorio: string; dst_aids_sifilis: string; usa_drogas: string;
+  fuma: string; bebe: string; gastrointestinal: string; cicatrizacao: string;
+  hepatite: string; ts_tc: string; convulsivo: string; pressao_arterial: string;
+  vigencia_de: string; vigencia_ate: string; medico: string; fone_medico: string;
+  medicamentos: string; outro_problema: string; queixa_principal: string;
+  planejamento_prognostico: string; cobertura: string;
+  arcada_superior: Arcada; arcada_inferior: Arcada;
+};
+
+// ── Constants ───────────────────────────────────────────────────────────────
+const DENTES_SUPERIOR = ["18","17","16","15","14","13","12","11","21","22","23","24","25","26","27","28"];
+const DENTES_INFERIOR = ["48","47","46","45","44","43","42","41","31","32","33","34","35","36","37","38"];
+const PROCEDIMENTOS = ["Periodontia","Endodontia","Clareamento","Dentística","Núcleo","Provisória","Definitiva"];
+
+const EMPTY_ARCADA = (): Arcada =>
+  Object.fromEntries(
+    [...DENTES_SUPERIOR, ...DENTES_INFERIOR].map((d) => [
+      d, Object.fromEntries(PROCEDIMENTOS.map((p) => [p, false])),
+    ])
+  );
+
+const EMPTY_FORM = (): FormData => ({
+  data: new Date().toISOString().split("T")[0],
+  planejado_por: "", nome: "", data_nasc: "", rg: "", endereco: "", telefone: "",
+  num_prontuario: "", num_contrato: "",
+  alergico: "", hemorragia: "", diabetes: "", cardiopatia: "",
+  esta_gravida: "", prob_respiratorio: "", dst_aids_sifilis: "", usa_drogas: "",
+  fuma: "", bebe: "", gastrointestinal: "", cicatrizacao: "",
+  hepatite: "", ts_tc: "", convulsivo: "", pressao_arterial: "",
+  vigencia_de: "", vigencia_ate: "", medico: "", fone_medico: "",
+  medicamentos: "", outro_problema: "", queixa_principal: "",
+  planejamento_prognostico: "", cobertura: "",
+  arcada_superior: EMPTY_ARCADA(), arcada_inferior: EMPTY_ARCADA(),
+});
+
+// ── db alias for tables not in generated types ───────────────────────────────
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any;
+
+// ── Main Component ───────────────────────────────────────────────────────────
+function ProntuarioPage() {
+  const { profile } = useAuth();
+  const [prontuarios, setProntuarios] = useState<ProntuarioRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [q, setQ] = useState("");
+  const [editingId, setEditingId] = useState<string | null | "new">(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  // Form state
+  const [step, setStep] = useState(1);
+  const [form, setForm] = useState<FormData>(EMPTY_FORM());
+  const [eventos, setEventos] = useState<Evento[]>([]);
+  const [saving, setSaving] = useState(false);
+  const sigDoutorRef = useRef<SignaturePadHandle>(null);
+  const sigPacienteRef = useRef<SignaturePadHandle>(null);
+  const [signingEventIdx, setSigningEventIdx] = useState<number | null>(null);
+  const sigEventRef = useRef<SignaturePadHandle>(null);
+
+  // Patient autocomplete
+  const [patientSearch, setPatientSearch] = useState("");
+  const [patientResults, setPatientResults] = useState<any[]>([]);
+  const [patientSearchFocused, setPatientSearchFocused] = useState(false);
+
+  const load = useCallback(async () => {
+    if (!profile?.company_id) return;
+    const { data } = await db
+      .from("prontuarios")
+      .select("id,nome,data,num_prontuario,num_contrato,assinatura_doutor,created_at")
+      .eq("company_id", profile.company_id)
+      .order("created_at", { ascending: false });
+    setProntuarios((data ?? []) as ProntuarioRow[]);
+    setLoading(false);
+  }, [profile?.company_id]);
+
+  useEffect(() => { load(); }, [load]);
+
+  // ── Patient search ──────────────────────────────────────────────────────
+  useEffect(() => {
+    if (patientSearch.trim().length < 2) { setPatientResults([]); return; }
+    const t = setTimeout(async () => {
+      const { data } = await supabase
+        .from("patients")
+        .select("id,nome,data_nascimento,rg,endereco,telefone")
+        .eq("company_id", profile?.company_id ?? "")
+        .ilike("nome", `%${patientSearch}%`)
+        .limit(6);
+      setPatientResults(data ?? []);
+    }, 280);
+    return () => clearTimeout(t);
+  }, [patientSearch, profile?.company_id]);
+
+  const selectPatient = (p: any) => {
+    setForm((f) => ({
+      ...f,
+      nome: p.nome ?? "",
+      data_nasc: p.data_nascimento ?? "",
+      rg: p.rg ?? "",
+      endereco: p.endereco ?? "",
+      telefone: p.telefone ?? "",
+    }));
+    setPatientSearch(p.nome ?? "");
+    setPatientResults([]);
+  };
+
+  // ── Open for edit ───────────────────────────────────────────────────────
+  const openEdit = async (id: string) => {
+    const { data: row } = await db.from("prontuarios").select("*").eq("id", id).single();
+    if (!row) return;
+    setForm({
+      ...EMPTY_FORM(),
+      ...row,
+      data: row.data ?? "",
+      data_nasc: row.data_nasc ?? "",
+      arcada_superior: row.arcada_superior ?? EMPTY_ARCADA(),
+      arcada_inferior: row.arcada_inferior ?? EMPTY_ARCADA(),
+    });
+    setPatientSearch(row.nome ?? "");
+    const { data: evs } = await db
+      .from("prontuario_eventos")
+      .select("*")
+      .eq("prontuario_id", id)
+      .order("created_at", { ascending: true });
+    setEventos((evs ?? []).map((e: any) => ({
+      id: e.id, data: e.data ?? "", dente: e.dente ?? "",
+      procedimento: e.procedimento ?? "", dentista: e.dentista ?? "",
+      assinatura_paciente: e.assinatura_paciente ?? "",
+    })));
+    setEditingId(id);
+    setStep(1);
+  };
+
+  const openNew = () => {
+    setForm(EMPTY_FORM());
+    setPatientSearch("");
+    setEventos([]);
+    setEditingId("new");
+    setStep(1);
+  };
+
+  // ── Save ────────────────────────────────────────────────────────────────
+  const handleSave = async () => {
+    if (!profile?.company_id) return;
+    setSaving(true);
+    try {
+      const sigPac = sigPacienteRef.current?.isEmpty() ? null : sigPacienteRef.current?.toDataURL();
+      const sigDoc = sigDoutorRef.current?.isEmpty() ? null : sigDoutorRef.current?.toDataURL();
+      const payload: any = {
+        company_id: profile.company_id,
+        updated_at: new Date().toISOString(),
+        ...form,
+        assinatura_paciente_planejamento: sigPac,
+        assinatura_doutor: sigDoc,
+      };
+      if (editingId && editingId !== "new") payload.id = editingId;
+
+      const { data: saved, error } = await db
+        .from("prontuarios")
+        .upsert(payload)
+        .select("id")
+        .single();
+      if (error || !saved) throw error ?? new Error("Erro ao salvar");
+
+      await db.from("prontuario_eventos").delete().eq("prontuario_id", saved.id);
+      if (eventos.length > 0) {
+        await db.from("prontuario_eventos").insert(
+          eventos.map((e) => ({
+            prontuario_id: saved.id,
+            data: e.data || null,
+            dente: e.dente,
+            procedimento: e.procedimento,
+            dentista: e.dentista,
+            assinatura_paciente: e.assinatura_paciente || null,
+          }))
+        );
+      }
+
+      toast.success("Prontuário salvo com sucesso!");
+      setEditingId(null);
+      load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao salvar prontuário");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ── Delete ──────────────────────────────────────────────────────────────
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    setDeleting(true);
+    await db.from("prontuarios").delete().eq("id", deleteId);
+    setDeleting(false);
+    toast.success("Prontuário excluído");
+    setDeleteId(null);
+    load();
+  };
+
+  // ── Download PDF ────────────────────────────────────────────────────────
+  const downloadPdf = async (id: string) => {
+    const { data: row } = await db.from("prontuarios").select("*").eq("id", id).single();
+    const { data: evs } = await db.from("prontuario_eventos").select("*").eq("prontuario_id", id).order("created_at");
+    if (!row) return;
+    const { generateProntuarioPdf } = await import("@/lib/prontuario-pdf");
+    const doc = await generateProntuarioPdf(row, evs ?? []);
+    doc.save(`prontuario-${(row.nome ?? "paciente").replace(/\s+/g, "_")}-${row.data ?? "s-data"}.pdf`);
+  };
+
+  // ── Filtered list ────────────────────────────────────────────────────────
+  const filtered = prontuarios.filter((p) => {
+    const ql = q.toLowerCase();
+    return !ql || (p.nome ?? "").toLowerCase().includes(ql) ||
+      (p.num_prontuario ?? "").toLowerCase().includes(ql) ||
+      (p.num_contrato ?? "").toLowerCase().includes(ql);
+  });
+
+  // ── Arcada toggle ────────────────────────────────────────────────────────
+  const toggleArcada = (arcada: "arcada_superior" | "arcada_inferior", dente: string, proc: string) => {
+    setForm((f) => ({
+      ...f,
+      [arcada]: {
+        ...f[arcada],
+        [dente]: { ...f[arcada][dente], [proc]: !f[arcada][dente]?.[proc] },
+      },
+    }));
+  };
+
+  const sf = (k: keyof FormData) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  if (editingId !== null) {
+    return (
+      <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
+        {/* Stepper */}
+        <div className="mb-6 flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={() => setEditingId(null)} className="gap-1.5 mr-2">
+            <ChevronLeft className="h-4 w-4" /> Voltar
+          </Button>
+          {[1, 2, 3].map((s) => (
+            <div key={s} className="flex items-center gap-2">
+              <button onClick={() => setStep(s)}
+                className={cn("flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold transition",
+                  step === s ? "bg-primary text-primary-foreground" : step > s ? "bg-success text-white" : "bg-muted text-muted-foreground")}>
+                {step > s ? "✓" : s}
+              </button>
+              <span className={cn("text-sm hidden sm:block", step === s ? "font-medium" : "text-muted-foreground")}>
+                {["Planejamento", "Eventos", "Assinaturas"][s - 1]}
+              </span>
+              {s < 3 && <div className="h-px w-6 bg-border" />}
+            </div>
+          ))}
+        </div>
+
+        {/* ── STEP 1 — Ficha de Planejamento ── */}
+        {step === 1 && (
+          <div className="space-y-6">
+            <Card className="p-5 sm:p-6">
+              <h2 className="mb-4 font-semibold text-lg flex items-center gap-2">
+                <FileText className="h-5 w-5 text-primary" /> Ficha de Planejamento — IOP046
+              </h2>
+
+              {/* Header fields */}
+              <div className="grid gap-3 sm:grid-cols-4">
+                <div className="grid gap-1"><Label>Data</Label><Input type="date" value={form.data} onChange={(e) => sf("data")(e.target.value)} /></div>
+                <div className="grid gap-1"><Label>Planejado por</Label><Input value={form.planejado_por} onChange={(e) => sf("planejado_por")(e.target.value)} /></div>
+                <div className="grid gap-1"><Label>Nº Prontuário</Label><Input value={form.num_prontuario} onChange={(e) => sf("num_prontuario")(e.target.value)} /></div>
+                <div className="grid gap-1"><Label>Nº Contrato</Label><Input value={form.num_contrato} onChange={(e) => sf("num_contrato")(e.target.value)} /></div>
+              </div>
+
+              {/* Patient autocomplete */}
+              <div className="mt-3 relative">
+                <Label>Nome do paciente</Label>
+                <Input className="mt-1" value={patientSearch}
+                  onChange={(e) => { setPatientSearch(e.target.value); sf("nome")(e.target.value); }}
+                  onFocus={() => setPatientSearchFocused(true)}
+                  onBlur={() => setTimeout(() => setPatientSearchFocused(false), 200)}
+                  placeholder="Buscar paciente..." />
+                {patientSearchFocused && patientResults.length > 0 && (
+                  <div className="absolute z-10 left-0 right-0 top-full mt-1 rounded-md border border-border bg-card shadow-lg">
+                    {patientResults.map((p) => (
+                      <button key={p.id} className="w-full px-3 py-2 text-left text-sm hover:bg-accent"
+                        onMouseDown={() => selectPatient(p)}>
+                        {p.nome}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                <div className="grid gap-1"><Label>Data de Nasc.</Label><Input type="date" value={form.data_nasc} onChange={(e) => sf("data_nasc")(e.target.value)} /></div>
+                <div className="grid gap-1"><Label>RG</Label><Input value={form.rg} onChange={(e) => sf("rg")(e.target.value)} /></div>
+                <div className="grid gap-1"><Label>Telefone</Label><Input value={form.telefone} onChange={(e) => sf("telefone")(e.target.value)} /></div>
+              </div>
+              <div className="mt-3 grid gap-1">
+                <Label>Endereço</Label><Input value={form.endereco} onChange={(e) => sf("endereco")(e.target.value)} />
+              </div>
+            </Card>
+
+            {/* Anamnese */}
+            <Card className="p-5 sm:p-6">
+              <h3 className="mb-4 font-semibold">Anamnese</h3>
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  ["alergico", "Alérgico"], ["hemorragia", "Hemorragia"],
+                  ["diabetes", "Diabetes"], ["cardiopatia", "Cardiopatia"],
+                  ["esta_gravida", "Grávida?"], ["prob_respiratorio", "Probl. Resp."],
+                  ["dst_aids_sifilis", "DST/AIDS/Síf."], ["usa_drogas", "Usa drogas?"],
+                  ["fuma", "Fuma?"], ["bebe", "Bebe?"],
+                  ["gastrointestinal", "Gastrointestinal"], ["cicatrizacao", "Cicatrização"],
+                  ["hepatite", "Hepatite"], ["ts_tc", "TS/TC"],
+                  ["convulsivo", "Convulsivo"], ["pressao_arterial", "Pressão Arterial"],
+                ].map(([k, label]) => (
+                  <div key={k} className="grid gap-1">
+                    <Label className="text-xs">{label}</Label>
+                    <Input className="h-8 text-sm" value={(form as any)[k]}
+                      onChange={(e) => sf(k as keyof FormData)(e.target.value)}
+                      placeholder="Sim/Não" />
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 grid gap-3 sm:grid-cols-4">
+                <div className="grid gap-1"><Label className="text-xs">Vigência De</Label><Input className="h-8 text-sm" type="date" value={form.vigencia_de} onChange={(e) => sf("vigencia_de")(e.target.value)} /></div>
+                <div className="grid gap-1"><Label className="text-xs">Vigência Até</Label><Input className="h-8 text-sm" type="date" value={form.vigencia_ate} onChange={(e) => sf("vigencia_ate")(e.target.value)} /></div>
+                <div className="grid gap-1"><Label className="text-xs">Médico</Label><Input className="h-8 text-sm" value={form.medico} onChange={(e) => sf("medico")(e.target.value)} /></div>
+                <div className="grid gap-1"><Label className="text-xs">Fone Médico</Label><Input className="h-8 text-sm" value={form.fone_medico} onChange={(e) => sf("fone_medico")(e.target.value)} /></div>
+              </div>
+              <div className="mt-3 space-y-2">
+                <div className="grid gap-1"><Label className="text-xs">Medicamentos que toma</Label><Input value={form.medicamentos} onChange={(e) => sf("medicamentos")(e.target.value)} /></div>
+                <div className="grid gap-1"><Label className="text-xs">Algum outro problema não mencionado?</Label><Input value={form.outro_problema} onChange={(e) => sf("outro_problema")(e.target.value)} /></div>
+                <div className="grid gap-1"><Label className="text-xs">Queixa principal</Label><Input value={form.queixa_principal} onChange={(e) => sf("queixa_principal")(e.target.value)} /></div>
+              </div>
+            </Card>
+
+            {/* Planejamento */}
+            <Card className="p-5 sm:p-6">
+              <h3 className="mb-4 font-semibold">Planejamento e Prognóstico</h3>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-1">
+                  <Label>Planejamento e Prognóstico</Label>
+                  <textarea rows={4} value={form.planejamento_prognostico}
+                    onChange={(e) => sf("planejamento_prognostico")(e.target.value)}
+                    className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y" />
+                </div>
+                <div className="grid gap-1">
+                  <Label>Cobertura</Label>
+                  <textarea rows={4} value={form.cobertura}
+                    onChange={(e) => sf("cobertura")(e.target.value)}
+                    className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y" />
+                </div>
+              </div>
+            </Card>
+
+            {/* Arcadas */}
+            {(["arcada_superior", "arcada_inferior"] as const).map((arcada) => {
+              const dentes = arcada === "arcada_superior" ? DENTES_SUPERIOR : DENTES_INFERIOR;
+              const label = arcada === "arcada_superior" ? "Arcada Superior" : "Arcada Inferior";
+              return (
+                <Card key={arcada} className="p-5 sm:p-6 overflow-x-auto">
+                  <h3 className="mb-3 font-semibold flex items-center gap-2">
+                    <CheckSquare className="h-4 w-4 text-primary" /> {label}
+                  </h3>
+                  <table className="min-w-full text-xs border-collapse">
+                    <thead>
+                      <tr>
+                        <th className="text-left py-1 pr-3 text-muted-foreground font-normal min-w-[90px]">Procedimento</th>
+                        {dentes.map((d) => (
+                          <th key={d} className="text-center px-1.5 py-1 font-semibold text-foreground">{d}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {PROCEDIMENTOS.map((proc) => (
+                        <tr key={proc} className="border-t border-border/40">
+                          <td className="py-1 pr-3 text-muted-foreground">{proc}</td>
+                          {dentes.map((d) => (
+                            <td key={d} className="text-center px-1">
+                              <button
+                                type="button"
+                                onClick={() => toggleArcada(arcada, d, proc)}
+                                className={cn(
+                                  "h-5 w-5 rounded border text-xs font-bold transition",
+                                  form[arcada][d]?.[proc]
+                                    ? "bg-primary text-primary-foreground border-primary"
+                                    : "border-input text-transparent hover:border-primary/60"
+                                )}
+                              >✓</button>
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ── STEP 2 — Eventos ── */}
+        {step === 2 && (
+          <Card className="p-5 sm:p-6">
+            <h2 className="mb-1 font-semibold text-lg">Eventos Efetivamente Realizados — IOP043</h2>
+            <p className="mb-4 text-sm text-muted-foreground">
+              {form.nome && <span className="font-medium text-foreground">{form.nome}</span>}
+              {form.num_contrato && <span className="text-muted-foreground"> · Contrato {form.num_contrato}</span>}
+              {form.num_prontuario && <span className="text-muted-foreground"> · Prontuário {form.num_prontuario}</span>}
+            </p>
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm border-collapse">
+                <thead>
+                  <tr className="border-b border-border">
+                    {["Data", "Dente", "Procedimento", "Dentista", "Paciente", ""].map((h) => (
+                      <th key={h} className="text-left py-2 px-2 font-medium text-muted-foreground text-xs">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {eventos.map((ev, i) => (
+                    <tr key={i} className="border-b border-border/40">
+                      <td className="py-1.5 px-1"><Input className="h-7 w-28 text-xs" type="date" value={ev.data} onChange={(e) => setEventos((prev) => prev.map((x, j) => j === i ? { ...x, data: e.target.value } : x))} /></td>
+                      <td className="py-1.5 px-1"><Input className="h-7 w-16 text-xs" value={ev.dente} onChange={(e) => setEventos((prev) => prev.map((x, j) => j === i ? { ...x, dente: e.target.value } : x))} /></td>
+                      <td className="py-1.5 px-1"><Input className="h-7 w-40 text-xs" value={ev.procedimento} onChange={(e) => setEventos((prev) => prev.map((x, j) => j === i ? { ...x, procedimento: e.target.value } : x))} /></td>
+                      <td className="py-1.5 px-1"><Input className="h-7 w-28 text-xs" value={ev.dentista} onChange={(e) => setEventos((prev) => prev.map((x, j) => j === i ? { ...x, dentista: e.target.value } : x))} /></td>
+                      <td className="py-1.5 px-1">
+                        {ev.assinatura_paciente ? (
+                          <button onClick={() => setSigningEventIdx(i)} className="block">
+                            <img src={ev.assinatura_paciente} alt="sig" className="h-7 w-20 object-contain border border-border rounded" />
+                          </button>
+                        ) : (
+                          <Button size="sm" variant="outline" className="h-7 text-xs px-2" onClick={() => setSigningEventIdx(i)}>
+                            <PenLine className="h-3 w-3 mr-1" /> Assinar
+                          </Button>
+                        )}
+                      </td>
+                      <td className="py-1.5 px-1">
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"
+                          onClick={() => setEventos((prev) => prev.filter((_, j) => j !== i))}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Button variant="outline" size="sm" className="mt-3 gap-2"
+              onClick={() => setEventos((prev) => [...prev, { data: "", dente: "", procedimento: "", dentista: "", assinatura_paciente: "" }])}>
+              <Plus className="h-3.5 w-3.5" /> Adicionar linha
+            </Button>
+          </Card>
+        )}
+
+        {/* ── STEP 3 — Assinaturas ── */}
+        {step === 3 && (
+          <div className="grid gap-6 sm:grid-cols-2">
+            <Card className="p-5">
+              <h3 className="mb-1 font-semibold flex items-center gap-2">
+                <PenLine className="h-4 w-4 text-primary" /> Assinatura do Doutor
+              </h3>
+              <p className="mb-3 text-xs text-muted-foreground">Assinatura do responsável pelo atendimento</p>
+              <div className="rounded-xl border-2 border-dashed border-border bg-white dark:bg-background overflow-hidden">
+                <SignaturePad ref={sigDoutorRef} className="block h-36 w-full" />
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => sigDoutorRef.current?.clear()}
+                className="mt-1 gap-1.5 text-xs text-muted-foreground">
+                <Eraser className="h-3.5 w-3.5" /> Limpar
+              </Button>
+            </Card>
+
+            <Card className="p-5">
+              <h3 className="mb-1 font-semibold flex items-center gap-2">
+                <PenLine className="h-4 w-4 text-primary" /> Assinatura do Paciente
+              </h3>
+              <p className="mb-3 text-xs text-muted-foreground">
+                "Atesto serem verdadeiras as informações que prestei quanto ao meu estado geral de saúde."
+              </p>
+              <div className="rounded-xl border-2 border-dashed border-border bg-white dark:bg-background overflow-hidden">
+                <SignaturePad ref={sigPacienteRef} className="block h-36 w-full" />
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => sigPacienteRef.current?.clear()}
+                className="mt-1 gap-1.5 text-xs text-muted-foreground">
+                <Eraser className="h-3.5 w-3.5" /> Limpar
+              </Button>
+            </Card>
+          </div>
+        )}
+
+        {/* Navigation */}
+        <div className="mt-6 flex items-center justify-between gap-3">
+          <Button variant="outline" onClick={() => step > 1 ? setStep(step - 1) : setEditingId(null)}
+            className="gap-2">
+            <ChevronLeft className="h-4 w-4" /> {step > 1 ? "Voltar" : "Cancelar"}
+          </Button>
+          {step < 3 ? (
+            <Button onClick={() => setStep(step + 1)} className="gap-2">
+              Avançar <ChevronRight className="h-4 w-4" />
+            </Button>
+          ) : (
+            <Button onClick={handleSave} disabled={saving} className="gap-2">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar Prontuário"}
+            </Button>
+          )}
+        </div>
+
+        {/* Event signature modal */}
+        <Dialog open={signingEventIdx !== null} onOpenChange={(o) => !o && setSigningEventIdx(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Assinatura do Paciente</DialogTitle>
+              <DialogDescription>Assine no campo abaixo para confirmar o procedimento.</DialogDescription>
+            </DialogHeader>
+            <div className="rounded-xl border-2 border-dashed border-border bg-white dark:bg-background overflow-hidden">
+              <SignaturePad ref={sigEventRef} className="block h-40 w-full" />
+            </div>
+            <DialogFooter className="gap-2">
+              <Button variant="outline" size="sm" onClick={() => sigEventRef.current?.clear()}>
+                <Eraser className="h-3.5 w-3.5 mr-1" /> Limpar
+              </Button>
+              <Button onClick={() => {
+                if (signingEventIdx === null || !sigEventRef.current || sigEventRef.current.isEmpty()) return;
+                const dataUrl = sigEventRef.current.toDataURL();
+                setEventos((prev) => prev.map((e, i) => i === signingEventIdx ? { ...e, assinatura_paciente: dataUrl } : e));
+                sigEventRef.current.clear();
+                setSigningEventIdx(null);
+              }}>Confirmar</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </main>
+    );
+  }
+
+  // ── List view ─────────────────────────────────────────────────────────────
+  return (
+    <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Prontuários</h1>
+          <p className="text-sm text-muted-foreground">Fichas clínicas e planejamentos</p>
+        </div>
+        <Button onClick={openNew} className="gap-2"><Plus className="h-4 w-4" /> Novo Prontuário</Button>
+      </div>
+
+      <div className="relative mb-4 w-full sm:w-96">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input value={q} onChange={(e) => setQ(e.target.value)}
+          placeholder="Buscar por nome, prontuário ou contrato..." className="pl-9" />
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+      ) : filtered.length === 0 ? (
+        <Card className="flex flex-col items-center justify-center py-16 text-center">
+          <FileText className="mb-3 h-10 w-10 text-muted-foreground" />
+          <p className="font-medium">{prontuarios.length === 0 ? "Nenhum prontuário ainda" : "Nenhum resultado"}</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {prontuarios.length === 0 ? 'Clique em "Novo Prontuário" para começar.' : "Tente outro termo de busca."}
+          </p>
+        </Card>
+      ) : (
+        <div className="grid gap-3 card-list">
+          {filtered.map((p) => (
+            <Card key={p.id} className="p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0 flex-1 cursor-pointer" onClick={() => openEdit(p.id)}>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-medium truncate">{p.nome || <span className="italic text-muted-foreground">Sem nome</span>}</p>
+                    <Badge variant="outline" className={p.assinatura_doutor
+                      ? "bg-success/15 text-success border-success/30"
+                      : "bg-warning/15 text-warning border-warning/30"}>
+                      {p.assinatura_doutor ? "Finalizado" : "Em andamento"}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {p.data && new Date(p.data).toLocaleDateString("pt-BR")}
+                    {p.num_prontuario && ` · Pront. ${p.num_prontuario}`}
+                    {p.num_contrato && ` · Cont. ${p.num_contrato}`}
+                  </p>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <Button size="sm" variant="outline" onClick={() => openEdit(p.id)}>Abrir</Button>
+                  <Button size="sm" variant="outline" onClick={() => downloadPdf(p.id)}>
+                    <Download className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setDeleteId(p.id)}
+                    className="text-destructive hover:bg-destructive/10 hover:text-destructive">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Delete confirm */}
+      <Dialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Excluir prontuário?</DialogTitle>
+            <DialogDescription>Esta ação remove o prontuário e todos os eventos registrados. Não pode ser desfeita.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDeleteId(null)}>Cancelar</Button>
+            <Button onClick={handleDelete} disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Excluir"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </main>
+  );
+}
