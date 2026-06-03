@@ -46,6 +46,7 @@ type FormData = {
   medicamentos: string; outro_problema: string; queixa_principal: string;
   planejamento_prognostico: string; cobertura: string;
   arcada_superior: Arcada; arcada_inferior: Arcada;
+  odontograma: Record<string, string>;
 };
 
 // ── Constants ───────────────────────────────────────────────────────────────
@@ -72,6 +73,7 @@ const EMPTY_FORM = (): FormData => ({
   medicamentos: "", outro_problema: "", queixa_principal: "",
   planejamento_prognostico: "", cobertura: "",
   arcada_superior: EMPTY_ARCADA(), arcada_inferior: EMPTY_ARCADA(),
+  odontograma: {},
 });
 
 // ── db alias for tables not in generated types ───────────────────────────────
@@ -452,6 +454,40 @@ function ProntuarioPage() {
                 </Card>
               );
             })}
+
+            {/* Odontograma Atual — Odontologia Legal */}
+            <Card className="p-5 sm:p-6">
+              <h3 className="mb-3 font-semibold">Odontograma Atual — Odontologia Legal</h3>
+              <p className="mb-3 text-xs text-muted-foreground">Anotações por dente (observações, lesões, restaurações, etc.)</p>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  { label: "Superior Direito", dentes: [18,17,16,15,14,13,12,11] },
+                  { label: "Superior Esquerdo", dentes: [21,22,23,24,25,26,27,28] },
+                  { label: "Inferior Esquerdo", dentes: [38,37,36,35,34,33,32,31] },
+                  { label: "Inferior Direito", dentes: [41,42,43,44,45,46,47,48] },
+                ].map(({ label, dentes }) => (
+                  <div key={label}>
+                    <p className="mb-2 text-xs font-semibold text-muted-foreground">{label}</p>
+                    <div className="space-y-1">
+                      {dentes.map((d) => (
+                        <div key={d} className="flex items-center gap-2">
+                          <span className="w-8 text-right text-xs font-mono text-primary font-bold shrink-0">{d}</span>
+                          <Input
+                            className="h-6 text-xs py-0"
+                            value={form.odontograma[d.toString()] ?? ""}
+                            onChange={(e) => setForm((f) => ({
+                              ...f,
+                              odontograma: { ...f.odontograma, [d.toString()]: e.target.value },
+                            }))}
+                            placeholder="observação..."
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
           </div>
         )}
 
