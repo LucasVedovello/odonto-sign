@@ -6,9 +6,6 @@
  *   1 — Ficha de Planejamento (frente)
  *   2 — Verso: Arcada Inferior + Odontograma
  *   3+ — Eventos Efetivamente Realizados
- *
- * Dental-arch cell X values below are in the ORIGINAL IMAGE pixels.
- * They are converted to mm at runtime using the image's naturalWidth.
  */
 
 const URLS = {
@@ -20,10 +17,9 @@ const URLS = {
 // ── Date helper ───────────────────────────────────────────────────────────
 function fmtDate(d?: string | null): string {
   if (!d) return "";
-  try {
-    const dt = new Date(d + "T12:00:00"); // noon avoids timezone-shift on date-only strings
-    return dt.toLocaleDateString("pt-BR");
-  } catch { return d; }
+  const parts = d.split("-");
+  if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  return d;
 }
 
 // ── Image utilities ───────────────────────────────────────────────────────
@@ -41,20 +37,19 @@ async function toBase64(url: string): Promise<string | null> {
   } catch { return null; }
 }
 
-/** Returns the natural pixel width of a base64 image (browser only). */
-function getNaturalWidth(b64: string): Promise<number> {
-  return new Promise((resolve) => {
-    const img = new window.Image();
-    img.onload  = () => resolve(img.naturalWidth);
-    img.onerror = () => resolve(0);
-    img.src = b64;
-  });
-}
+// ─────────────────────────────────────────────────────────────────────────
+//  Arch procedure key mapping  (DB stores capitalized; spec uses lowercase)
+// ─────────────────────────────────────────────────────────────────────────
+const PROC_KEY: Record<string, string> = {
+  periodontia: "Periodontia", endodontia: "Endodontia",
+  clareamento: "Clareamento", dentistica: "Dentística",
+  nucleo: "Núcleo",           provisoria: "Provisória",
+  definitiva: "Definitiva",
+};
 
 // ─────────────────────────────────────────────────────────────────────────
-//  CALIBRATION — generates a PDF with a red 10 mm grid over every background
+//  CALIBRATION — red 10 mm grid over every background image
 // ─────────────────────────────────────────────────────────────────────────
-
 export async function generateCalibrationPdf(): Promise<any> {
   const { jsPDF } = await import("jspdf");
   const W = 297, H = 210;
@@ -77,9 +72,9 @@ export async function generateCalibrationPdf(): Promise<any> {
 
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const pages = [
-    { bg: bg1,    label: "PAGE 1 — Ficha de Planejamento (frente)" },
+    { bg: bg1,     label: "PAGE 1 — Ficha de Planejamento (frente)" },
     { bg: bgVerso, label: "PAGE 2 — Verso (Arcada Inferior + Odontograma)" },
-    { bg: bg2,    label: "PAGE 3 — Eventos Efetivamente Realizados" },
+    { bg: bg2,     label: "PAGE 3 — Eventos Efetivamente Realizados" },
   ];
   pages.forEach(({ bg, label }, i) => {
     if (i > 0) doc.addPage();
@@ -92,61 +87,8 @@ export async function generateCalibrationPdf(): Promise<any> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-//  DENTAL ARCH pixel-x tables (will be multiplied by scaleX at runtime)
-// ─────────────────────────────────────────────────────────────────────────
-
-// Upper arch (18-28) — pixel x of each tooth column
-const UPPER_X_PX: Record<string, number> = {
-  "18": 183, "17": 200, "16": 217, "15": 234, "14": 251,
-  "13": 268, "12": 285, "11": 302, "21": 319, "22": 336,
-  "24": 353, "24b": 370, "26": 387, "27": 404, "28": 421,
-};
-const UPPER_TEETH_ORDER = ["18","17","16","15","14","13","12","11","21","22","24","24b","26","27","28"];
-
-// Lower arch (48-38) — pixel x of each tooth column
-const LOWER_X_PX: Record<string, number> = {
-  "48": 183, "47": 200, "46": 217, "45": 234, "44": 251,
-  "43": 268, "42": 285, "41": 302, "31": 319, "32": 336,
-  "33": 353, "34": 370, "35": 387, "36": 404, "37": 421, "38": 438,
-};
-const LOWER_TEETH_ORDER = ["48","47","46","45","44","43","42","41","31","32","33","34","35","36","37","38"];
-
-// Upper arch: procedure → y (mm, already calibrated)
-const UPPER_PROC_Y: Record<string, number> = {
-  Periodontia: 118, Endodontia: 128, Clareamento: 138,
-  "Dentística": 148, "Núcleo": 158, "Provisória": 168, Definitiva: 178,
-};
-
-// Lower arch (verso): procedure → y (mm, already calibrated)
-const LOWER_PROC_Y: Record<string, number> = {
-  Definitiva: 28, "Provisória": 38, "Núcleo": 48,
-  "Dentística": 68, Clareamento: 83, Endodontia: 98, Periodontia: 112,
-};
-
-// Odontograma columns
-const ODONTO_COLS = [
-  { dentes: [18,17,16,15,14,13,12,11], xTxt:  20, yStart: 132 },
-  { dentes: [21,22,23,24,25,26,27,28], xTxt:  95, yStart: 132 },
-  { dentes: [38,37,36,35,34,33,32,31], xTxt: 170, yStart: 132 },
-  { dentes: [41,42,43,44,45,46,47,48], xTxt: 245, yStart: 132 },
-];
-
-// Events table layout
-const EVT = {
-  colData:      8,
-  colDente:    58,
-  colProc:     93,
-  largProc:   105,
-  colDentista: 203,
-  firstRowY:   35,
-  rowSpacing:   8,
-  maxLinhas:   18,
-};
-
-// ─────────────────────────────────────────────────────────────────────────
 //  MAIN PDF GENERATION
 // ─────────────────────────────────────────────────────────────────────────
-
 export async function generateProntuarioPdf(p: any, eventos: any[]): Promise<any> {
   const { jsPDF } = await import("jspdf");
   const W = 297, H = 210;
@@ -155,29 +97,25 @@ export async function generateProntuarioPdf(p: any, eventos: any[]): Promise<any
     toBase64(URLS.plano), toBase64(URLS.verso), toBase64(URLS.eventos),
   ]);
 
-  // Compute pixel→mm scale from actual image width
-  let scaleX = 1;
-  if (bg1) {
-    const natW = await getNaturalWidth(bg1);
-    if (natW > 0) scaleX = W / natW;
-  }
-  const px = (xPx: number) => xPx * scaleX;
-
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
 
-  const style9 = () => {
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.setTextColor(26, 58, 107);
+  const style = (bold = false, size = 9) => {
+    doc.setFont("helvetica", bold ? "bold" : "normal");
+    doc.setFontSize(size);
+    doc.setTextColor(15, 40, 100);
   };
-  const style8 = () => {
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    doc.setTextColor(26, 58, 107);
-  };
+
   const t = (val: string | null | undefined, x: number, y: number, opts?: any) => {
     const v = (val ?? "").toString().trim();
     if (v) doc.text(v, x, y, opts ?? undefined);
+  };
+
+  const check = (x: number, y: number) => {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(0, 120, 0);
+    doc.text("✓", x - 1, y + 2);
+    style(true);
   };
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -185,68 +123,76 @@ export async function generateProntuarioPdf(p: any, eventos: any[]): Promise<any
   // ═══════════════════════════════════════════════════════════════════════
 
   if (bg1) { try { doc.addImage(bg1, "JPEG", 0, 0, W, H); } catch { /* skip */ } }
-  style9();
+  style(true);
 
-  // ── Cabeçalho ─────────────────────────────────────────────────────────
-  t(fmtDate(p.data),       60,  14);
-  t(p.planejado_por,      110,  14);
-  t(p.num_prontuario,     230,  14);
-  t(p.num_contrato,       270,  14);
+  // Cabeçalho linha 1
+  t(fmtDate(p.data),       73,  13);
+  t(p.planejado_por,      138,  13);
+  t(p.num_prontuario,     240,  13);
+  t(p.num_contrato,       275,  13);
 
-  t(p.nome,                60,  22);
-  t(fmtDate(p.data_nasc), 230,  22);
-  t(p.rg,                 265,  22);
+  // Cabeçalho linha 2
+  t(p.nome,                73,  20);
+  t(fmtDate(p.data_nasc), 245,  20);
+  t(p.rg,                 268,  20);
 
-  t(p.endereco,            60,  30);
-  t(p.telefone,           265,  30);
+  // Cabeçalho linha 3
+  t(p.endereco,            80,  27);
+  t(p.telefone,           268,  27);
 
-  // ── Anamnese ──────────────────────────────────────────────────────────
-  style8();
-  t(p.alergico,            50,  38); t(p.esta_gravida,       135,  38);
-  t(p.fuma,               195,  38); t(p.hepatite,           255,  38);
-  t(p.hemorragia,          50,  44); t(p.prob_respiratorio,  135,  44);
-  t(p.bebe,               195,  44); t(p.ts_tc,              255,  44);
-  t(p.diabetes,            50,  50); t(p.dst_aids_sifilis,   135,  50);
-  t(p.gastrointestinal,   195,  50); t(p.convulsivo,         255,  50);
-  t(p.cardiopatia,         50,  56); t(p.usa_drogas,         135,  56);
-  t(p.cicatrizacao,       195,  56); t(p.pressao_arterial,   255,  56);
+  // Anamnese — linha y=37
+  t(p.alergico,            92,  37); t(p.esta_gravida,      140,  37);
+  t(p.fuma,               195,  37); t(p.hepatite,          247,  37);
+  // y=45
+  t(p.hemorragia,          92,  45); t(p.prob_respiratorio, 140,  45);
+  t(p.bebe,               195,  45); t(p.ts_tc,             247,  45);
+  // y=53
+  t(p.diabetes,            92,  53); t(p.dst_aids_sifilis,  140,  53);
+  t(p.gastrointestinal,   195,  53); t(p.convulsivo,        247,  53);
+  // y=61
+  t(p.cardiopatia,         92,  61); t(p.usa_drogas,        140,  61);
+  t(p.cicatrizacao,       195,  61); t(p.pressao_arterial,  247,  61);
 
-  // Coluna direita — vigência / médico
-  t(fmtDate(p.vigencia_de),  233, 38); t(fmtDate(p.vigencia_ate), 260, 38);
-  t(p.medico,               233, 50); t(p.fone_medico,           270, 50);
+  // Vigência / Médico / Fone — coluna direita
+  t(fmtDate(p.vigencia_de), 228, 37); t(fmtDate(p.vigencia_ate), 255, 37);
+  t(p.medico,               228, 53); t(p.fone_medico,           260, 53);
 
-  // Linha inferior
-  t(p.medicamentos,        50,  62);
-  t(p.outro_problema,     160,  62);
-  t(p.queixa_principal,   255,  62);
+  // Linha inferior da anamnese
+  t(p.medicamentos,         92,  69);
+  t(p.outro_problema,      165,  69);
+  t(p.queixa_principal,    245,  69);
 
-  // ── Assinatura paciente — campo "Atesto..." ────────────────────────────
+  // Assinatura do paciente — campo "Atesto..."
   if (p.assinatura_paciente_planejamento) {
-    try { doc.addImage(p.assinatura_paciente_planejamento, "PNG", 228, 64, 55, 10); } catch { /* skip */ }
+    try { doc.addImage(p.assinatura_paciente_planejamento, "PNG", 230, 67, 58, 10); } catch { /* skip */ }
   }
 
-  // ── Planejamento e Prognóstico / Cobertura ─────────────────────────────
-  style9();
+  // Planejamento e Prognóstico / Cobertura
+  style(true);
   if (p.planejamento_prognostico) {
-    doc.text(doc.splitTextToSize(p.planejamento_prognostico.trim(), 155), 12, 76);
+    doc.text(doc.splitTextToSize(p.planejamento_prognostico.trim(), 160), 12, 82);
   }
   if (p.cobertura) {
-    doc.text(doc.splitTextToSize(p.cobertura.trim(), 110), 178, 76);
+    doc.text(doc.splitTextToSize(p.cobertura.trim(), 110), 180, 82);
   }
 
-  // ── Arcada Superior ────────────────────────────────────────────────────
-  Object.entries(UPPER_PROC_Y).forEach(([proc, yRow]) => {
-    UPPER_TEETH_ORDER.forEach((dente) => {
-      const xPx = UPPER_X_PX[dente];
-      if (xPx === undefined) return;
-      // Map "24b" → "24" for data lookup (second occurrence of tooth 24)
+  // Arcada Superior — X positions in mm (already calibrated)
+  const dentesSupX: Record<string, number> = {
+    "18":159, "17":169, "16":179, "15":189, "14":199,
+    "13":209, "12":219, "11":229, "21":239, "22":249,
+    "24":259, "24b":269, "26":279, "27":289, "28":295,
+  };
+  const procSupY: Record<string, number> = {
+    periodontia:118, endodontia:128, clareamento:138,
+    dentistica:148,  nucleo:158,     provisoria:168, definitiva:178,
+  };
+  style(true);
+  Object.entries(procSupY).forEach(([proc, yRow]) => {
+    ["18","17","16","15","14","13","12","11","21","22","24","24b","26","27","28"].forEach((dente) => {
+      const x = dentesSupX[dente];
+      if (x === undefined) return;
       const dataKey = dente === "24b" ? "24" : dente;
-      if (p.arcada_superior?.[dataKey]?.[proc]) {
-        doc.setFontSize(12);
-        doc.setTextColor(0, 100, 0);
-        doc.text("✓", px(xPx) - 1, yRow + 2);
-        style9();
-      }
+      if (p.arcada_superior?.[dataKey]?.[PROC_KEY[proc]]) check(x, yRow);
     });
   });
 
@@ -256,25 +202,36 @@ export async function generateProntuarioPdf(p: any, eventos: any[]): Promise<any
 
   doc.addPage();
   if (bgVerso) { try { doc.addImage(bgVerso, "JPEG", 0, 0, W, H); } catch { /* skip */ } }
+  style(true);
 
-  Object.entries(LOWER_PROC_Y).forEach(([proc, yRow]) => {
-    LOWER_TEETH_ORDER.forEach((dente) => {
-      const xPx = LOWER_X_PX[dente];
-      if (xPx === undefined) return;
-      if (p.arcada_inferior?.[dente]?.[proc]) {
-        doc.setFontSize(12);
-        doc.setTextColor(0, 100, 0);
-        doc.text("✓", px(xPx) - 1, yRow + 2);
-        style9();
-      }
+  const dentesInfX: Record<string, number> = {
+    "48":159, "47":169, "46":179, "45":189, "44":199,
+    "43":209, "42":219, "41":229, "31":239, "32":249,
+    "33":259, "34":269, "35":279, "36":289, "37":295, "38":300,
+  };
+  const procInfY: Record<string, number> = {
+    definitiva:22,  provisoria:32, nucleo:47,
+    dentistica:62,  clareamento:77, endodontia:92, periodontia:107,
+  };
+  Object.entries(procInfY).forEach(([proc, yRow]) => {
+    ["48","47","46","45","44","43","42","41","31","32","33","34","35","36","37","38"].forEach((dente) => {
+      const x = dentesInfX[dente];
+      if (x === undefined) return;
+      if (p.arcada_inferior?.[dente]?.[PROC_KEY[proc]]) check(x, yRow);
     });
   });
 
-  style8();
-  ODONTO_COLS.forEach(({ dentes, xTxt, yStart }) => {
+  // Odontograma
+  style(true);
+  [
+    { dentes:[18,17,16,15,14,13,12,11], xTxt: 20, yStart:132 },
+    { dentes:[21,22,23,24,25,26,27,28], xTxt: 95, yStart:132 },
+    { dentes:[38,37,36,35,34,33,32,31], xTxt:170, yStart:132 },
+    { dentes:[41,42,43,44,45,46,47,48], xTxt:245, yStart:132 },
+  ].forEach(({ dentes, xTxt, yStart }) => {
     dentes.forEach((d, i) => {
       const obs = (p.odontograma?.[d.toString()] ?? "").trim();
-      if (obs) doc.text(obs, xTxt, yStart + i * 8.5, { maxWidth: 60 });
+      if (obs) doc.text(obs, xTxt, yStart + i * 8, { maxWidth: 60 });
     });
   });
 
@@ -282,48 +239,45 @@ export async function generateProntuarioPdf(p: any, eventos: any[]): Promise<any
   // PAGE 3+ — Eventos Efetivamente Realizados
   // ═══════════════════════════════════════════════════════════════════════
 
-  const evRows = [...eventos];
-  let firstEvPage = true;
+  const EV = {
+    colData: 8, colDente: 58, colProc: 80, largProc: 120,
+    colDentista: 205, yPrimeira: 35, espacamento: 8.2,
+  };
+  const POR_PAG = 18;
+  const totalPags = Math.max(1, Math.ceil(eventos.length / POR_PAG));
 
-  const addEvPage = (batch: any[]) => {
+  for (let pg = 0; pg < totalPags; pg++) {
     doc.addPage();
     if (bg2) { try { doc.addImage(bg2, "JPEG", 0, 0, W, H); } catch { /* skip */ } }
+    style(true);
 
-    style9();
-    if (firstEvPage) {
-      t(p.nome,           90,  22);
-      t(p.num_contrato,  210,  22);
-      t(p.num_prontuario, 262, 22);
-      firstEvPage = false;
-    }
+    // Header
+    t(p.nome,           100, 22);
+    t(p.num_contrato,   215, 22);
+    t(p.num_prontuario, 268, 22);
 
-    style8();
+    // Event rows
+    const batch = eventos.slice(pg * POR_PAG, (pg + 1) * POR_PAG);
     batch.forEach((ev: any, i: number) => {
-      const y = EVT.firstRowY + i * EVT.rowSpacing;
+      const y = EV.yPrimeira + i * EV.espacamento;
       if (y > H - 20) return;
-      t(fmtDate(ev.data),  EVT.colData,    y);
-      t(ev.dente,          EVT.colDente,   y);
+      t(fmtDate(ev.data),  EV.colData,    y);
+      t(ev.dente,          EV.colDente,   y);
       if (ev.procedimento) {
-        const lines = doc.splitTextToSize((ev.procedimento ?? "").trim(), EVT.largProc);
-        doc.text(lines[0] ?? "", EVT.colProc, y);
+        const lines = doc.splitTextToSize((ev.procedimento ?? "").trim(), EV.largProc);
+        doc.text(lines[0] ?? "", EV.colProc, y);
       }
-      t(ev.dentista,       EVT.colDentista, y);
-      // Coluna Paciente — VAZIA (assinatura à mão no papel impresso)
+      t(ev.dentista,       EV.colDentista, y);
+      // Coluna Paciente — VAZIA (assinatura à mão)
     });
-  };
-
-  // Split events into pages of maxLinhas each
-  for (let i = 0; i < Math.max(1, Math.ceil(evRows.length / EVT.maxLinhas)); i++) {
-    addEvPage(evRows.slice(i * EVT.maxLinhas, (i + 1) * EVT.maxLinhas));
   }
 
-  // ── Footer signatures (last events page) ──────────────────────────────
-  style8();
+  // Footer signatures — last events page
   if (p.assinatura_doutor) {
-    try { doc.addImage(p.assinatura_doutor, "PNG", 50, 190, 75, 12); } catch { /* skip */ }
+    try { doc.addImage(p.assinatura_doutor, "PNG", 52, 188, 70, 12); } catch { /* skip */ }
   }
   if (p.assinatura_paciente_planejamento) {
-    try { doc.addImage(p.assinatura_paciente_planejamento, "PNG", 185, 190, 75, 12); } catch { /* skip */ }
+    try { doc.addImage(p.assinatura_paciente_planejamento, "PNG", 188, 188, 70, 12); } catch { /* skip */ }
   }
 
   return doc;
