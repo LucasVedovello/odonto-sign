@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { ContainerScroll } from "@/components/ui/container-scroll-animation";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -43,7 +44,32 @@ function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 py-10">
+    <div className="min-h-screen">
+      <ContainerScroll
+        titleComponent={
+          <>
+            <p className="text-sm font-semibold text-primary uppercase tracking-widest mb-4">
+              Gestão odontológica simplificada
+            </p>
+            <h1 className="text-4xl md:text-6xl font-bold leading-tight">
+              Organize sua clínica com
+              <br />
+              <span className="text-primary">OdontoClinic</span>
+            </h1>
+            <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
+              Prontuários digitais, contratos, agendamentos e muito mais — tudo num só lugar.
+            </p>
+          </>
+        }
+      >
+        <img
+          src="https://dziinqtztpolawyfbakr.supabase.co/storage/v1/object/public/assets/image_Pippit_202606022141.png"
+          alt="OdontoClinic Dashboard"
+          className="w-full h-full object-cover object-top rounded-xl"
+        />
+      </ContainerScroll>
+
+      <div className="flex items-center justify-center px-4 pb-16">
       <div className="w-full max-w-md">
         <div className="mb-6 flex flex-col items-center gap-3">
           <img
@@ -87,6 +113,7 @@ function LoginPage() {
             </Link>
           </p>
         </Card>
+      </div>
       </div>
     </div>
   );

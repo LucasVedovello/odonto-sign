@@ -1,4 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
+import { useMemo } from "react";
 import { Moon, Sun, LogOut, UserCircle, Users, LayoutDashboard, MoreVertical, ShieldCheck, Headset, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,6 +9,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
+import { ExpandableTabs } from "@/components/ui/expandable-tabs";
 
 export function AppHeader() {
   const { profile, signOut } = useAuth();
@@ -16,6 +18,26 @@ export function AppHeader() {
 
   const initials = `${profile?.first_name?.[0] ?? ""}${profile?.last_name?.[0] ?? ""}`.toUpperCase() || "U";
   const isAdmin = !!profile?.is_admin;
+
+  const { quickNavTabs, quickNavRoutes } = useMemo(() => {
+    const tabs: Parameters<typeof ExpandableTabs>[0]["tabs"] = [
+      { title: "Contratos", icon: LayoutDashboard },
+      { title: "Prontuário", icon: ClipboardList },
+      { title: "Usuários", icon: Users },
+      { type: "separator" as const },
+    ];
+    const routes: (string | null)[] = ["/", "/prontuario", "/usuarios", null];
+
+    if (isAdmin) {
+      tabs.push({ title: "Admin", icon: ShieldCheck });
+      routes.push("/admin");
+    }
+
+    tabs.push({ title: "Suporte", icon: Headset });
+    routes.push("/suporte");
+
+    return { quickNavTabs: tabs, quickNavRoutes: routes };
+  }, [isAdmin]);
 
   return (
     <header className="border-b border-border bg-card/70 backdrop-blur-md sticky top-0 z-40">
@@ -96,6 +118,18 @@ export function AppHeader() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+      </div>
+
+      <div className="hidden sm:flex justify-center pb-3">
+        <ExpandableTabs
+          tabs={quickNavTabs}
+          activeColor="text-primary"
+          onChange={(index) => {
+            if (index === null) return;
+            const route = quickNavRoutes[index];
+            if (route) navigate({ to: route });
+          }}
+        />
       </div>
     </header>
   );
