@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TestRouteImport } from './routes/test'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as CriarEmpresaRouteImport } from './routes/criar-empresa'
@@ -24,6 +25,11 @@ import { Route as AuthenticatedProntuarioRouteImport } from './routes/_authentic
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 
+const TestRoute = TestRouteImport.update({
+  id: '/test',
+  path: '/test',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
@@ -102,6 +108,7 @@ export interface FileRoutesByFullPath {
   '/criar-empresa': typeof CriarEmpresaRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/test': typeof TestRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/prontuario': typeof AuthenticatedProntuarioRoute
@@ -116,6 +123,7 @@ export interface FileRoutesByTo {
   '/criar-empresa': typeof CriarEmpresaRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/test': typeof TestRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/prontuario': typeof AuthenticatedProntuarioRoute
@@ -133,6 +141,7 @@ export interface FileRoutesById {
   '/criar-empresa': typeof CriarEmpresaRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/test': typeof TestRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/prontuario': typeof AuthenticatedProntuarioRoute
@@ -151,6 +160,7 @@ export interface FileRouteTypes {
     | '/criar-empresa'
     | '/login'
     | '/reset-password'
+    | '/test'
     | '/admin'
     | '/perfil'
     | '/prontuario'
@@ -165,6 +175,7 @@ export interface FileRouteTypes {
     | '/criar-empresa'
     | '/login'
     | '/reset-password'
+    | '/test'
     | '/admin'
     | '/perfil'
     | '/prontuario'
@@ -181,6 +192,7 @@ export interface FileRouteTypes {
     | '/criar-empresa'
     | '/login'
     | '/reset-password'
+    | '/test'
     | '/_authenticated/admin'
     | '/_authenticated/perfil'
     | '/_authenticated/prontuario'
@@ -198,11 +210,19 @@ export interface RootRouteChildren {
   CriarEmpresaRoute: typeof CriarEmpresaRoute
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  TestRoute: typeof TestRoute
   CadastroTokenRoute: typeof CadastroTokenRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/test': {
+      id: '/test'
+      path: '/test'
+      fullPath: '/test'
+      preLoaderRoute: typeof TestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -334,6 +354,7 @@ const rootRouteChildren: RootRouteChildren = {
   CriarEmpresaRoute: CriarEmpresaRoute,
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  TestRoute: TestRoute,
   CadastroTokenRoute: CadastroTokenRoute,
 }
 export const routeTree = rootRouteImport
