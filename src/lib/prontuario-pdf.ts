@@ -185,7 +185,7 @@ export async function generateProntuarioPdf(p: any, eventos: any[]): Promise<any
   const dentesSupX: Record<string, number> = {
     "18":159, "17":169, "16":179, "15":189, "14":199,
     "13":209, "12":219, "11":229, "21":239, "22":249,
-    "24":259, "24b":269, "26":279, "27":289, "28":295,
+    "23":257, "24":264, "25":272, "26":280, "27":287, "28":295,
   };
   const procSupY: Record<string, number> = {
     periodontia:118, endodontia:128, clareamento:138,
@@ -193,11 +193,9 @@ export async function generateProntuarioPdf(p: any, eventos: any[]): Promise<any
   };
   style(true);
   Object.entries(procSupY).forEach(([proc, yRow]) => {
-    ["18","17","16","15","14","13","12","11","21","22","24","24b","26","27","28"].forEach((dente) => {
+    Object.keys(dentesSupX).forEach((dente) => {
       const x = dentesSupX[dente];
-      if (x === undefined) return;
-      const dataKey = dente === "24b" ? "24" : dente;
-      if (p.arcada_superior?.[dataKey]?.[PROC_KEY[proc]]) check(x, yRow);
+      if (p.arcada_superior?.[dente]?.[PROC_KEY[proc]]) check(x, yRow);
     });
   });
 
@@ -212,7 +210,7 @@ export async function generateProntuarioPdf(p: any, eventos: any[]): Promise<any
   const dentesInfX: Record<string, number> = {
     "48":159, "47":169, "46":179, "45":189, "44":199,
     "43":209, "42":219, "41":229, "31":239, "32":249,
-    "33":259, "34":269, "35":279, "36":289, "37":295, "38":300,
+    "33":259, "34":269, "35":279, "36":289, "37":293, "38":296,
   };
   const procInfY: Record<string, number> = {
     definitiva:22,  provisoria:32, nucleo:47,
