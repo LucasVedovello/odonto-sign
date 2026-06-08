@@ -70,7 +70,7 @@ function AuthLayout() {
   return (
     <div className="min-h-screen">
       <AppHeader />
-      <div className="page-enter">
+      <div className="page-enter pb-20 sm:pb-0">
         <Outlet />
       </div>
     </div>

@@ -39,91 +39,90 @@ export function AppHeader() {
     return { quickNavTabs: tabs, quickNavRoutes: routes };
   }, [isAdmin]);
 
+  const handleNavChange = (index: number | null) => {
+    if (index === null) return;
+    const route = quickNavRoutes[index];
+    if (route) navigate({ to: route });
+  };
+
   return (
-    <header className="border-b border-border bg-card/70 backdrop-blur-md sticky top-0 z-40">
-      <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3 sm:px-6">
-        {/* Logo */}
-        <Link to="/" className="flex items-center gap-3 min-w-0 shrink-0">
-          <img
-            src="https://dziinqtztpolawyfbakr.supabase.co/storage/v1/object/public/assets/image_Pippit_202606022141.png"
-            alt="OdontoSistema"
-            className="h-10 w-10 shrink-0 rounded-lg object-contain shadow-[var(--shadow-card)]"
-          />
-          <div className="hidden sm:block min-w-0">
-            <h1 className="text-base font-semibold leading-tight truncate">OdontoClinic</h1>
-            <p className="text-xs text-muted-foreground truncate">Cadastro Digital</p>
+    <>
+      {/* ── Header (desktop sm+) ── */}
+      <header className="border-b border-border bg-card/70 backdrop-blur-md sticky top-0 z-40">
+        <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3 sm:px-6">
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-3 min-w-0 shrink-0">
+            <img
+              src="https://dziinqtztpolawyfbakr.supabase.co/storage/v1/object/public/assets/image_Pippit_202606022141.png"
+              alt="OdontoSistema"
+              className="h-10 w-10 shrink-0 rounded-lg object-contain shadow-[var(--shadow-card)]"
+            />
+            <div className="hidden sm:block min-w-0">
+              <h1 className="text-base font-semibold leading-tight truncate">OdontoClinic</h1>
+              <p className="text-xs text-muted-foreground truncate">Cadastro Digital</p>
+            </div>
+          </Link>
+
+          {/* ExpandableTabs — desktop only, centralizado */}
+          <div className="hidden sm:flex flex-1 justify-center">
+            <ExpandableTabs
+              tabs={quickNavTabs}
+              activeColor="text-primary"
+              onChange={handleNavChange}
+            />
           </div>
-        </Link>
 
-        {/* ExpandableTabs — única navegação, centralizada */}
-        <div className="hidden sm:flex flex-1 justify-center">
-          <ExpandableTabs
-            tabs={quickNavTabs}
-            activeColor="text-primary"
-            onChange={(index) => {
-              if (index === null) return;
-              const route = quickNavRoutes[index];
-              if (route) navigate({ to: route });
-            }}
-          />
-        </div>
+          {/* Spacer mobile */}
+          <div className="flex-1 sm:hidden" />
 
-        {/* Spacer mobile para empurrar avatar à direita */}
-        <div className="flex-1 sm:hidden" />
-
-        {/* Avatar / dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="gap-2 px-2 h-10 shrink-0">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={profile?.profile_image_url ?? undefined} />
-                <AvatarFallback className="bg-primary text-primary-foreground text-xs">{initials}</AvatarFallback>
-              </Avatar>
-              <MoreVertical className="h-4 w-4 text-muted-foreground hidden sm:block" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel className="font-normal">
-              <p className="text-sm font-medium truncate">{profile?.first_name} {profile?.last_name}</p>
-              <p className="text-xs text-muted-foreground truncate">{profile?.email}</p>
-              {isAdmin && <p className="mt-1 text-[10px] uppercase tracking-wider text-primary font-semibold">Super Admin</p>}
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate({ to: "/perfil" })}>
-              <UserCircle className="mr-2 h-4 w-4" /> Editar perfil
-            </DropdownMenuItem>
-            {/* Mobile-only nav items (ExpandableTabs fica oculto em telas pequenas) */}
-            <DropdownMenuItem onClick={() => navigate({ to: "/" })} className="sm:hidden">
-              <LayoutDashboard className="mr-2 h-4 w-4" /> Contratos
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate({ to: "/prontuario" })} className="sm:hidden">
-              <ClipboardList className="mr-2 h-4 w-4" /> Prontuário
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate({ to: "/usuarios" })} className="sm:hidden">
-              <Users className="mr-2 h-4 w-4" /> Usuários
-            </DropdownMenuItem>
-            {isAdmin && (
-              <DropdownMenuItem onClick={() => navigate({ to: "/admin" })} className="sm:hidden">
-                <ShieldCheck className="mr-2 h-4 w-4" /> Admin
+          {/* Avatar / dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="gap-2 px-2 h-10 shrink-0">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={profile?.profile_image_url ?? undefined} />
+                  <AvatarFallback className="bg-primary text-primary-foreground text-xs">{initials}</AvatarFallback>
+                </Avatar>
+                <MoreVertical className="h-4 w-4 text-muted-foreground hidden sm:block" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel className="font-normal">
+                <p className="text-sm font-medium truncate">{profile?.first_name} {profile?.last_name}</p>
+                <p className="text-xs text-muted-foreground truncate">{profile?.email}</p>
+                {isAdmin && <p className="mt-1 text-[10px] uppercase tracking-wider text-primary font-semibold">Super Admin</p>}
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate({ to: "/perfil" })}>
+                <UserCircle className="mr-2 h-4 w-4" /> Editar perfil
               </DropdownMenuItem>
-            )}
-            <DropdownMenuItem onClick={() => navigate({ to: "/suporte" })}>
-              <Headset className="mr-2 h-4 w-4" /> Contato com Suporte
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={toggle}>
-              {theme === "dark" ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
-              {theme === "dark" ? "Tema claro" : "Tema escuro"}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={async () => { await signOut(); navigate({ to: "/login" }); }}
-              className="text-destructive focus:text-destructive"
-            >
-              <LogOut className="mr-2 h-4 w-4" /> Sair
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </header>
+              <DropdownMenuItem onClick={() => navigate({ to: "/suporte" })}>
+                <Headset className="mr-2 h-4 w-4" /> Contato com Suporte
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={toggle}>
+                {theme === "dark" ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
+                {theme === "dark" ? "Tema claro" : "Tema escuro"}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={async () => { await signOut(); navigate({ to: "/login" }); }}
+                className="text-destructive focus:text-destructive"
+              >
+                <LogOut className="mr-2 h-4 w-4" /> Sair
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </header>
+
+      {/* ── Bottom navigation (mobile only) ── */}
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-40 flex justify-center border-t border-border bg-card/90 backdrop-blur-md px-4 py-2 pb-safe">
+        <ExpandableTabs
+          tabs={quickNavTabs}
+          activeColor="text-primary"
+          onChange={handleNavChange}
+        />
+      </nav>
+    </>
   );
 }
