@@ -41,39 +41,40 @@ export function AppHeader() {
 
   return (
     <header className="border-b border-border bg-card/70 backdrop-blur-md sticky top-0 z-40">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-        <Link to="/" className="flex items-center gap-3 min-w-0">
+      <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3 sm:px-6">
+        {/* Logo */}
+        <Link to="/" className="flex items-center gap-3 min-w-0 shrink-0">
           <img
             src="https://dziinqtztpolawyfbakr.supabase.co/storage/v1/object/public/assets/image_Pippit_202606022141.png"
             alt="OdontoSistema"
             className="h-10 w-10 shrink-0 rounded-lg object-contain shadow-[var(--shadow-card)]"
           />
-          <div className="min-w-0">
+          <div className="hidden sm:block min-w-0">
             <h1 className="text-base font-semibold leading-tight truncate">OdontoClinic</h1>
             <p className="text-xs text-muted-foreground truncate">Cadastro Digital</p>
           </div>
         </Link>
 
-        <nav className="hidden sm:flex items-center gap-1">
-          <Link to="/" className="[&.active]:bg-secondary [&.active]:text-secondary-foreground inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-medium text-muted-foreground hover:bg-secondary/60">
-            <LayoutDashboard className="h-4 w-4" /> Contratos
-          </Link>
-          <Link to="/prontuario" className="[&.active]:bg-secondary [&.active]:text-secondary-foreground inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-medium text-muted-foreground hover:bg-secondary/60">
-            <ClipboardList className="h-4 w-4" /> Prontuário
-          </Link>
-          <Link to="/usuarios" className="[&.active]:bg-secondary [&.active]:text-secondary-foreground inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-medium text-muted-foreground hover:bg-secondary/60">
-            <Users className="h-4 w-4" /> Usuários
-          </Link>
-          {isAdmin && (
-            <Link to="/admin" className="[&.active]:bg-primary/15 [&.active]:text-primary inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-medium text-primary hover:bg-primary/10">
-              <ShieldCheck className="h-4 w-4" /> Admin
-            </Link>
-          )}
-        </nav>
+        {/* ExpandableTabs — única navegação, centralizada */}
+        <div className="hidden sm:flex flex-1 justify-center">
+          <ExpandableTabs
+            tabs={quickNavTabs}
+            activeColor="text-primary"
+            onChange={(index) => {
+              if (index === null) return;
+              const route = quickNavRoutes[index];
+              if (route) navigate({ to: route });
+            }}
+          />
+        </div>
 
+        {/* Spacer mobile para empurrar avatar à direita */}
+        <div className="flex-1 sm:hidden" />
+
+        {/* Avatar / dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="gap-2 px-2 h-10">
+            <Button variant="ghost" className="gap-2 px-2 h-10 shrink-0">
               <Avatar className="h-8 w-8">
                 <AvatarImage src={profile?.profile_image_url ?? undefined} />
                 <AvatarFallback className="bg-primary text-primary-foreground text-xs">{initials}</AvatarFallback>
@@ -90,6 +91,10 @@ export function AppHeader() {
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => navigate({ to: "/perfil" })}>
               <UserCircle className="mr-2 h-4 w-4" /> Editar perfil
+            </DropdownMenuItem>
+            {/* Mobile-only nav items (ExpandableTabs fica oculto em telas pequenas) */}
+            <DropdownMenuItem onClick={() => navigate({ to: "/" })} className="sm:hidden">
+              <LayoutDashboard className="mr-2 h-4 w-4" /> Contratos
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate({ to: "/prontuario" })} className="sm:hidden">
               <ClipboardList className="mr-2 h-4 w-4" /> Prontuário
@@ -118,18 +123,6 @@ export function AppHeader() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-      </div>
-
-      <div className="hidden sm:flex justify-center pb-3">
-        <ExpandableTabs
-          tabs={quickNavTabs}
-          activeColor="text-primary"
-          onChange={(index) => {
-            if (index === null) return;
-            const route = quickNavRoutes[index];
-            if (route) navigate({ to: route });
-          }}
-        />
       </div>
     </header>
   );
