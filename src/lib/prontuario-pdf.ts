@@ -11,18 +11,16 @@
  *  COORDENADAS CENTRALIZADAS
  * ─────────────────────────────────────────────────────────────────────────
  *  Todas as posições (mm) vivem nos objetos de configuração abaixo. NENHUMA
- *  coordenada deve ser escrita "solta" no código de renderização — para
- *  recalibrar, edite SOMENTE estes objetos.
+ *  coordenada deve ser escrita "solta" no código de renderização.
  *
- *  Os valores foram medidos automaticamente a partir das linhas das imagens
- *  de fundo (ficha-*.jpg) no MESMO espaço de coordenadas em que o renderizador
- *  desenha (a imagem é esticada para preencher 297×210 mm). Ferramentas usadas:
- *    • generateCalibrationPdf() — grade vermelha de 10 mm sobre cada fundo.
+ *  Proteção de overflow: TODO campo de texto define `maxWidth` (largura da
+ *  célula) e `maxLines`. fitText() reduz a fonte de `size` até 5pt para caber;
+ *  se não couber, quebra em até `maxLines` linhas; se ainda assim estourar,
+ *  trunca com "…". Nenhum texto ultrapassa os limites da célula.
  *
- *  NOTA sobre a arcada superior: o template IOP046 possui apenas 14 colunas de
- *  dentes (omite o 23). O formulário de captura coleta 16 dentes; dentes sem
- *  coluna no template (23 e o último molar) não são impressos. Confirme o
- *  mapeamento dos molares finais (26/27/28) contra uma impressão física.
+ *  O fundo (template) é SEMPRE desenhado antes do texto. Não há texto fora do
+ *  formulário; se um template não carregar, o texto aparenta "flutuar" — por
+ *  isso toBase64() tenta novamente em caso de falha de rede.
  */
 
 const URLS = {
@@ -35,81 +33,83 @@ const W = 297, H = 210; // A4 landscape, mm
 
 // ── Tipos de configuração ─────────────────────────────────────────────────
 type FieldPos = {
-  /** chave do dado em `p` (snake_case do banco) */
-  key: string;
+  key: string;       // chave do dado em `p` (snake_case do banco)
   x: number;
   y: number;
-  /** formata datas YYYY-MM-DD → DD/MM/YYYY */
-  date?: boolean;
-  /** tamanho de fonte (default 10) */
-  size?: number;
-  /** largura máxima em mm (quebra/clipa a 1ª linha) */
-  maxWidth?: number;
+  maxWidth: number;  // largura da célula (mm) — obrigatória p/ conter o texto
+  maxLines?: number; // linhas permitidas (default 1)
+  date?: boolean;    // formata YYYY-MM-DD → DD/MM/YYYY
+  size?: number;     // fonte base (default 10); fitText reduz até minSize
+  minSize?: number;  // fonte mínima (default 5)
 };
 
 // ─────────────────────────────────────────────────────────────────────────
-//  IOP046 — campos de texto (cabeçalho + anamnese + médico + planejamento)
+//  IOP046 — campos de texto (cabeçalho + anamnese + médico + medicamentos)
 // ─────────────────────────────────────────────────────────────────────────
 const IOP046_FIELDS: FieldPos[] = [
   // Cabeçalho — linha 1
-  { key: "data",            x: 73,  y: 11.5, date: true },
-  { key: "planejado_por",   x: 138, y: 11.5, size: 8, maxWidth: 26 },
-  { key: "num_prontuario",  x: 240, y: 11.5 },
-  { key: "num_contrato",    x: 270, y: 11.5 },
+  { key: "data",            x: 73,  y: 11.5, maxWidth: 28, date: true },
+  { key: "planejado_por",   x: 138, y: 11.5, maxWidth: 26, size: 8 },
+  { key: "num_prontuario",  x: 240, y: 11.5, maxWidth: 20 },
+  { key: "num_contrato",    x: 270, y: 11.5, maxWidth: 22 },
   // Cabeçalho — linha 2
-  { key: "nome",            x: 70,  y: 20 },
-  { key: "data_nasc",       x: 233, y: 20, date: true },
-  { key: "rg",              x: 268, y: 20 },
+  { key: "nome",            x: 70,  y: 20, maxWidth: 153 },
+  { key: "data_nasc",       x: 233, y: 20, maxWidth: 28, date: true },
+  { key: "rg",              x: 268, y: 20, maxWidth: 24 },
   // Cabeçalho — linha 3
-  { key: "endereco",        x: 92,  y: 28.5 },
-  { key: "telefone",        x: 268, y: 28.5 },
+  { key: "endereco",        x: 92,  y: 28.5, maxWidth: 130 },
+  { key: "telefone",        x: 263, y: 28.5, maxWidth: 30 },
 
-  // Anamnese — 4 colunas × 4 linhas (fonte menor, espaços estreitos)
-  { key: "alergico",          x: 50,  y: 36, size: 8 },
-  { key: "esta_gravida",      x: 109, y: 36, size: 8 },
-  { key: "fuma",              x: 157, y: 36, size: 8 },
-  { key: "hepatite",          x: 205, y: 36, size: 8 },
+  // Anamnese — células estreitas (1 linha, fonte reduz até caber, depois "…")
+  { key: "alergico",          x: 50,  y: 36, maxWidth: 11, size: 8 },
+  { key: "esta_gravida",      x: 109, y: 36, maxWidth: 11, size: 8 },
+  { key: "fuma",              x: 157, y: 36, maxWidth: 10, size: 8 },
+  { key: "hepatite",          x: 205, y: 36, maxWidth: 11, size: 8 },
 
-  { key: "hemorragia",        x: 50,  y: 42, size: 8 },
-  { key: "prob_respiratorio", x: 109, y: 42, size: 8 },
-  { key: "bebe",              x: 157, y: 42, size: 8 },
-  { key: "ts_tc",             x: 205, y: 42, size: 8 },
+  { key: "hemorragia",        x: 50,  y: 42, maxWidth: 11, size: 8 },
+  { key: "prob_respiratorio", x: 109, y: 42, maxWidth: 11, size: 8 },
+  { key: "bebe",              x: 157, y: 42, maxWidth: 10, size: 8 },
+  { key: "ts_tc",             x: 205, y: 42, maxWidth: 11, size: 8 },
 
-  { key: "diabetes",          x: 50,  y: 48, size: 8 },
-  { key: "dst_aids_sifilis",  x: 109, y: 48, size: 8 },
-  { key: "gastrointestinal",  x: 157, y: 48, size: 8 },
-  { key: "convulsivo",        x: 205, y: 48, size: 8 },
+  { key: "diabetes",          x: 50,  y: 48, maxWidth: 11, size: 8 },
+  { key: "dst_aids_sifilis",  x: 109, y: 48, maxWidth: 11, size: 8 },
+  { key: "gastrointestinal",  x: 157, y: 48, maxWidth: 10, size: 8 },
+  { key: "convulsivo",        x: 205, y: 48, maxWidth: 11, size: 8 },
 
-  { key: "cardiopatia",       x: 50,  y: 54, size: 8 },
-  { key: "usa_drogas",        x: 109, y: 54, size: 8 },
-  { key: "cicatrizacao",      x: 157, y: 54, size: 8 },
-  { key: "pressao_arterial",  x: 205, y: 54, size: 8 },
+  { key: "cardiopatia",       x: 50,  y: 54, maxWidth: 11, size: 8 },
+  { key: "usa_drogas",        x: 109, y: 54, maxWidth: 11, size: 8 },
+  { key: "cicatrizacao",      x: 157, y: 54, maxWidth: 10, size: 8 },
+  { key: "pressao_arterial",  x: 205, y: 54, maxWidth: 11, size: 8 },
 
-  // Coluna direita — vigência / médico
-  { key: "vigencia_de",   x: 230, y: 42, date: true, size: 8 },
-  { key: "vigencia_ate",  x: 262, y: 42, date: true, size: 8 },
-  { key: "medico",        x: 233, y: 49, size: 8 },
-  { key: "fone_medico",   x: 250, y: 55, size: 8 },
+  // Coluna direita — médico (vigência é tratada à parte, ver VIGENCIA)
+  { key: "medico",        x: 233, y: 49, maxWidth: 58, size: 8, maxLines: 2 },
+  { key: "fone_medico",   x: 251, y: 55, maxWidth: 41, size: 8 },
 
-  // Faixa medicamentos / outro problema / queixa principal (linha abaixo do rótulo)
-  { key: "medicamentos",     x: 15,  y: 68, size: 8, maxWidth: 73 },
-  { key: "outro_problema",   x: 92,  y: 68, size: 8, maxWidth: 73 },
-  { key: "queixa_principal", x: 169, y: 68, size: 8, maxWidth: 62 },
-
-  // Planejamento e prognóstico / cobertura (multilinha — tratados à parte)
+  // Faixa medicamentos / outro problema / queixa principal (até 2 linhas)
+  { key: "medicamentos",     x: 15,  y: 64, maxWidth: 73, maxLines: 2, size: 8 },
+  { key: "outro_problema",   x: 92,  y: 64, maxWidth: 73, maxLines: 2, size: 8 },
+  { key: "queixa_principal", x: 169, y: 64, maxWidth: 62, maxLines: 2, size: 8 },
 ];
 
-// Campos multilinha (planejamento / cobertura) — config separada
-const IOP046_TEXTAREAS = {
-  planejamento_prognostico: { x: 12,  y: 82, maxWidth: 182 },
-  cobertura:                { x: 201, y: 82, maxWidth: 88 },
+// Campos multilinha grandes (planejamento / cobertura)
+const IOP046_TEXTAREAS: Record<string, { x: number; y: number; maxWidth: number; maxLines: number; size: number }> = {
+  planejamento_prognostico: { x: 12,  y: 80, maxWidth: 182, maxLines: 4, size: 9 },
+  cobertura:                { x: 201, y: 80, maxWidth: 88,  maxLines: 4, size: 9 },
+};
+
+// Vigência DE / ATÉ — datas divididas em dia/mês/ano sobre a máscara impressa
+const VIGENCIA = {
+  y: 39,
+  size: 6,
+  de:  { dd: 236, mm: 250, aaaa: 264 },
+  ate: { dd: 273, mm: 281, aaaa: 289 },
 };
 
 // Assinatura do paciente (cláusula "ATESTO…") na página 1
-const IOP046_SIG_PACIENTE = { x: 236, y: 60, w: 55, h: 9 };
+const IOP046_SIG_PACIENTE = { x: 235, y: 56, w: 56, h: 11 };
 
 // ─────────────────────────────────────────────────────────────────────────
-//  Arcada Superior (página 1) — centros de coluna (X) e de linha (Y), em mm
+//  Arcada Superior (página 1) — centros de coluna (X) e de linha (Y), mm
 // ─────────────────────────────────────────────────────────────────────────
 const ARCADA_SUP = {
   teethX: {
@@ -122,9 +122,7 @@ const ARCADA_SUP = {
   } as Record<string, number>,
 };
 
-// ─────────────────────────────────────────────────────────────────────────
-//  Arcada Inferior (página 2) — 16 colunas
-// ─────────────────────────────────────────────────────────────────────────
+// ── Arcada Inferior (página 2) — 16 colunas ────────────────────────────────
 const ARCADA_INF = {
   teethX: {
     "48": 53.65, "47": 69.2, "46": 85.1, "45": 100.85, "44": 116.15, "43": 131.35,
@@ -137,13 +135,11 @@ const ARCADA_INF = {
   } as Record<string, number>,
 };
 
-// ─────────────────────────────────────────────────────────────────────────
-//  Odontograma (página 2) — 4 blocos de 8 dentes
-// ─────────────────────────────────────────────────────────────────────────
+// ── Odontograma (página 2) — 4 blocos de 8 dentes ──────────────────────────
 const ODONTOGRAMA = {
   yStart: 131,
   rowHeight: 7.4,
-  maxWidth: 58,
+  maxWidth: 56,
   blocks: [
     { dentes: [18, 17, 16, 15, 14, 13, 12, 11], xTxt: 22 },
     { dentes: [21, 22, 23, 24, 25, 26, 27, 28], xTxt: 95 },
@@ -157,24 +153,22 @@ const ODONTOGRAMA = {
 // ─────────────────────────────────────────────────────────────────────────
 const IOP043_CONFIG = {
   header: {
-    nome:           { x: 102, y: 24 },
-    num_contrato:   { x: 215, y: 24 },
-    num_prontuario: { x: 262, y: 24 },
+    nome:           { x: 102, y: 24, maxWidth: 110 },
+    num_contrato:   { x: 215, y: 24, maxWidth: 44 },
+    num_prontuario: { x: 262, y: 24, maxWidth: 30 },
   },
   startY: 38.5,       // baseline da 1ª linha de eventos
+  rowTop: 32.8,       // topo da célula da 1ª linha
   rowHeight: 8.9,
   perPage: 19,
-  procMaxWidth: 170,
   columns: {
-    data:         { x: 9 },
-    dente:        { x: 40 },
-    procedimento: { x: 58 },
-    dentista:     { x: 234 },
-    // paciente: coluna deixada em branco (assinatura à mão)
+    data:         { x: 9,  maxWidth: 26 },
+    dente:        { x: 40, maxWidth: 15 },
+    procedimento: { x: 58, maxWidth: 170 },
   },
-  // Assinaturas no rodapé da última página
-  sigDoutor:   { x: 40,  y: 205, w: 70, h: 9 },
-  sigPaciente: { x: 180, y: 205, w: 70, h: 9 },
+  // Assinaturas DENTRO das colunas Dentista / Paciente, por linha
+  sigDentista: { x: 232, w: 28 },
+  sigPaciente: { x: 262, w: 27 },
 };
 
 // Dados gravados capitalizados; spec usa minúsculas
@@ -193,18 +187,23 @@ function fmtDate(d?: string | null): string {
   return d;
 }
 
-async function toBase64(url: string): Promise<string | null> {
+// fetch → dataURL, com 1 nova tentativa (evita "texto flutuante" por falha de rede)
+async function toBase64(url: string, attempt = 0): Promise<string | null> {
   try {
-    const res = await fetch(url);
-    if (!res.ok) return null;
+    const res = await fetch(url, { cache: "force-cache" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const blob = await res.blob();
-    return new Promise((resolve) => {
+    return await new Promise((resolve) => {
       const reader = new FileReader();
       reader.onloadend = () => resolve(reader.result as string);
       reader.onerror = () => resolve(null);
       reader.readAsDataURL(blob);
     });
-  } catch { return null; }
+  } catch {
+    if (attempt < 1) return toBase64(url, attempt + 1);
+    console.error(`[prontuario-pdf] falha ao carregar template: ${url}`);
+    return null;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -263,16 +262,43 @@ export async function generateProntuarioPdf(p: any, eventos: any[]): Promise<any
     doc.setTextColor(...TEXT_COLOR);
   };
 
-  // desenha uma string (clipando à 1ª linha se maxWidth definido)
-  const drawText = (val: string | null | undefined, x: number, y: number, maxWidth?: number) => {
+  // pt → mm para altura de linha
+  const lineMm = (sizePt: number) => sizePt * 0.3528 * 1.15;
+
+  /**
+   * Desenha texto SEMPRE contido na célula:
+   *  1. reduz a fonte de `size` até `minSize` tentando caber em `maxLines`;
+   *  2. se não couber, quebra em `maxLines` linhas;
+   *  3. se ainda estourar, trunca a última linha com "…".
+   */
+  const fitText = (
+    val: string | null | undefined,
+    x: number, y: number,
+    maxWidth: number, maxLines = 1, baseSize = 10, minSize = 5,
+  ) => {
     const v = (val ?? "").toString().trim();
     if (!v) return;
-    if (maxWidth) {
-      const lines = doc.splitTextToSize(v, maxWidth);
-      doc.text(lines[0] ?? "", x, y);
-    } else {
-      doc.text(v, x, y);
+
+    let chosen = minSize;
+    let lines: string[] = [];
+    for (let s = baseSize; s >= minSize; s--) {
+      doc.setFontSize(s);
+      const wrapped = doc.splitTextToSize(v, maxWidth) as string[];
+      if (wrapped.length <= maxLines) { chosen = s; lines = wrapped; break; }
+      if (s === minSize) { chosen = s; lines = wrapped; }
     }
+
+    doc.setFontSize(chosen);
+    if (lines.length > maxLines) {
+      lines = lines.slice(0, maxLines);
+      let last = lines[maxLines - 1] ?? "";
+      while (last.length > 0 && doc.getTextWidth(last + "…") > maxWidth) last = last.slice(0, -1);
+      lines[maxLines - 1] = last + "…";
+    }
+
+    const lh = lineMm(chosen);
+    lines.forEach((ln, i) => doc.text(ln, x, y + i * lh));
+    setFont();
   };
 
   // ✓ verde centrado em (x,y)
@@ -284,30 +310,60 @@ export async function generateProntuarioPdf(p: any, eventos: any[]): Promise<any
     setFont();
   };
 
+  /**
+   * Desenha uma assinatura (PNG dataURL) preenchendo a célula ao máximo,
+   * preservando proporção, com fundo branco para contraste/visibilidade.
+   */
+  const drawSignature = (dataUrl: string, cellX: number, cellY: number, cellW: number, cellH: number) => {
+    let imgW = 3, imgH = 1;
+    try {
+      const props = doc.getImageProperties(dataUrl);
+      imgW = props.width; imgH = props.height;
+    } catch { /* usa proporção padrão */ }
+    const scale = Math.min(cellW / imgW, cellH / imgH);
+    const w = imgW * scale, h = imgH * scale;
+    const x = cellX + (cellW - w) / 2;
+    const y = cellY + (cellH - h) / 2;
+    // fundo branco para contraste
+    doc.setFillColor(255, 255, 255);
+    doc.rect(cellX, cellY, cellW, cellH, "F");
+    try { doc.addImage(dataUrl, "PNG", x, y, w, h); } catch { /* skip */ }
+  };
+
   // ═══════════════════════════════════════════════════════════════════════
-  // PÁGINA 1 — IOP046 frente
+  // PÁGINA 1 — IOP046 frente  (fundo SEMPRE antes do texto)
   // ═══════════════════════════════════════════════════════════════════════
   if (bg1) { try { doc.addImage(bg1, "JPEG", 0, 0, W, H); } catch { /* skip */ } }
 
-  // Campos simples
   for (const f of IOP046_FIELDS) {
     const raw = p[f.key];
     const val = f.date ? fmtDate(raw) : raw;
-    setFont(f.size ?? 10);
-    drawText(val, f.x, f.y, f.maxWidth);
+    fitText(val, f.x, f.y, f.maxWidth, f.maxLines ?? 1, f.size ?? 10, f.minSize ?? 5);
   }
 
+  // Vigência: dia/mês/ano sobre a máscara dd/mm/aaaa
+  const drawVigencia = (raw: string | null | undefined, pos: { dd: number; mm: number; aaaa: number }) => {
+    const f = fmtDate(raw); // DD/MM/YYYY
+    if (!f) return;
+    const [dd, mm, aaaa] = f.split("/");
+    setFont(VIGENCIA.size);
+    if (dd) doc.text(dd, pos.dd, VIGENCIA.y, { align: "center" });
+    if (mm) doc.text(mm, pos.mm, VIGENCIA.y, { align: "center" });
+    if (aaaa) doc.text(aaaa, pos.aaaa, VIGENCIA.y, { align: "center" });
+    setFont();
+  };
+  drawVigencia(p.vigencia_de, VIGENCIA.de);
+  drawVigencia(p.vigencia_ate, VIGENCIA.ate);
+
   // Textareas (planejamento / cobertura)
-  setFont(10);
   for (const [key, cfg] of Object.entries(IOP046_TEXTAREAS)) {
-    const v = (p[key] ?? "").toString().trim();
-    if (v) doc.text(doc.splitTextToSize(v, cfg.maxWidth), cfg.x, cfg.y);
+    fitText(p[key], cfg.x, cfg.y, cfg.maxWidth, cfg.maxLines, cfg.size, 6);
   }
 
   // Assinatura do paciente (ATESTO)
   if (p.assinatura_paciente_planejamento) {
     const s = IOP046_SIG_PACIENTE;
-    try { doc.addImage(p.assinatura_paciente_planejamento, "PNG", s.x, s.y, s.w, s.h); } catch { /* skip */ }
+    drawSignature(p.assinatura_paciente_planejamento, s.x, s.y, s.w, s.h);
   }
 
   // Arcada superior — checkmarks
@@ -330,12 +386,13 @@ export async function generateProntuarioPdf(p: any, eventos: any[]): Promise<any
     }
   }
 
-  // Odontograma
-  setFont(10);
   for (const block of ODONTOGRAMA.blocks) {
     block.dentes.forEach((d, i) => {
-      const obs = (p.odontograma?.[d.toString()] ?? "").trim();
-      if (obs) doc.text(obs, block.xTxt, ODONTOGRAMA.yStart + i * ODONTOGRAMA.rowHeight, { maxWidth: ODONTOGRAMA.maxWidth });
+      fitText(
+        p.odontograma?.[d.toString()],
+        block.xTxt, ODONTOGRAMA.yStart + i * ODONTOGRAMA.rowHeight,
+        ODONTOGRAMA.maxWidth, 1, 9, 5,
+      );
     });
   }
 
@@ -350,31 +407,36 @@ export async function generateProntuarioPdf(p: any, eventos: any[]): Promise<any
     if (bg2) { try { doc.addImage(bg2, "JPEG", 0, 0, W, H); } catch { /* skip */ } }
     setFont();
 
-    // Header
-    drawText(p.nome,           C.header.nome.x,           C.header.nome.y);
-    drawText(p.num_contrato,   C.header.num_contrato.x,   C.header.num_contrato.y);
-    drawText(p.num_prontuario, C.header.num_prontuario.x, C.header.num_prontuario.y);
+    // Header (dentro da faixa Nome/Contrato/Prontuário)
+    fitText(p.nome,           C.header.nome.x,           C.header.nome.y,           C.header.nome.maxWidth, 1, 10);
+    fitText(p.num_contrato,   C.header.num_contrato.x,   C.header.num_contrato.y,   C.header.num_contrato.maxWidth, 1, 10);
+    fitText(p.num_prontuario, C.header.num_prontuario.x, C.header.num_prontuario.y, C.header.num_prontuario.maxWidth, 1, 10);
 
-    // Linhas
+    // Linhas + assinaturas nas colunas Dentista / Paciente
     const batch = eventos.slice(pg * C.perPage, (pg + 1) * C.perPage);
     batch.forEach((ev: any, i: number) => {
       const y = C.startY + i * C.rowHeight;
       if (y > H - 8) return;
-      drawText(fmtDate(ev.data), C.columns.data.x, y);
-      drawText(ev.dente,         C.columns.dente.x, y);
-      drawText(ev.procedimento,  C.columns.procedimento.x, y, C.procMaxWidth);
-      drawText(ev.dentista,      C.columns.dentista.x, y);
-    });
-  }
+      fitText(fmtDate(ev.data), C.columns.data.x, y, C.columns.data.maxWidth, 1, 9);
+      fitText(ev.dente,         C.columns.dente.x, y, C.columns.dente.maxWidth, 1, 9);
+      fitText(ev.procedimento,  C.columns.procedimento.x, y, C.columns.procedimento.maxWidth, 1, 9);
 
-  // Assinaturas no rodapé da última página
-  if (p.assinatura_doutor) {
-    const s = C.sigDoutor;
-    try { doc.addImage(p.assinatura_doutor, "PNG", s.x, s.y, s.w, s.h); } catch { /* skip */ }
-  }
-  if (p.assinatura_paciente_planejamento) {
-    const s = C.sigPaciente;
-    try { doc.addImage(p.assinatura_paciente_planejamento, "PNG", s.x, s.y, s.w, s.h); } catch { /* skip */ }
+      // célula da linha (vertical) p/ assinatura
+      const cellTop = C.rowTop + i * C.rowHeight + 0.7;
+      const cellH = C.rowHeight - 1.4;
+
+      // Dentista: assinatura do doutor (global) ou, na ausência, o nome digitado
+      if (p.assinatura_doutor) {
+        drawSignature(p.assinatura_doutor, C.sigDentista.x, cellTop, C.sigDentista.w, cellH);
+      } else {
+        fitText(ev.dentista, C.sigDentista.x + 1, y, C.sigDentista.w - 2, 1, 9);
+      }
+
+      // Paciente: assinatura do paciente daquele evento
+      if (ev.assinatura_paciente) {
+        drawSignature(ev.assinatura_paciente, C.sigPaciente.x, cellTop, C.sigPaciente.w, cellH);
+      }
+    });
   }
 
   return doc;
