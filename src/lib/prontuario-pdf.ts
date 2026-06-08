@@ -46,49 +46,53 @@ type FieldPos = {
 // ─────────────────────────────────────────────────────────────────────────
 //  IOP046 — campos de texto (cabeçalho + anamnese + médico + medicamentos)
 // ─────────────────────────────────────────────────────────────────────────
+// NB: no template IOP046 os rótulos (DATA, NOME, PLANEJADO POR, DATA DE NASC…)
+// são impressos no TOPO-ESQUERDO de cada célula. Os valores são desenhados
+// ABAIXO do rótulo (Y na metade inferior da célula), nunca na mesma linha —
+// é isso que evita a sobreposição com a label impressa.
 const IOP046_FIELDS: FieldPos[] = [
-  // Cabeçalho — linha 1
-  { key: "data",            x: 73,  y: 11.5, maxWidth: 28, date: true },
-  { key: "planejado_por",   x: 138, y: 11.5, maxWidth: 26, size: 8 },
-  { key: "num_prontuario",  x: 240, y: 11.5, maxWidth: 20 },
-  { key: "num_contrato",    x: 270, y: 11.5, maxWidth: 22 },
-  // Cabeçalho — linha 2
-  { key: "nome",            x: 70,  y: 20, maxWidth: 153 },
-  { key: "data_nasc",       x: 233, y: 20, maxWidth: 28, date: true },
-  { key: "rg",              x: 268, y: 20, maxWidth: 24 },
-  // Cabeçalho — linha 3
-  { key: "endereco",        x: 92,  y: 28.5, maxWidth: 130 },
-  { key: "telefone",        x: 263, y: 28.5, maxWidth: 30 },
+  // Cabeçalho — linha 1 (célula y 4.6–14; valor abaixo do rótulo, baseline ~12.5)
+  { key: "data",            x: 60,  y: 12.5, maxWidth: 28, date: true },
+  { key: "planejado_por",   x: 91,  y: 12.5, maxWidth: 34, size: 9 },
+  { key: "num_prontuario",  x: 227, y: 12.5, maxWidth: 33 },
+  { key: "num_contrato",    x: 263, y: 12.5, maxWidth: 29 },
+  // Cabeçalho — linha 2 (célula y 14–23; baseline ~21.5)
+  { key: "nome",            x: 60,  y: 21.5, maxWidth: 164 },
+  { key: "data_nasc",       x: 227, y: 21.5, maxWidth: 33, date: true },
+  { key: "rg",              x: 263, y: 21.5, maxWidth: 29 },
+  // Cabeçalho — linha 3 (célula y 23–31.3; baseline ~30)
+  { key: "endereco",        x: 60,  y: 30, maxWidth: 200 },
+  { key: "telefone",        x: 263, y: 30, maxWidth: 29 },
 
-  // Anamnese — células estreitas (1 linha, fonte reduz até caber, depois "…")
-  { key: "alergico",          x: 50,  y: 36, maxWidth: 11, size: 8 },
-  { key: "esta_gravida",      x: 109, y: 36, maxWidth: 11, size: 8 },
-  { key: "fuma",              x: 157, y: 36, maxWidth: 10, size: 8 },
-  { key: "hepatite",          x: 205, y: 36, maxWidth: 11, size: 8 },
+  // Anamnese — célula estreita: resposta à direita do rótulo, fonte 7, até 2 linhas
+  { key: "alergico",          x: 50,  y: 35.5, maxWidth: 11, size: 7, maxLines: 2 },
+  { key: "esta_gravida",      x: 109, y: 35.5, maxWidth: 11, size: 7, maxLines: 2 },
+  { key: "fuma",              x: 157, y: 35.5, maxWidth: 10, size: 7, maxLines: 2 },
+  { key: "hepatite",          x: 205, y: 35.5, maxWidth: 11, size: 7, maxLines: 2 },
 
-  { key: "hemorragia",        x: 50,  y: 42, maxWidth: 11, size: 8 },
-  { key: "prob_respiratorio", x: 109, y: 42, maxWidth: 11, size: 8 },
-  { key: "bebe",              x: 157, y: 42, maxWidth: 10, size: 8 },
-  { key: "ts_tc",             x: 205, y: 42, maxWidth: 11, size: 8 },
+  { key: "hemorragia",        x: 50,  y: 41.5, maxWidth: 11, size: 7, maxLines: 2 },
+  { key: "prob_respiratorio", x: 109, y: 41.5, maxWidth: 11, size: 7, maxLines: 2 },
+  { key: "bebe",              x: 157, y: 41.5, maxWidth: 10, size: 7, maxLines: 2 },
+  { key: "ts_tc",             x: 205, y: 41.5, maxWidth: 11, size: 7, maxLines: 2 },
 
-  { key: "diabetes",          x: 50,  y: 48, maxWidth: 11, size: 8 },
-  { key: "dst_aids_sifilis",  x: 109, y: 48, maxWidth: 11, size: 8 },
-  { key: "gastrointestinal",  x: 157, y: 48, maxWidth: 10, size: 8 },
-  { key: "convulsivo",        x: 205, y: 48, maxWidth: 11, size: 8 },
+  { key: "diabetes",          x: 50,  y: 47.5, maxWidth: 11, size: 7, maxLines: 2 },
+  { key: "dst_aids_sifilis",  x: 109, y: 47.5, maxWidth: 11, size: 7, maxLines: 2 },
+  { key: "gastrointestinal",  x: 157, y: 47.5, maxWidth: 10, size: 7, maxLines: 2 },
+  { key: "convulsivo",        x: 205, y: 47.5, maxWidth: 11, size: 7, maxLines: 2 },
 
-  { key: "cardiopatia",       x: 50,  y: 54, maxWidth: 11, size: 8 },
-  { key: "usa_drogas",        x: 109, y: 54, maxWidth: 11, size: 8 },
-  { key: "cicatrizacao",      x: 157, y: 54, maxWidth: 10, size: 8 },
-  { key: "pressao_arterial",  x: 205, y: 54, maxWidth: 11, size: 8 },
+  { key: "cardiopatia",       x: 50,  y: 53.5, maxWidth: 11, size: 7, maxLines: 2 },
+  { key: "usa_drogas",        x: 109, y: 53.5, maxWidth: 11, size: 7, maxLines: 2 },
+  { key: "cicatrizacao",      x: 157, y: 53.5, maxWidth: 10, size: 7, maxLines: 2 },
+  { key: "pressao_arterial",  x: 205, y: 53.5, maxWidth: 11, size: 7, maxLines: 2 },
 
-  // Coluna direita — médico (vigência é tratada à parte, ver VIGENCIA)
-  { key: "medico",        x: 233, y: 49, maxWidth: 58, size: 8, maxLines: 2 },
-  { key: "fone_medico",   x: 251, y: 55, maxWidth: 41, size: 8 },
+  // Coluna direita — médico (vigência tratada à parte, ver VIGENCIA)
+  { key: "medico",        x: 227, y: 49, maxWidth: 64, size: 8, maxLines: 2 },
+  { key: "fone_medico",   x: 251, y: 56, maxWidth: 41, size: 8 },
 
   // Faixa medicamentos / outro problema / queixa principal (até 2 linhas)
   { key: "medicamentos",     x: 15,  y: 64, maxWidth: 73, maxLines: 2, size: 8 },
   { key: "outro_problema",   x: 92,  y: 64, maxWidth: 73, maxLines: 2, size: 8 },
-  { key: "queixa_principal", x: 169, y: 64, maxWidth: 62, maxLines: 2, size: 8 },
+  { key: "queixa_principal", x: 169, y: 64, maxWidth: 60, maxLines: 2, size: 8 },
 ];
 
 // Campos multilinha grandes (planejamento / cobertura)
@@ -98,15 +102,18 @@ const IOP046_TEXTAREAS: Record<string, { x: number; y: number; maxWidth: number;
 };
 
 // Vigência DE / ATÉ — datas divididas em dia/mês/ano sobre a máscara impressa
+// Vigência: bras impressas em ~234 e ~247 (DE); ATÉ começa em ~263.
+// Cada segmento centralizado no espaço entre as barras.
 const VIGENCIA = {
-  y: 39,
+  y: 39.5,
   size: 6,
-  de:  { dd: 236, mm: 250, aaaa: 264 },
-  ate: { dd: 273, mm: 281, aaaa: 289 },
+  de:  { dd: 224, mm: 238, aaaa: 250 },
+  ate: { dd: 276, mm: 283, aaaa: 287 },
 };
 
-// Assinatura do paciente (cláusula "ATESTO…") na página 1
-const IOP046_SIG_PACIENTE = { x: 235, y: 56, w: 56, h: 11 };
+// Assinatura do paciente (cláusula "ATESTO…") — parte inferior da célula ATESTO,
+// abaixo do texto impresso (que ocupa o topo da célula 233.6–293).
+const IOP046_SIG_PACIENTE = { x: 236, y: 64, w: 55, h: 5.5 };
 
 // ─────────────────────────────────────────────────────────────────────────
 //  Arcada Superior (página 1) — centros de coluna (X) e de linha (Y), mm
@@ -341,15 +348,16 @@ export async function generateProntuarioPdf(p: any, eventos: any[]): Promise<any
     fitText(val, f.x, f.y, f.maxWidth, f.maxLines ?? 1, f.size ?? 10, f.minSize ?? 5);
   }
 
-  // Vigência: dia/mês/ano sobre a máscara dd/mm/aaaa
+  // Vigência: dia/mês/ano nos espaços entre as barras impressas (X = borda esquerda
+  // de cada segmento; alinhamento à esquerda evita problemas perto da margem direita).
   const drawVigencia = (raw: string | null | undefined, pos: { dd: number; mm: number; aaaa: number }) => {
     const f = fmtDate(raw); // DD/MM/YYYY
     if (!f) return;
     const [dd, mm, aaaa] = f.split("/");
     setFont(VIGENCIA.size);
-    if (dd) doc.text(dd, pos.dd, VIGENCIA.y, { align: "center" });
-    if (mm) doc.text(mm, pos.mm, VIGENCIA.y, { align: "center" });
-    if (aaaa) doc.text(aaaa, pos.aaaa, VIGENCIA.y, { align: "center" });
+    if (dd) doc.text(dd, pos.dd, VIGENCIA.y);
+    if (mm) doc.text(mm, pos.mm, VIGENCIA.y);
+    if (aaaa) doc.text(aaaa, pos.aaaa, VIGENCIA.y);
     setFont();
   };
   drawVigencia(p.vigencia_de, VIGENCIA.de);
@@ -432,9 +440,11 @@ export async function generateProntuarioPdf(p: any, eventos: any[]): Promise<any
         fitText(ev.dentista, C.sigDentista.x + 1, y, C.sigDentista.w - 2, 1, 9);
       }
 
-      // Paciente: assinatura do paciente daquele evento
-      if (ev.assinatura_paciente) {
-        drawSignature(ev.assinatura_paciente, C.sigPaciente.x, cellTop, C.sigPaciente.w, cellH);
+      // Paciente: assinatura do paciente. Por evento (raro) ou a global do
+      // prontuário (assinatura_paciente_planejamento), que é a cadastrada.
+      const sigPac = ev.assinatura_paciente || p.assinatura_paciente_planejamento;
+      if (sigPac) {
+        drawSignature(sigPac, C.sigPaciente.x, cellTop, C.sigPaciente.w, cellH);
       }
     });
   }
