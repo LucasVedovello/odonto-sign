@@ -65,29 +65,31 @@ const IOP046_FIELDS: FieldPos[] = [
   { key: "telefone",        x: 263, y: 30, maxWidth: 29 },
 
   // Anamnese — célula estreita: resposta à direita do rótulo, fonte 7, até 2 linhas
-  { key: "alergico",          x: 50,  y: 35.5, maxWidth: 11, size: 7, maxLines: 2 },
-  { key: "esta_gravida",      x: 109, y: 35.5, maxWidth: 11, size: 7, maxLines: 2 },
-  { key: "fuma",              x: 157, y: 35.5, maxWidth: 10, size: 7, maxLines: 2 },
-  { key: "hepatite",          x: 205, y: 35.5, maxWidth: 11, size: 7, maxLines: 2 },
+  { key: "alergico",          x: 50,  y: 35.5, maxWidth: 11, size: 7, maxLines: 1 },
+  { key: "esta_gravida",      x: 109, y: 35.5, maxWidth: 11, size: 7, maxLines: 1 },
+  { key: "fuma",              x: 157, y: 35.5, maxWidth: 10, size: 7, maxLines: 1 },
+  { key: "hepatite",          x: 205, y: 35.5, maxWidth: 11, size: 7, maxLines: 1 },
 
-  { key: "hemorragia",        x: 50,  y: 41.5, maxWidth: 11, size: 7, maxLines: 2 },
-  { key: "prob_respiratorio", x: 109, y: 41.5, maxWidth: 11, size: 7, maxLines: 2 },
-  { key: "bebe",              x: 157, y: 41.5, maxWidth: 10, size: 7, maxLines: 2 },
-  { key: "ts_tc",             x: 205, y: 41.5, maxWidth: 11, size: 7, maxLines: 2 },
+  { key: "hemorragia",        x: 50,  y: 41.5, maxWidth: 11, size: 7, maxLines: 1 },
+  { key: "prob_respiratorio", x: 109, y: 41.5, maxWidth: 11, size: 7, maxLines: 1 },
+  { key: "bebe",              x: 157, y: 41.5, maxWidth: 10, size: 7, maxLines: 1 },
+  { key: "ts_tc",             x: 205, y: 41.5, maxWidth: 11, size: 7, maxLines: 1 },
 
-  { key: "diabetes",          x: 50,  y: 47.5, maxWidth: 11, size: 7, maxLines: 2 },
-  { key: "dst_aids_sifilis",  x: 109, y: 47.5, maxWidth: 11, size: 7, maxLines: 2 },
-  { key: "gastrointestinal",  x: 157, y: 47.5, maxWidth: 10, size: 7, maxLines: 2 },
-  { key: "convulsivo",        x: 205, y: 47.5, maxWidth: 11, size: 7, maxLines: 2 },
+  { key: "diabetes",          x: 50,  y: 47.5, maxWidth: 11, size: 7, maxLines: 1 },
+  { key: "dst_aids_sifilis",  x: 109, y: 47.5, maxWidth: 11, size: 7, maxLines: 1 },
+  { key: "gastrointestinal",  x: 157, y: 47.5, maxWidth: 10, size: 7, maxLines: 1 },
+  { key: "convulsivo",        x: 205, y: 47.5, maxWidth: 11, size: 7, maxLines: 1 },
 
-  { key: "cardiopatia",       x: 50,  y: 53.5, maxWidth: 11, size: 7, maxLines: 2 },
-  { key: "usa_drogas",        x: 109, y: 53.5, maxWidth: 11, size: 7, maxLines: 2 },
-  { key: "cicatrizacao",      x: 157, y: 53.5, maxWidth: 10, size: 7, maxLines: 2 },
-  { key: "pressao_arterial",  x: 205, y: 53.5, maxWidth: 11, size: 7, maxLines: 2 },
+  { key: "cardiopatia",       x: 50,  y: 53.5, maxWidth: 11, size: 7, maxLines: 1 },
+  { key: "usa_drogas",        x: 109, y: 53.5, maxWidth: 11, size: 7, maxLines: 1 },
+  { key: "cicatrizacao",      x: 157, y: 53.5, maxWidth: 10, size: 7, maxLines: 1 },
+  { key: "pressao_arterial",  x: 205, y: 53.5, maxWidth: 11, size: 7, maxLines: 1 },
 
-  // Coluna direita — médico (vigência tratada à parte, ver VIGENCIA)
-  { key: "medico",        x: 227, y: 49, maxWidth: 64, size: 8, maxLines: 2 },
-  { key: "fone_medico",   x: 251, y: 56, maxWidth: 41, size: 8 },
+  // Coluna direita — MÉDICO (célula 216–259) e FONE DO MÉDICO (célula 259–293),
+  // lado a lado na mesma linha (abaixo da VIGÊNCIA). Valor ao lado do rótulo MÉDICO;
+  // FONE abaixo do rótulo (rótulo "FONE DO MÉDICO" é largo).
+  { key: "medico",        x: 218, y: 54, maxWidth: 40, size: 8 },
+  { key: "fone_medico",   x: 261, y: 54, maxWidth: 31, size: 8 },
 
   // Faixa medicamentos / outro problema / queixa principal (até 2 linhas)
   { key: "medicamentos",     x: 15,  y: 64, maxWidth: 73, maxLines: 2, size: 8 },
@@ -108,12 +110,13 @@ const VIGENCIA = {
   y: 39.5,
   size: 6,
   de:  { dd: 224, mm: 238, aaaa: 250 },
-  ate: { dd: 276, mm: 283, aaaa: 287 },
+  ate: { dd: 276, mm: 283, aaaa: 289 },
 };
 
-// Assinatura do paciente (cláusula "ATESTO…") — parte inferior da célula ATESTO,
-// abaixo do texto impresso (que ocupa o topo da célula 233.6–293).
-const IOP046_SIG_PACIENTE = { x: 236, y: 64, w: 55, h: 5.5 };
+// Assinatura do paciente — abaixo do texto impresso "ATESTO…" (que ocupa o topo da
+// célula 233.6–293, ~3 linhas até y67). Centralizada na largura da célula, sem fundo
+// branco (não apagar o texto do atestado). Espaço útil é pequeno (~y63–70).
+const IOP046_SIG_PACIENTE = { x: 235, y: 64, w: 57, h: 6 };
 
 // ─────────────────────────────────────────────────────────────────────────
 //  Arcada Superior (página 1) — centros de coluna (X) e de linha (Y), mm
@@ -261,7 +264,8 @@ export async function generateProntuarioPdf(p: any, eventos: any[]): Promise<any
   ]);
 
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-  const TEXT_COLOR: [number, number, number] = [10, 35, 100];
+  // Azul-escuro navy forte (bold) p/ distinguir o dado preenchido do template.
+  const TEXT_COLOR: [number, number, number] = [26, 58, 107];
 
   const setFont = (size = 10, bold = true) => {
     doc.setFont("helvetica", bold ? "bold" : "normal");
@@ -321,7 +325,7 @@ export async function generateProntuarioPdf(p: any, eventos: any[]): Promise<any
    * Desenha uma assinatura (PNG dataURL) preenchendo a célula ao máximo,
    * preservando proporção, com fundo branco para contraste/visibilidade.
    */
-  const drawSignature = (dataUrl: string, cellX: number, cellY: number, cellW: number, cellH: number) => {
+  const drawSignature = (dataUrl: string, cellX: number, cellY: number, cellW: number, cellH: number, whiteBg = true) => {
     let imgW = 3, imgH = 1;
     try {
       const props = doc.getImageProperties(dataUrl);
@@ -331,9 +335,11 @@ export async function generateProntuarioPdf(p: any, eventos: any[]): Promise<any
     const w = imgW * scale, h = imgH * scale;
     const x = cellX + (cellW - w) / 2;
     const y = cellY + (cellH - h) / 2;
-    // fundo branco para contraste
-    doc.setFillColor(255, 255, 255);
-    doc.rect(cellX, cellY, cellW, cellH, "F");
+    // fundo branco para contraste — desligado quando há texto do template atrás
+    if (whiteBg) {
+      doc.setFillColor(255, 255, 255);
+      doc.rect(cellX, cellY, cellW, cellH, "F");
+    }
     try { doc.addImage(dataUrl, "PNG", x, y, w, h); } catch { /* skip */ }
   };
 
@@ -368,10 +374,10 @@ export async function generateProntuarioPdf(p: any, eventos: any[]): Promise<any
     fitText(p[key], cfg.x, cfg.y, cfg.maxWidth, cfg.maxLines, cfg.size, 6);
   }
 
-  // Assinatura do paciente (ATESTO)
+  // Assinatura do paciente (ATESTO) — sem fundo branco (há texto do atestado atrás)
   if (p.assinatura_paciente_planejamento) {
     const s = IOP046_SIG_PACIENTE;
-    drawSignature(p.assinatura_paciente_planejamento, s.x, s.y, s.w, s.h);
+    drawSignature(p.assinatura_paciente_planejamento, s.x, s.y, s.w, s.h, false);
   }
 
   // Arcada superior — checkmarks
