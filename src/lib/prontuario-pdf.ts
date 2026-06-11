@@ -64,26 +64,28 @@ const IOP046_FIELDS: FieldPos[] = [
   { key: "endereco",        x: 60,  y: 30, maxWidth: 200 },
   { key: "telefone",        x: 263, y: 30, maxWidth: 29 },
 
-  // Anamnese — célula estreita: resposta à direita do rótulo, fonte 7, até 2 linhas
-  { key: "alergico",          x: 50,  y: 35.5, maxWidth: 11, size: 7, maxLines: 1 },
-  { key: "esta_gravida",      x: 109, y: 35.5, maxWidth: 11, size: 7, maxLines: 1 },
-  { key: "fuma",              x: 157, y: 35.5, maxWidth: 10, size: 7, maxLines: 1 },
-  { key: "hepatite",          x: 205, y: 35.5, maxWidth: 11, size: 7, maxLines: 1 },
+  // Anamnese — valor na MESMA linha do rótulo. X = fim do rótulo (+gap), maxWidth
+  // estende até o divisor da coluna (medido por pixel-scan do template, 4.886 px/mm).
+  // Fonte grande (11pt, mín 9) p/ legibilidade; respostas longas truncam com "…".
+  { key: "alergico",          x: 33.7,  y: 35.5, maxWidth: 26.5, size: 11, minSize: 9, maxLines: 1 },
+  { key: "esta_gravida",      x: 90.6,  y: 35.5, maxWidth: 28.2, size: 11, minSize: 9, maxLines: 1 },
+  { key: "fuma",              x: 134.4, y: 35.5, maxWidth: 31.2, size: 11, minSize: 9, maxLines: 1 },
+  { key: "hepatite",          x: 185.8, y: 35.5, maxWidth: 29.0, size: 11, minSize: 9, maxLines: 1 },
 
-  { key: "hemorragia",        x: 50,  y: 41.5, maxWidth: 11, size: 7, maxLines: 1 },
-  { key: "prob_respiratorio", x: 109, y: 41.5, maxWidth: 11, size: 7, maxLines: 1 },
-  { key: "bebe",              x: 157, y: 41.5, maxWidth: 10, size: 7, maxLines: 1 },
-  { key: "ts_tc",             x: 205, y: 41.5, maxWidth: 11, size: 7, maxLines: 1 },
+  { key: "hemorragia",        x: 39.3,  y: 41.5, maxWidth: 20.9, size: 11, minSize: 9, maxLines: 1 },
+  { key: "prob_respiratorio", x: 102.1, y: 41.5, maxWidth: 16.7, size: 11, minSize: 9, maxLines: 1 },
+  { key: "bebe",              x: 133.8, y: 41.5, maxWidth: 31.8, size: 11, minSize: 9, maxLines: 1 },
+  { key: "ts_tc",             x: 179.7, y: 41.5, maxWidth: 35.1, size: 11, minSize: 9, maxLines: 1 },
 
-  { key: "diabetes",          x: 50,  y: 47.5, maxWidth: 11, size: 7, maxLines: 1 },
-  { key: "dst_aids_sifilis",  x: 109, y: 47.5, maxWidth: 11, size: 7, maxLines: 1 },
-  { key: "gastrointestinal",  x: 157, y: 47.5, maxWidth: 10, size: 7, maxLines: 1 },
-  { key: "convulsivo",        x: 205, y: 47.5, maxWidth: 11, size: 7, maxLines: 1 },
+  { key: "diabetes",          x: 32.9,  y: 47.5, maxWidth: 27.3, size: 11, minSize: 9, maxLines: 1 },
+  { key: "dst_aids_sifilis",  x: 93.1,  y: 47.5, maxWidth: 25.7, size: 11, minSize: 9, maxLines: 1 },
+  { key: "gastrointestinal",  x: 155.9, y: 47.5, maxWidth: 9.7,  size: 11, minSize: 9, maxLines: 1 },
+  { key: "convulsivo",        x: 191.7, y: 47.5, maxWidth: 23.1, size: 11, minSize: 9, maxLines: 1 },
 
-  { key: "cardiopatia",       x: 50,  y: 53.5, maxWidth: 11, size: 7, maxLines: 1 },
-  { key: "usa_drogas",        x: 109, y: 53.5, maxWidth: 11, size: 7, maxLines: 1 },
-  { key: "cicatrizacao",      x: 157, y: 53.5, maxWidth: 10, size: 7, maxLines: 1 },
-  { key: "pressao_arterial",  x: 205, y: 53.5, maxWidth: 11, size: 7, maxLines: 1 },
+  { key: "cardiopatia",       x: 38.6,  y: 53.5, maxWidth: 21.6, size: 11, minSize: 9, maxLines: 1 },
+  { key: "usa_drogas",        x: 88.4,  y: 53.5, maxWidth: 30.4, size: 11, minSize: 9, maxLines: 1 },
+  { key: "cicatrizacao",      x: 147.5, y: 53.5, maxWidth: 18.1, size: 11, minSize: 9, maxLines: 1 },
+  { key: "pressao_arterial",  x: 202.8, y: 53.5, maxWidth: 12.0, size: 11, minSize: 9, maxLines: 1 },
 
   // Coluna direita — MÉDICO (célula 216–259) e FONE DO MÉDICO (célula 259–293),
   // lado a lado na mesma linha (abaixo da VIGÊNCIA). Valor ao lado do rótulo MÉDICO;
@@ -103,20 +105,22 @@ const IOP046_TEXTAREAS: Record<string, { x: number; y: number; maxWidth: number;
   cobertura:                { x: 201, y: 80, maxWidth: 88,  maxLines: 4, size: 9 },
 };
 
-// Vigência DE / ATÉ — datas divididas em dia/mês/ano sobre a máscara impressa
-// Vigência: bras impressas em ~234 e ~247 (DE); ATÉ começa em ~263.
-// Cada segmento centralizado no espaço entre as barras.
+// Vigência DE / ATÉ — datas divididas em dia/mês/ano sobre a máscara impressa.
+// Barras "/" medidas por pixel-scan: DE em ~233.2 e ~245.3; ATÉ em ~274.1 e ~284.8.
+// Os X abaixo são os CENTROS de cada slot (entre as barras); render centralizado
+// (align:center) garante números nítidos sem sobrescrever as barras. Fonte 10pt.
 const VIGENCIA = {
-  y: 39.5,
-  size: 6,
-  de:  { dd: 224, mm: 238, aaaa: 250 },
-  ate: { dd: 276, mm: 283, aaaa: 289 },
+  y: 40.3,
+  size: 10,
+  de:  { dd: 227.6, mm: 239.3, aaaa: 252.3 },
+  ate: { dd: 269.5, mm: 279.5, aaaa: 290.4 },
 };
 
-// Assinatura do paciente — abaixo do texto impresso "ATESTO…" (que ocupa o topo da
-// célula 233.6–293, ~3 linhas até y67). Centralizada na largura da célula, sem fundo
-// branco (não apagar o texto do atestado). Espaço útil é pequeno (~y63–70).
-const IOP046_SIG_PACIENTE = { x: 235, y: 64, w: 57, h: 6 };
+// Assinatura do paciente — o texto "ATESTO…" ocupa 3 linhas (y58–67.5) e a borda
+// inferior da célula fica em ~y69. Logo abaixo há faixa em branco (x234–292, y70–78;
+// o rótulo COBERTURA fica à esquerda em ~x201, fora desta faixa). A assinatura vai
+// aí, abaixo do atestado, centralizada e proporcional, sem fundo branco.
+const IOP046_SIG_PACIENTE = { x: 236, y: 70, w: 54, h: 6 };
 
 // ─────────────────────────────────────────────────────────────────────────
 //  Arcada Superior (página 1) — centros de coluna (X) e de linha (Y), mm
@@ -361,9 +365,10 @@ export async function generateProntuarioPdf(p: any, eventos: any[]): Promise<any
     if (!f) return;
     const [dd, mm, aaaa] = f.split("/");
     setFont(VIGENCIA.size);
-    if (dd) doc.text(dd, pos.dd, VIGENCIA.y);
-    if (mm) doc.text(mm, pos.mm, VIGENCIA.y);
-    if (aaaa) doc.text(aaaa, pos.aaaa, VIGENCIA.y);
+    // centralizado no slot entre as barras impressas (pos.* = centro do slot)
+    if (dd) doc.text(dd, pos.dd, VIGENCIA.y, { align: "center" });
+    if (mm) doc.text(mm, pos.mm, VIGENCIA.y, { align: "center" });
+    if (aaaa) doc.text(aaaa, pos.aaaa, VIGENCIA.y, { align: "center" });
     setFont();
   };
   drawVigencia(p.vigencia_de, VIGENCIA.de);
