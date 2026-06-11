@@ -16,13 +16,16 @@ export const Route = createFileRoute("/criar-empresa")({
 function CreateCompanyPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
-    company_name: "", first_name: "", last_name: "", email: "", password: "", confirm: "",
+    company_name: "", first_name: "", last_name: "", username: "", email: "", password: "", confirm: "",
   });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const username = form.username.trim().toLowerCase();
+    if (username.length < 4 || username.length > 20) { toast.error("Usuário deve ter entre 4 e 20 caracteres"); return; }
+    if (!/^[a-z0-9_]+$/.test(username)) { toast.error("Usuário aceita apenas letras, números e underscore"); return; }
     if (form.password.length < 8) { toast.error("Senha deve ter pelo menos 8 caracteres"); return; }
     if (form.password !== form.confirm) { toast.error("As senhas não coincidem"); return; }
 
@@ -36,6 +39,7 @@ function CreateCompanyPage() {
           company_name: form.company_name,
           first_name: form.first_name,
           last_name: form.last_name,
+          username,
         },
       },
     });
@@ -113,6 +117,13 @@ function CreateCompanyPage() {
                 <Input required value={form.last_name}
                   onChange={(e) => setForm({ ...form, last_name: e.target.value })} />
               </div>
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Usuário</Label>
+              <Input required value={form.username}
+                onChange={(e) => setForm({ ...form, username: e.target.value })}
+                placeholder="ex: lucas_silva" autoCapitalize="none" autoCorrect="off" />
+              <p className="text-xs text-muted-foreground">4–20 caracteres · letras, números e underscore</p>
             </div>
             <div className="grid gap-1.5">
               <Label>Email</Label>

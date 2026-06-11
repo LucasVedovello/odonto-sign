@@ -160,9 +160,15 @@ function ProfilePage() {
               <Input value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} />
             </div>
           </div>
-          <div className="grid gap-1.5">
-            <Label>Email</Label>
-            <Input value={profile.email} disabled />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-1.5">
+              <Label>Usuário</Label>
+              <Input value={profile.username} disabled />
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Email</Label>
+              <Input value={profile.email} disabled />
+            </div>
           </div>
           <Button type="submit" disabled={saving} className="justify-self-start">
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}

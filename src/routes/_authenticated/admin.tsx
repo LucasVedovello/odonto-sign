@@ -1,6 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getServerSession } from "@/integrations/supabase/session-check.server";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -19,6 +20,25 @@ import {
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/admin")({
+  // Enforce admin-only access at the route guard (server + client), not just
+  // in the component render. A logged-in non-admin reaching /admin via direct
+  // URL is now redirected to home before the page loads.
+  beforeLoad: async () => {
+    if (typeof window === "undefined") {
+      const { authenticated, isAdmin } = await getServerSession();
+      if (!authenticated) throw redirect({ to: "/login" });
+      if (!isAdmin) throw redirect({ to: "/" });
+    } else {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw redirect({ to: "/login" });
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("is_admin")
+        .eq("id", userData.user.id)
+        .maybeSingle();
+      if (!profile?.is_admin) throw redirect({ to: "/" });
+    }
+  },
   component: AdminPage,
   head: () => ({ meta: [{ title: "Super Admin — OdontoClinic" }] }),
 });

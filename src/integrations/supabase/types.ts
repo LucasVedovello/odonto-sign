@@ -124,6 +124,7 @@ export type Database = {
           last_name: string | null
           profile_image_url: string | null
           status: string
+          username: string
         }
         Insert: {
           company_id: string
@@ -135,6 +136,7 @@ export type Database = {
           last_name?: string | null
           profile_image_url?: string | null
           status?: string
+          username: string
         }
         Update: {
           company_id?: string
@@ -146,6 +148,7 @@ export type Database = {
           last_name?: string | null
           profile_image_url?: string | null
           status?: string
+          username?: string
         }
         Relationships: [
           {
