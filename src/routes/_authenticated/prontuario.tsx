@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SignaturePad, type SignaturePadHandle } from "@/components/SignaturePad";
+import { SignatureDialog, type DualSignature } from "@/components/SignatureDialog";
 
 export const Route = createFileRoute("/_authenticated/prontuario")({
   component: ProntuarioPage,
@@ -27,12 +28,25 @@ export const Route = createFileRoute("/_authenticated/prontuario")({
 type Arcada = Record<string, Record<string, boolean>>;
 type Evento = {
   id?: string; data: string; dente: string;
-  procedimento: string; dentista: string; assinatura_paciente: string;
+  procedimento: string; dentista: string;
+  assinatura_paciente: string; assinatura_doutor: string;
+  assinado_em?: string | null; assinado_por?: string | null;
+  // dirty = novo ou editado nesta sessão e ainda não (re)assinado.
+  // Eventos legados carregados sem alteração ficam dirty:false e não bloqueiam.
+  dirty?: boolean;
 };
+type ProntuarioStatus = "draft" | "signed" | "procedures_pending" | "finalized";
 type ProntuarioRow = {
   id: string; nome: string | null; data: string | null;
   num_prontuario: string | null; num_contrato: string | null;
-  assinatura_doutor: string | null; created_at: string;
+  assinatura_doutor: string | null; status: ProntuarioStatus | null; created_at: string;
+};
+
+const STATUS_META: Record<ProntuarioStatus, { label: string; cls: string }> = {
+  draft:              { label: "Rascunho",               cls: "bg-muted text-muted-foreground border-border" },
+  signed:             { label: "Assinado",               cls: "bg-primary/15 text-primary border-primary/30" },
+  procedures_pending: { label: "Procedimentos pendentes", cls: "bg-warning/15 text-warning border-warning/30" },
+  finalized:          { label: "Finalizado",             cls: "bg-success/15 text-success border-success/30" },
 };
 type FormData = {
   data: string; planejado_por: string; nome: string; data_nasc: string;
@@ -97,6 +111,8 @@ function ProntuarioPage() {
   const [saving, setSaving] = useState(false);
   const sigDoutorRef = useRef<SignaturePadHandle>(null);
   const sigPacienteRef = useRef<SignaturePadHandle>(null);
+  // Índice do evento sendo assinado (abre o SignatureDialog), ou null.
+  const [signingIdx, setSigningIdx] = useState<number | null>(null);
 
   // Patient autocomplete
   const [patientSearch, setPatientSearch] = useState("");
@@ -108,7 +124,7 @@ function ProntuarioPage() {
     if (!profile?.company_id) return;
     const { data } = await db
       .from("prontuarios")
-      .select("id,nome,data,num_prontuario,num_contrato,assinatura_doutor,created_at")
+      .select("id,nome,data,num_prontuario,num_contrato,assinatura_doutor,status,created_at")
       .eq("company_id", profile.company_id)
       .order("created_at", { ascending: false });
     setProntuarios((data ?? []) as ProntuarioRow[]);
@@ -169,10 +185,28 @@ function ProntuarioPage() {
       id: e.id, data: e.data ?? "", dente: e.dente ?? "",
       procedimento: e.procedimento ?? "", dentista: e.dentista ?? "",
       assinatura_paciente: e.assinatura_paciente ?? "",
+      assinatura_doutor: e.assinatura_doutor ?? "",
+      assinado_em: e.assinado_em ?? null, assinado_por: e.assinado_por ?? null,
+      dirty: false, // carregado do banco; só vira dirty se editado nesta sessão
     })));
     setEditingId(id);
     setStep(1);
   };
+
+  // Editar qualquer campo de um evento INVALIDA sua assinatura (regra: alterar
+  // procedimento exige nova assinatura). Marca dirty e limpa as assinaturas.
+  const editEvento = (i: number, patch: Partial<Evento>) =>
+    setEventos((prev) => prev.map((x, j) => j === i
+      ? { ...x, ...patch, assinatura_doutor: "", assinatura_paciente: "", assinado_em: null, assinado_por: null, dirty: true }
+      : x));
+
+  const signEvento = (i: number, sig: DualSignature) =>
+    setEventos((prev) => prev.map((x, j) => j === i
+      ? { ...x, assinatura_doutor: sig.doctor, assinatura_paciente: sig.patient,
+          assinado_em: new Date().toISOString(), assinado_por: profile?.id ?? null, dirty: false }
+      : x));
+
+  const eventoAssinado = (e: Evento) => !e.dirty && !!e.assinatura_doutor && !!e.assinatura_paciente;
 
   const openNew = () => {
     setForm(EMPTY_FORM());
@@ -186,11 +220,39 @@ function ProntuarioPage() {
   // ── Save ────────────────────────────────────────────────────────────────
   const handleSave = async () => {
     if (!profile?.company_id) { toast.error("Perfil sem empresa vinculada"); return; }
+
+    // ── Assinatura inicial: usa o que foi desenhado agora; se vazio, preserva
+    //    a assinatura já armazenada (editar anamnese/planejamento NÃO re-exige).
+    const drawnPac = sigPacienteRef.current?.isEmpty() ? null : sigPacienteRef.current?.toDataURL() ?? null;
+    const drawnDoc = sigDoutorRef.current?.isEmpty() ? null : sigDoutorRef.current?.toDataURL() ?? null;
+    const storedPac = (form as any).assinatura_paciente_planejamento ?? null;
+    const storedDoc = (form as any).assinatura_doutor ?? null;
+    const initialPac = drawnPac ?? storedPac;
+    const initialDoc = drawnDoc ?? storedDoc;
+    const hasInitial = !!(initialDoc && initialPac);
+
+    // ── Enforcement (bloqueia o save quando falta a assinatura devida) ──
+    // 1. Na criação, as informações iniciais precisam de doutor + paciente.
+    if (editingId === "new" && !hasInitial) {
+      toast.error("Assine as informações iniciais (doutor e paciente) no Passo 3");
+      setStep(3); return;
+    }
+    // 2. Procedimentos novos/editados precisam ser assinados antes de salvar.
+    const pendentes = eventos.filter((e) => e.dirty);
+    if (pendentes.length > 0) {
+      toast.error(`${pendentes.length} procedimento(s) alterado(s) sem assinatura. Assine cada um no Passo 2.`);
+      setStep(2); return;
+    }
+
+    // ── Status derivado ──
+    const allEventsSigned = eventos.length > 0 && eventos.every((e) => e.assinatura_doutor && e.assinatura_paciente);
+    const status: ProntuarioStatus = !hasInitial
+      ? "draft"
+      : eventos.length === 0 ? "signed"
+      : allEventsSigned ? "finalized" : "procedures_pending";
+
     setSaving(true);
     try {
-      const sigPac = sigPacienteRef.current?.isEmpty() ? null : sigPacienteRef.current?.toDataURL();
-      const sigDoc = sigDoutorRef.current?.isEmpty() ? null : sigDoutorRef.current?.toDataURL();
-
       // company_id and patient_id are outside FormData — set them explicitly
       // so they are never accidentally overwritten by the form spread.
       const payload: any = {
@@ -199,9 +261,16 @@ function ProntuarioPage() {
         company_id: profile.company_id,
         patient_id: selectedPatientId ?? null,  // null when no patient selected — never ""
         updated_at: new Date().toISOString(),
-        assinatura_paciente_planejamento: sigPac,
-        assinatura_doutor: sigDoc,
+        assinatura_paciente_planejamento: initialPac,
+        assinatura_doutor: initialDoc,
+        status,
       };
+      // Auditoria da assinatura inicial: registra quando assinada agora (criação
+      // ou re-assinatura explícita das informações iniciais).
+      if (hasInitial && (drawnDoc || drawnPac || editingId === "new")) {
+        payload.initial_signed_at = new Date().toISOString();
+        payload.initial_signed_by = profile.id;
+      }
       if (editingId && editingId !== "new") payload.id = editingId;
 
       const { data: saved, error } = await db
@@ -228,6 +297,9 @@ function ProntuarioPage() {
             procedimento: e.procedimento || null,
             dentista: e.dentista || null,
             assinatura_paciente: e.assinatura_paciente || null,
+            assinatura_doutor: e.assinatura_doutor || null,
+            assinado_em: e.assinado_em || null,
+            assinado_por: e.assinado_por || null,
           }))
         );
         if (evInsert.error) console.error("[prontuario] eventos insert error:", evInsert.error.message);
@@ -505,45 +577,72 @@ function ProntuarioPage() {
               {form.num_contrato && <span className="text-muted-foreground"> · Contrato {form.num_contrato}</span>}
               {form.num_prontuario && <span className="text-muted-foreground"> · Prontuário {form.num_prontuario}</span>}
             </p>
+            <p className="mb-3 text-xs text-muted-foreground">
+              Cada procedimento exige assinatura do doutor + paciente. Editar uma linha já
+              assinada invalida a assinatura e exige assinar novamente.
+            </p>
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm border-collapse">
                 <thead>
                   <tr className="border-b border-border">
-                    {["Data", "Dente", "Procedimento", "Dentista", ""].map((h) => (
+                    {["Data", "Dente", "Procedimento", "Dentista", "Assinatura", ""].map((h) => (
                       <th key={h} className="text-left py-2 px-2 font-medium text-muted-foreground text-xs">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {eventos.map((ev, i) => (
-                    <tr key={i} className="border-b border-border/40">
-                      <td className="py-1.5 px-1">
-                        <input
-                          type="date"
-                          value={ev.data ?? ""}
-                          onChange={(e) => setEventos((prev) => prev.map((x, j) => j === i ? { ...x, data: e.target.value } : x))}
-                          className="h-7 rounded border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
-                          style={{ width: 140 }}
-                        />
-                      </td>
-                      <td className="py-1.5 px-1"><Input className="h-7 w-16 text-xs" value={ev.dente} onChange={(e) => setEventos((prev) => prev.map((x, j) => j === i ? { ...x, dente: e.target.value } : x))} /></td>
-                      <td className="py-1.5 px-1"><Input className="h-7 w-48 text-xs" value={ev.procedimento} onChange={(e) => setEventos((prev) => prev.map((x, j) => j === i ? { ...x, procedimento: e.target.value } : x))} /></td>
-                      <td className="py-1.5 px-1"><Input className="h-7 w-32 text-xs" value={ev.dentista} onChange={(e) => setEventos((prev) => prev.map((x, j) => j === i ? { ...x, dentista: e.target.value } : x))} /></td>
-                      <td className="py-1.5 px-1">
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"
-                          onClick={() => setEventos((prev) => prev.filter((_, j) => j !== i))}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
+                  {eventos.map((ev, i) => {
+                    const assinado = eventoAssinado(ev);
+                    return (
+                      <tr key={i} className="border-b border-border/40">
+                        <td className="py-1.5 px-1">
+                          <input
+                            type="date"
+                            value={ev.data ?? ""}
+                            onChange={(e) => editEvento(i, { data: e.target.value })}
+                            className="h-7 rounded border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                            style={{ width: 140 }}
+                          />
+                        </td>
+                        <td className="py-1.5 px-1"><Input className="h-7 w-16 text-xs" value={ev.dente} onChange={(e) => editEvento(i, { dente: e.target.value })} /></td>
+                        <td className="py-1.5 px-1"><Input className="h-7 w-48 text-xs" value={ev.procedimento} onChange={(e) => editEvento(i, { procedimento: e.target.value })} /></td>
+                        <td className="py-1.5 px-1"><Input className="h-7 w-32 text-xs" value={ev.dentista} onChange={(e) => editEvento(i, { dentista: e.target.value })} /></td>
+                        <td className="py-1.5 px-1 whitespace-nowrap">
+                          {assinado ? (
+                            <span className="inline-flex items-center gap-1 text-xs text-success">
+                              <CheckSquare className="h-3.5 w-3.5" /> Assinado
+                            </span>
+                          ) : (
+                            <Button variant="outline" size="sm" className="h-7 gap-1.5 text-xs text-warning border-warning/40 hover:bg-warning/10"
+                              onClick={() => setSigningIdx(i)}>
+                              <PenLine className="h-3.5 w-3.5" /> Assinar
+                            </Button>
+                          )}
+                        </td>
+                        <td className="py-1.5 px-1">
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"
+                            onClick={() => setEventos((prev) => prev.filter((_, j) => j !== i))}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
             <Button variant="outline" size="sm" className="mt-3 gap-2"
-              onClick={() => setEventos((prev) => [...prev, { data: "", dente: "", procedimento: "", dentista: "", assinatura_paciente: "" }])}>
+              onClick={() => setEventos((prev) => [...prev, { data: "", dente: "", procedimento: "", dentista: "", assinatura_paciente: "", assinatura_doutor: "", dirty: true }])}>
               <Plus className="h-3.5 w-3.5" /> Adicionar linha
             </Button>
+
+            <SignatureDialog
+              open={signingIdx !== null}
+              title="Assinar procedimento"
+              description="Doutor e paciente devem assinar para validar este procedimento."
+              onOpenChange={(o) => { if (!o) setSigningIdx(null); }}
+              onConfirm={(sig) => { if (signingIdx !== null) signEvento(signingIdx, sig); setSigningIdx(null); }}
+            />
           </Card>
         )}
 
@@ -643,11 +742,10 @@ function ProntuarioPage() {
                 <div className="min-w-0 flex-1 cursor-pointer" onClick={() => openEdit(p.id)}>
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-medium truncate">{p.nome || <span className="italic text-muted-foreground">Sem nome</span>}</p>
-                    <Badge variant="outline" className={p.assinatura_doutor
-                      ? "bg-success/15 text-success border-success/30"
-                      : "bg-warning/15 text-warning border-warning/30"}>
-                      {p.assinatura_doutor ? "Finalizado" : "Em andamento"}
-                    </Badge>
+                    {(() => {
+                      const meta = STATUS_META[p.status ?? (p.assinatura_doutor ? "signed" : "draft")];
+                      return <Badge variant="outline" className={meta.cls}>{meta.label}</Badge>;
+                    })()}
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {p.data && new Date(p.data).toLocaleDateString("pt-BR")}

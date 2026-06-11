@@ -122,6 +122,12 @@ const VIGENCIA = {
 // aí, abaixo do atestado, centralizada e proporcional, sem fundo branco.
 const IOP046_SIG_PACIENTE = { x: 236, y: 70, w: 54, h: 6 };
 
+// Assinatura do DOUTOR na página 1 (responsável pelo planejamento).
+// ⚠ COORDENADA ESTIMADA — posicionada na faixa do atestado, à esquerda da
+// assinatura do paciente. Verifique/ajuste com o botão "Grid calibração" da
+// tela de Prontuários (gera o PDF com grade de 10mm sobre o template).
+const IOP046_SIG_DOUTOR = { x: 178, y: 70, w: 54, h: 6 };
+
 // ─────────────────────────────────────────────────────────────────────────
 //  Arcada Superior (página 1) — centros de coluna (X) e de linha (Y), mm
 // ─────────────────────────────────────────────────────────────────────────
@@ -385,6 +391,12 @@ export async function generateProntuarioPdf(p: any, eventos: any[]): Promise<any
     drawSignature(p.assinatura_paciente_planejamento, s.x, s.y, s.w, s.h, false);
   }
 
+  // Assinatura do doutor (informações iniciais) — ao lado da do paciente
+  if (p.assinatura_doutor) {
+    const s = IOP046_SIG_DOUTOR;
+    drawSignature(p.assinatura_doutor, s.x, s.y, s.w, s.h, false);
+  }
+
   // Arcada superior — checkmarks
   for (const [proc, yRow] of Object.entries(ARCADA_SUP.procY)) {
     for (const [dente, xCol] of Object.entries(ARCADA_SUP.teethX)) {
@@ -444,9 +456,11 @@ export async function generateProntuarioPdf(p: any, eventos: any[]): Promise<any
       const cellTop = C.rowTop + i * C.rowHeight + 0.7;
       const cellH = C.rowHeight - 1.4;
 
-      // Dentista: assinatura do doutor (global) ou, na ausência, o nome digitado
-      if (p.assinatura_doutor) {
-        drawSignature(p.assinatura_doutor, C.sigDentista.x, cellTop, C.sigDentista.w, cellH);
+      // Dentista: assinatura do doutor DO EVENTO (assinatura por procedimento);
+      // na ausência, a global do prontuário; por fim, o nome digitado.
+      const sigDoc = ev.assinatura_doutor || p.assinatura_doutor;
+      if (sigDoc) {
+        drawSignature(sigDoc, C.sigDentista.x, cellTop, C.sigDentista.w, cellH);
       } else {
         fitText(ev.dentista, C.sigDentista.x + 1, y, C.sigDentista.w - 2, 1, 9);
       }
