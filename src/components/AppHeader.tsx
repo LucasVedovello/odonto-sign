@@ -53,19 +53,19 @@ export function AppHeader() {
 
     if (isAdmin) {
       // platform_admin: visão da plataforma + acesso operacional (contratos/prontuário)
-      add("Dashboard", BarChart3, "/admin/dashboard");
-      add("Admin", ShieldCheck, "/admin");
       add("Contratos", LayoutDashboard, "/");
       add("Prontuário", ClipboardList, "/prontuario");
+      add("Dashboard", BarChart3, "/admin/dashboard");
       add("Logs", ScrollText, "/admin/logs");
+      add("Admin", ShieldCheck, "/admin");
       tabs.push({ type: "separator" as const });
       routes.push(null);
       add("Suporte", Headset, "/suporte");
     } else if (isOwner) {
       // clinic_owner: gestão completa da clínica
-      add("Dashboard", BarChart3, "/dashboard");
       add("Contratos", LayoutDashboard, "/");
       add("Prontuário", ClipboardList, "/prontuario");
+      add("Dashboard", BarChart3, "/dashboard");
       add("Consultas", CalendarClock, "/consultas");
       add("Usuários", Users, "/usuarios");
       tabs.push({ type: "separator" as const });
