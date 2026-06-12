@@ -2,7 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 export const triggerNewCompanyNotification = createServerFn({ method: "POST" })
-  .handler(async ({ data }: { data: { ownerEmail: string; companyName: string; ownerName: string } }) => {
+  .inputValidator((d: { ownerEmail: string; companyName: string; ownerName: string }) => d)
+  .handler(async ({ data }) => {
     try {
       const { data: company } = await supabaseAdmin
         .from("companies")

@@ -8,17 +8,39 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import {
-  Copy, ExternalLink, Plus, Download, FileText, Loader2, Search, Trash2, User, MessageCircle,
+  Copy,
+  ExternalLink,
+  Plus,
+  Download,
+  FileText,
+  Loader2,
+  Search,
+  Trash2,
+  User,
+  MessageCircle,
+  FileSpreadsheet,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { exportTablePdf, exportTableExcel, type ExportColumn } from "@/lib/export";
 
 export const Route = createFileRoute("/_authenticated/")({
   component: ReceptionDashboard,
@@ -62,6 +84,20 @@ const statusMap: Record<string, { label: string; cls: string }> = {
 
 type FilterKey = "todos" | "pendente" | "finalizado";
 
+const patientExportColumns: ExportColumn<Patient>[] = [
+  { header: "Nome", value: (p) => p.nome ?? "" },
+  { header: "Prontuário", value: (p) => p.prontuario ?? "" },
+  { header: "CPF", value: (p) => p.cpf ?? "" },
+  { header: "Telefone", value: (p) => p.telefone ?? "" },
+  { header: "Email", value: (p) => p.email ?? "" },
+  { header: "Status", value: (p) => statusMap[p.status]?.label ?? p.status },
+  { header: "Criado em", value: (p) => new Date(p.created_at).toLocaleDateString("pt-BR") },
+  {
+    header: "Assinado em",
+    value: (p) => (p.signed_at ? new Date(p.signed_at).toLocaleDateString("pt-BR") : ""),
+  },
+];
+
 function ReceptionDashboard() {
   const { profile } = useAuth();
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -71,7 +107,7 @@ function ReceptionDashboard() {
   const [newProntuario, setNewProntuario] = useState("");
   const [newProcedimentos, setNewProcedimentos] = useState<string[]>([]);
   const toggleProc = (v: string) =>
-    setNewProcedimentos((prev) => prev.includes(v) ? prev.filter((p) => p !== v) : [...prev, v]);
+    setNewProcedimentos((prev) => (prev.includes(v) ? prev.filter((p) => p !== v) : [...prev, v]));
   const [newLink, setNewLink] = useState<{ url: string; prontuario: string | null } | null>(null);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterKey>("todos");
@@ -88,8 +124,11 @@ function ReceptionDashboard() {
     }
     const { data, error } = await supabase
       .from("patients")
-      .select("id,token,prontuario,nome,cpf,rg,data_nascimento,estado_civil,estado_nascimento,cep,rua,bairro,numero,endereco,profissao,escolaridade,procedimentos,assinatura,telefone,email,signature_data,signed_at,status,created_at,created_by_user,creator:profiles!patients_created_by_user_fkey(first_name,last_name)")
+      .select(
+        "id,token,prontuario,nome,cpf,rg,data_nascimento,estado_civil,estado_nascimento,cep,rua,bairro,numero,endereco,profissao,escolaridade,procedimentos,assinatura,telefone,email,signature_data,signed_at,status,created_at,created_by_user,creator:profiles!patients_created_by_user_fkey(first_name,last_name)",
+      )
       .eq("company_id", profile.company_id)
+      .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(200);
     if (error) toast.error("Erro ao carregar pacientes");
@@ -104,7 +143,9 @@ function ReceptionDashboard() {
       .channel("patients-live")
       .on("postgres_changes", { event: "*", schema: "public", table: "patients" }, () => load())
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    return () => {
+      supabase.removeChannel(ch);
+    };
   }, [load, profile]);
 
   const filtered = useMemo(() => {
@@ -122,11 +163,14 @@ function ReceptionDashboard() {
     });
   }, [patients, deferredQuery, filter]);
 
-  const counts = useMemo(() => ({
-    todos: patients.length,
-    pendente: patients.filter((p) => p.status === "aguardando").length,
-    finalizado: patients.filter((p) => p.status !== "aguardando").length,
-  }), [patients]);
+  const counts = useMemo(
+    () => ({
+      todos: patients.length,
+      pendente: patients.filter((p) => p.status === "aguardando").length,
+      finalizado: patients.filter((p) => p.status !== "aguardando").length,
+    }),
+    [patients],
+  );
 
   const handleCreate = async () => {
     if (!profile?.company_id) return;
@@ -134,11 +178,19 @@ function ReceptionDashboard() {
     const prontuario = newProntuario.trim() || null;
     const { data, error } = await supabase
       .from("patients")
-      .insert({ prontuario, company_id: profile.company_id, created_by_user: profile.id, procedimentos: newProcedimentos })
+      .insert({
+        prontuario,
+        company_id: profile.company_id,
+        created_by_user: profile.id,
+        procedimentos: newProcedimentos,
+      })
       .select("id,token,prontuario")
       .single();
     setCreating(false);
-    if (error || !data) { toast.error("Erro ao criar cadastro"); return; }
+    if (error || !data) {
+      toast.error("Erro ao criar cadastro");
+      return;
+    }
     const procParam = newProcedimentos.length > 0 ? `?proc=${newProcedimentos.join(",")}` : "";
     const url = `${window.location.origin}/cadastro/${data.token}${procParam}`;
     setNewLink({ url, prontuario: data.prontuario });
@@ -163,7 +215,11 @@ function ReceptionDashboard() {
   const handleCopyMessage = async () => {
     if (!whatsappAsk) return;
     const mensagem = buildWhatsappMsg(whatsappAsk);
-    try { await navigator.clipboard.writeText(mensagem); } catch { /* noop */ }
+    try {
+      await navigator.clipboard.writeText(mensagem);
+    } catch {
+      /* noop */
+    }
     toast.success("Mensagem copiada");
     setWhatsappAsk(null);
   };
@@ -178,7 +234,11 @@ function ReceptionDashboard() {
     const creatorName = p.creator
       ? `${p.creator.first_name ?? ""} ${p.creator.last_name ?? ""}`.trim()
       : null;
-    const doc = await generatePatientPdf({ ...p, creator_name: creatorName, created_at: p.created_at });
+    const doc = await generatePatientPdf({
+      ...p,
+      creator_name: creatorName,
+      created_at: p.created_at,
+    });
     const fname = `${p.prontuario || "cadastro"}-${(p.nome || "paciente").replace(/\s+/g, "_")}.pdf`;
     doc.save(fname);
     if (p.status !== "pdf_gerado") {
@@ -194,10 +254,17 @@ function ReceptionDashboard() {
   const confirmDelete = async () => {
     if (!toDelete) return;
     setDeleting(true);
-    const { error } = await supabase.from("patients").delete().eq("id", toDelete.id);
+    // Soft delete: o cadastro vai para a lixeira e pode ser restaurado em /lixeira
+    const { error } = await supabase
+      .from("patients")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", toDelete.id);
     setDeleting(false);
-    if (error) { toast.error("Erro ao excluir"); return; }
-    toast.success("Cadastro excluído");
+    if (error) {
+      toast.error("Erro ao excluir");
+      return;
+    }
+    toast.success("Cadastro movido para a lixeira");
     setPatients((ps) => ps.filter((x) => x.id !== toDelete.id));
     setToDelete(null);
   };
@@ -212,9 +279,41 @@ function ReceptionDashboard() {
           <h1 className="text-2xl font-bold">Contratos</h1>
           <p className="text-sm text-muted-foreground">Gerencie cadastros e contratos digitais.</p>
         </div>
-        <Button onClick={() => setDialogOpen(true)} size="lg" className="gap-2">
-          <Plus className="h-4 w-4" /> Novo Cadastro
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() =>
+              exportTablePdf({
+                title: "Pacientes / Contratos",
+                columns: patientExportColumns,
+                rows: filtered,
+                fileName: "pacientes",
+              })
+            }
+          >
+            <Download className="h-3.5 w-3.5" /> PDF
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() =>
+              exportTableExcel({
+                sheetName: "Pacientes",
+                columns: patientExportColumns,
+                rows: filtered,
+                fileName: "pacientes",
+              })
+            }
+          >
+            <FileSpreadsheet className="h-3.5 w-3.5" /> Excel
+          </Button>
+          <Button onClick={() => setDialogOpen(true)} size="lg" className="gap-2">
+            <Plus className="h-4 w-4" /> Novo Cadastro
+          </Button>
+        </div>
       </div>
 
       {newLink && (
@@ -223,7 +322,9 @@ function ReceptionDashboard() {
             <div className="min-w-0 flex-1">
               <div className="mb-1 flex items-center gap-2 flex-wrap">
                 {newLink.prontuario && (
-                  <Badge className="bg-primary text-primary-foreground hover:bg-primary">{newLink.prontuario}</Badge>
+                  <Badge className="bg-primary text-primary-foreground hover:bg-primary">
+                    {newLink.prontuario}
+                  </Badge>
                 )}
                 <span className="text-sm font-medium">Link gerado — envie ao paciente</span>
               </div>
@@ -254,11 +355,13 @@ function ReceptionDashboard() {
           />
         </div>
         <div className="flex flex-wrap gap-2">
-          {([
-            ["todos", "Todos"],
-            ["pendente", "Pendentes"],
-            ["finalizado", "Finalizados"],
-          ] as const).map(([k, label]) => (
+          {(
+            [
+              ["todos", "Todos"],
+              ["pendente", "Pendentes"],
+              ["finalizado", "Finalizados"],
+            ] as const
+          ).map(([k, label]) => (
             <Button
               key={k}
               size="sm"
@@ -274,19 +377,31 @@ function ReceptionDashboard() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+        <div className="flex justify-center py-16">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </div>
       ) : filtered.length === 0 ? (
         <Card className="flex flex-col items-center justify-center py-16 text-center">
           <FileText className="mb-3 h-10 w-10 text-muted-foreground" />
-          <p className="font-medium">{patients.length === 0 ? "Nenhum cadastro ainda" : "Nenhum resultado"}</p>
+          <p className="font-medium">
+            {patients.length === 0 ? "Nenhum cadastro ainda" : "Nenhum resultado"}
+          </p>
           <p className="text-sm text-muted-foreground">
-            {patients.length === 0 ? 'Clique em "Novo Cadastro" para começar.' : "Tente outro termo ou filtro."}
+            {patients.length === 0
+              ? 'Clique em "Novo Cadastro" para começar.'
+              : "Tente outro termo ou filtro."}
           </p>
         </Card>
       ) : (
         <div className="grid gap-3 card-list">
           {filtered.map((p) => (
-            <PatientRow key={p.id} p={p} onCopy={copyLink} onDownload={downloadPdf} onDelete={askDelete} />
+            <PatientRow
+              key={p.id}
+              p={p}
+              onCopy={copyLink}
+              onDownload={downloadPdf}
+              onDelete={askDelete}
+            />
           ))}
         </div>
       )}
@@ -296,7 +411,8 @@ function ReceptionDashboard() {
           <DialogHeader>
             <DialogTitle>Novo cadastro</DialogTitle>
             <DialogDescription>
-              Informe o número de prontuário do sistema oficial (opcional). Um link único será gerado para o paciente.
+              Informe o número de prontuário do sistema oficial (opcional). Um link único será
+              gerado para o paciente.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-2">
@@ -312,11 +428,13 @@ function ReceptionDashboard() {
             </div>
             <div className="grid gap-2">
               <p className="text-sm font-medium">Contratos adicionais (opcional)</p>
-              {([
-                { value: "protese",  label: "Prótese" },
-                { value: "implante", label: "Implante" },
-                { value: "ortho",    label: "Ortodontia" },
-              ] as const).map(({ value, label }) => (
+              {(
+                [
+                  { value: "protese", label: "Prótese" },
+                  { value: "implante", label: "Implante" },
+                  { value: "ortho", label: "Ortodontia" },
+                ] as const
+              ).map(({ value, label }) => (
                 <label key={value} className="flex items-center gap-2 cursor-pointer select-none">
                   <Checkbox
                     checked={newProcedimentos.includes(value)}
@@ -328,7 +446,15 @@ function ReceptionDashboard() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setDialogOpen(false); setNewProcedimentos([]); }}>Cancelar</Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDialogOpen(false);
+                setNewProcedimentos([]);
+              }}
+            >
+              Cancelar
+            </Button>
             <Button onClick={handleCreate} disabled={creating}>
               {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Gerar link"}
             </Button>
@@ -363,7 +489,10 @@ function ReceptionDashboard() {
             <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               disabled={!canConfirmDelete || deleting}
-              onClick={(e) => { e.preventDefault(); confirmDelete(); }}
+              onClick={(e) => {
+                e.preventDefault();
+                confirmDelete();
+              }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Excluir"}
@@ -379,19 +508,27 @@ function ReceptionDashboard() {
               <MessageCircle className="h-5 w-5 text-success" />
               Enviar por WhatsApp
             </DialogTitle>
-            <DialogDescription>
-              Mensagem pronta para envio ao paciente.
-            </DialogDescription>
+            <DialogDescription>Mensagem pronta para envio ao paciente.</DialogDescription>
           </DialogHeader>
-          <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground leading-relaxed overflow-y-auto max-h-40"
-             style={{ wordBreak: "break-all", overflowWrap: "break-word", whiteSpace: "pre-wrap", overflow: "hidden" }}>
+          <p
+            className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground leading-relaxed overflow-y-auto max-h-40"
+            style={{
+              wordBreak: "break-all",
+              overflowWrap: "break-word",
+              whiteSpace: "pre-wrap",
+              overflow: "hidden",
+            }}
+          >
             {whatsappAsk ? buildWhatsappMsg(whatsappAsk) : ""}
           </p>
           <DialogFooter className="gap-2 sm:gap-2">
             <Button variant="outline" onClick={handleCopyMessage} className="flex-1 gap-2">
               <Copy className="h-4 w-4" /> Copiar mensagem
             </Button>
-            <Button onClick={handleOpenWhatsApp} className="flex-1 gap-2 bg-success text-primary-foreground hover:bg-success/90">
+            <Button
+              onClick={handleOpenWhatsApp}
+              className="flex-1 gap-2 bg-success text-primary-foreground hover:bg-success/90"
+            >
               <MessageCircle className="h-4 w-4" /> Abrir WhatsApp Web
             </Button>
           </DialogFooter>
@@ -402,7 +539,10 @@ function ReceptionDashboard() {
 }
 
 function PatientRow({
-  p, onCopy, onDownload, onDelete,
+  p,
+  onCopy,
+  onDownload,
+  onDelete,
 }: {
   p: Patient;
   onCopy: (url: string) => void;
@@ -412,7 +552,9 @@ function PatientRow({
   const st = statusMap[p.status] ?? statusMap.aguardando;
   const url = typeof window !== "undefined" ? `${window.location.origin}/cadastro/${p.token}` : "";
   const canDownload = !!p.signature_data;
-  const creator = p.creator ? `${p.creator.first_name ?? ""} ${p.creator.last_name ?? ""}`.trim() : "";
+  const creator = p.creator
+    ? `${p.creator.first_name ?? ""} ${p.creator.last_name ?? ""}`.trim()
+    : "";
 
   return (
     <Card className="p-4 lift-on-hover">
@@ -422,10 +564,14 @@ function PatientRow({
             {p.prontuario && (
               <span className="font-mono text-xs font-semibold text-primary">{p.prontuario}</span>
             )}
-            <Badge variant="outline" className={st.cls}>{st.label}</Badge>
+            <Badge variant="outline" className={st.cls}>
+              {st.label}
+            </Badge>
           </div>
           <p className="mt-1 truncate font-medium">
-            {p.nome || <span className="text-muted-foreground italic">Aguardando preenchimento</span>}
+            {p.nome || (
+              <span className="text-muted-foreground italic">Aguardando preenchimento</span>
+            )}
           </p>
           <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
             {creator && (
@@ -440,7 +586,12 @@ function PatientRow({
           <Button size="sm" variant="outline" onClick={() => onCopy(url)} className="gap-1.5">
             <Copy className="h-3.5 w-3.5" /> Link
           </Button>
-          <Button size="sm" onClick={() => onDownload(p)} disabled={!canDownload} className="gap-1.5">
+          <Button
+            size="sm"
+            onClick={() => onDownload(p)}
+            disabled={!canDownload}
+            className="gap-1.5"
+          >
             <Download className="h-3.5 w-3.5" /> PDF
           </Button>
           <Button

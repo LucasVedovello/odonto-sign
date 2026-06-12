@@ -23,7 +23,13 @@ import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedSuporteRouteImport } from './routes/_authenticated/suporte'
 import { Route as AuthenticatedProntuarioRouteImport } from './routes/_authenticated/prontuario'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
+import { Route as AuthenticatedLixeiraRouteImport } from './routes/_authenticated/lixeira'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedConsultasRouteImport } from './routes/_authenticated/consultas'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedDashboardLogsRouteImport } from './routes/_authenticated/dashboard_.logs'
+import { Route as AuthenticatedAdminLogsRouteImport } from './routes/_authenticated/admin_.logs'
+import { Route as AuthenticatedAdminDashboardRouteImport } from './routes/_authenticated/admin_.dashboard'
 
 const TestRoute = TestRouteImport.update({
   id: '/test',
@@ -94,11 +100,43 @@ const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
   path: '/perfil',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedLixeiraRoute = AuthenticatedLixeiraRouteImport.update({
+  id: '/lixeira',
+  path: '/lixeira',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedConsultasRoute = AuthenticatedConsultasRouteImport.update({
+  id: '/consultas',
+  path: '/consultas',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedDashboardLogsRoute =
+  AuthenticatedDashboardLogsRouteImport.update({
+    id: '/dashboard_/logs',
+    path: '/dashboard/logs',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedAdminLogsRoute = AuthenticatedAdminLogsRouteImport.update({
+  id: '/admin_/logs',
+  path: '/admin/logs',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAdminDashboardRoute =
+  AuthenticatedAdminDashboardRouteImport.update({
+    id: '/admin_/dashboard',
+    path: '/admin/dashboard',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -110,11 +148,17 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/test': typeof TestRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/consultas': typeof AuthenticatedConsultasRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/lixeira': typeof AuthenticatedLixeiraRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/prontuario': typeof AuthenticatedProntuarioRoute
   '/suporte': typeof AuthenticatedSuporteRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/cadastro/$token': typeof CadastroTokenRoute
+  '/admin/dashboard': typeof AuthenticatedAdminDashboardRoute
+  '/admin/logs': typeof AuthenticatedAdminLogsRoute
+  '/dashboard/logs': typeof AuthenticatedDashboardLogsRoute
 }
 export interface FileRoutesByTo {
   '/aceitar-convite': typeof AceitarConviteRoute
@@ -125,12 +169,18 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/test': typeof TestRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/consultas': typeof AuthenticatedConsultasRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/lixeira': typeof AuthenticatedLixeiraRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/prontuario': typeof AuthenticatedProntuarioRoute
   '/suporte': typeof AuthenticatedSuporteRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/cadastro/$token': typeof CadastroTokenRoute
   '/': typeof AuthenticatedIndexRoute
+  '/admin/dashboard': typeof AuthenticatedAdminDashboardRoute
+  '/admin/logs': typeof AuthenticatedAdminLogsRoute
+  '/dashboard/logs': typeof AuthenticatedDashboardLogsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -143,12 +193,18 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/test': typeof TestRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/consultas': typeof AuthenticatedConsultasRoute
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/lixeira': typeof AuthenticatedLixeiraRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/prontuario': typeof AuthenticatedProntuarioRoute
   '/_authenticated/suporte': typeof AuthenticatedSuporteRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/cadastro/$token': typeof CadastroTokenRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/admin_/dashboard': typeof AuthenticatedAdminDashboardRoute
+  '/_authenticated/admin_/logs': typeof AuthenticatedAdminLogsRoute
+  '/_authenticated/dashboard_/logs': typeof AuthenticatedDashboardLogsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -162,11 +218,17 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/test'
     | '/admin'
+    | '/consultas'
+    | '/dashboard'
+    | '/lixeira'
     | '/perfil'
     | '/prontuario'
     | '/suporte'
     | '/usuarios'
     | '/cadastro/$token'
+    | '/admin/dashboard'
+    | '/admin/logs'
+    | '/dashboard/logs'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/aceitar-convite'
@@ -177,12 +239,18 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/test'
     | '/admin'
+    | '/consultas'
+    | '/dashboard'
+    | '/lixeira'
     | '/perfil'
     | '/prontuario'
     | '/suporte'
     | '/usuarios'
     | '/cadastro/$token'
     | '/'
+    | '/admin/dashboard'
+    | '/admin/logs'
+    | '/dashboard/logs'
   id:
     | '__root__'
     | '/_authenticated'
@@ -194,12 +262,18 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/test'
     | '/_authenticated/admin'
+    | '/_authenticated/consultas'
+    | '/_authenticated/dashboard'
+    | '/_authenticated/lixeira'
     | '/_authenticated/perfil'
     | '/_authenticated/prontuario'
     | '/_authenticated/suporte'
     | '/_authenticated/usuarios'
     | '/cadastro/$token'
     | '/_authenticated/'
+    | '/_authenticated/admin_/dashboard'
+    | '/_authenticated/admin_/logs'
+    | '/_authenticated/dashboard_/logs'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -314,6 +388,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPerfilRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/lixeira': {
+      id: '/_authenticated/lixeira'
+      path: '/lixeira'
+      fullPath: '/lixeira'
+      preLoaderRoute: typeof AuthenticatedLixeiraRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/consultas': {
+      id: '/_authenticated/consultas'
+      path: '/consultas'
+      fullPath: '/consultas'
+      preLoaderRoute: typeof AuthenticatedConsultasRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/admin': {
       id: '/_authenticated/admin'
       path: '/admin'
@@ -321,25 +416,58 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/dashboard_/logs': {
+      id: '/_authenticated/dashboard_/logs'
+      path: '/dashboard/logs'
+      fullPath: '/dashboard/logs'
+      preLoaderRoute: typeof AuthenticatedDashboardLogsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/admin_/logs': {
+      id: '/_authenticated/admin_/logs'
+      path: '/admin/logs'
+      fullPath: '/admin/logs'
+      preLoaderRoute: typeof AuthenticatedAdminLogsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/admin_/dashboard': {
+      id: '/_authenticated/admin_/dashboard'
+      path: '/admin/dashboard'
+      fullPath: '/admin/dashboard'
+      preLoaderRoute: typeof AuthenticatedAdminDashboardRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
 interface AuthenticatedRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedConsultasRoute: typeof AuthenticatedConsultasRoute
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedLixeiraRoute: typeof AuthenticatedLixeiraRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedProntuarioRoute: typeof AuthenticatedProntuarioRoute
   AuthenticatedSuporteRoute: typeof AuthenticatedSuporteRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedAdminDashboardRoute: typeof AuthenticatedAdminDashboardRoute
+  AuthenticatedAdminLogsRoute: typeof AuthenticatedAdminLogsRoute
+  AuthenticatedDashboardLogsRoute: typeof AuthenticatedDashboardLogsRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedConsultasRoute: AuthenticatedConsultasRoute,
+  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedLixeiraRoute: AuthenticatedLixeiraRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedProntuarioRoute: AuthenticatedProntuarioRoute,
   AuthenticatedSuporteRoute: AuthenticatedSuporteRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedAdminDashboardRoute: AuthenticatedAdminDashboardRoute,
+  AuthenticatedAdminLogsRoute: AuthenticatedAdminLogsRoute,
+  AuthenticatedDashboardLogsRoute: AuthenticatedDashboardLogsRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
