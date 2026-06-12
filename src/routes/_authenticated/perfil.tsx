@@ -28,19 +28,27 @@ function ProfilePage() {
   const [pwdSaving, setPwdSaving] = useState(false);
 
   useEffect(() => {
-    if (profile) setForm({ first_name: profile.first_name ?? "", last_name: profile.last_name ?? "" });
+    if (profile)
+      setForm({ first_name: profile.first_name ?? "", last_name: profile.last_name ?? "" });
   }, [profile]);
 
   const saveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profile) return;
     setSaving(true);
-    const { error } = await supabase.from("profiles").update({
-      first_name: form.first_name, last_name: form.last_name,
-    }).eq("id", profile.id);
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        first_name: form.first_name,
+        last_name: form.last_name,
+      })
+      .eq("id", profile.id);
     setSaving(false);
     if (error) toast.error("Erro ao salvar");
-    else { toast.success("Perfil atualizado"); refreshProfile(); }
+    else {
+      toast.success("Perfil atualizado");
+      refreshProfile();
+    }
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -101,18 +109,42 @@ function ProfilePage() {
 
   const changePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (pwd.password.length < 8) { toast.error("Senha deve ter pelo menos 8 caracteres"); return; }
-    if (pwd.password !== pwd.confirm) { toast.error("As senhas não coincidem"); return; }
+    if (pwd.password.length < 8) {
+      toast.error("Senha deve ter pelo menos 8 caracteres");
+      return;
+    }
+    if (pwd.password !== pwd.confirm) {
+      toast.error("As senhas não coincidem");
+      return;
+    }
     setPwdSaving(true);
     const { error } = await supabase.auth.updateUser({ password: pwd.password });
     setPwdSaving(false);
     if (error) toast.error(error.message);
-    else { toast.success("Senha alterada"); setPwd({ password: "", confirm: "" }); }
+    else {
+      toast.success("Senha alterada");
+      setPwd({ password: "", confirm: "" });
+      supabase
+        .rpc("log_audit_event", {
+          p_action: "password_change",
+          p_description: "Senha alterada pelo usuário",
+        })
+        .then(
+          () => {},
+          () => {},
+        );
+    }
   };
 
-  if (!profile) return <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin" /></div>;
+  if (!profile)
+    return (
+      <div className="flex justify-center py-16">
+        <Loader2 className="h-6 w-6 animate-spin" />
+      </div>
+    );
 
-  const initials = `${profile.first_name?.[0] ?? ""}${profile.last_name?.[0] ?? ""}`.toUpperCase() || "U";
+  const initials =
+    `${profile.first_name?.[0] ?? ""}${profile.last_name?.[0] ?? ""}`.toUpperCase() || "U";
   const displayUrl = previewUrl ?? profile.profile_image_url ?? undefined;
 
   return (
@@ -126,7 +158,9 @@ function ProfilePage() {
         <div className="flex items-center gap-5">
           <Avatar className="h-20 w-20 ring-2 ring-border">
             <AvatarImage src={displayUrl} />
-            <AvatarFallback className="bg-primary text-primary-foreground text-lg">{initials}</AvatarFallback>
+            <AvatarFallback className="bg-primary text-primary-foreground text-lg">
+              {initials}
+            </AvatarFallback>
           </Avatar>
           <div className="flex flex-wrap gap-2">
             <input
@@ -136,8 +170,17 @@ function ProfilePage() {
               className="hidden"
               onChange={handleFileSelect}
             />
-            <Button variant="outline" onClick={() => fileRef.current?.click()} disabled={uploading} className="gap-2">
-              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+            <Button
+              variant="outline"
+              onClick={() => fileRef.current?.click()}
+              disabled={uploading}
+              className="gap-2"
+            >
+              {uploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Upload className="h-4 w-4" />
+              )}
               {uploading ? "Enviando..." : "Trocar foto"}
             </Button>
             {(profile.profile_image_url || previewUrl) && !uploading && (
@@ -153,11 +196,17 @@ function ProfilePage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-1.5">
               <Label>Nome</Label>
-              <Input value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} />
+              <Input
+                value={form.first_name}
+                onChange={(e) => setForm({ ...form, first_name: e.target.value })}
+              />
             </div>
             <div className="grid gap-1.5">
               <Label>Sobrenome</Label>
-              <Input value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} />
+              <Input
+                value={form.last_name}
+                onChange={(e) => setForm({ ...form, last_name: e.target.value })}
+              />
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -181,13 +230,19 @@ function ProfilePage() {
         <form onSubmit={changePassword} className="mt-4 grid gap-4">
           <div className="grid gap-1.5">
             <Label>Nova senha</Label>
-            <Input type="password" value={pwd.password}
-              onChange={(e) => setPwd({ ...pwd, password: e.target.value })} />
+            <Input
+              type="password"
+              value={pwd.password}
+              onChange={(e) => setPwd({ ...pwd, password: e.target.value })}
+            />
           </div>
           <div className="grid gap-1.5">
             <Label>Confirmar nova senha</Label>
-            <Input type="password" value={pwd.confirm}
-              onChange={(e) => setPwd({ ...pwd, confirm: e.target.value })} />
+            <Input
+              type="password"
+              value={pwd.confirm}
+              onChange={(e) => setPwd({ ...pwd, confirm: e.target.value })}
+            />
           </div>
           <Button type="submit" disabled={pwdSaving} className="justify-self-start">
             {pwdSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Alterar senha"}

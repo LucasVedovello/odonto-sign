@@ -13,6 +13,7 @@ export type Profile = {
   profile_image_url: string | null;
   status: string;
   is_admin: boolean;
+  role: "platform_admin" | "clinic_owner" | "dentist" | "staff";
 };
 
 type AuthState = {
@@ -24,8 +25,11 @@ type AuthState = {
 };
 
 const Ctx = createContext<AuthState>({
-  session: null, profile: null, loading: true,
-  signOut: async () => {}, refreshProfile: async () => {},
+  session: null,
+  profile: null,
+  loading: true,
+  signOut: async () => {},
+  refreshProfile: async () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -37,7 +41,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loadProfile = async (uid: string) => {
     const { data } = await supabase
       .from("profiles")
-      .select("id,company_id,first_name,last_name,email,username,profile_image_url,status,is_admin")
+      .select(
+        "id,company_id,first_name,last_name,email,username,profile_image_url,status,is_admin,role",
+      )
       .eq("id", uid)
       .maybeSingle();
     setProfile((data as Profile) ?? null);
@@ -71,15 +77,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [qc]);
 
   return (
-    <Ctx.Provider value={{
-      session, profile, loading,
-      signOut: async () => {
-        qc.clear(); // Clear all cached queries before signing out
-        await supabase.auth.signOut();
-        // onAuthStateChange SIGNED_OUT will handle the redirect
-      },
-      refreshProfile: async () => { if (session?.user) await loadProfile(session.user.id); },
-    }}>
+    <Ctx.Provider
+      value={{
+        session,
+        profile,
+        loading,
+        signOut: async () => {
+          qc.clear(); // Clear all cached queries before signing out
+          // Auditoria: registra o logout antes de derrubar a sessão
+          await supabase
+            .rpc("log_audit_event", { p_action: "logout", p_description: "Logout realizado" })
+            .then(
+              () => {},
+              () => {},
+            );
+          await supabase.auth.signOut();
+          // onAuthStateChange SIGNED_OUT will handle the redirect
+        },
+        refreshProfile: async () => {
+          if (session?.user) await loadProfile(session.user.id);
+        },
+      }}
+    >
       {children}
     </Ctx.Provider>
   );

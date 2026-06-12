@@ -25,17 +25,27 @@ function LoginPage() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
+    // Auditoria: registra a tentativa (sucesso ou falha) sem bloquear o fluxo
+    supabase.rpc("record_login_attempt", { p_email: email, p_success: !error }).then(
+      () => {},
+      () => {},
+    );
     if (error) {
-      toast.error(error.message === "Email not confirmed"
-        ? "Confirme seu email antes de entrar"
-        : "Email ou senha inválidos");
+      toast.error(
+        error.message === "Email not confirmed"
+          ? "Confirme seu email antes de entrar"
+          : "Email ou senha inválidos",
+      );
       return;
     }
     navigate({ to: "/" });
   };
 
   const forgot = async () => {
-    if (!email) { toast.error("Informe seu email primeiro"); return; }
+    if (!email) {
+      toast.error("Informe seu email primeiro");
+      return;
+    }
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
     });
@@ -70,50 +80,65 @@ function LoginPage() {
       </ContainerScroll>
 
       <div className="flex items-center justify-center px-4 pb-16">
-      <div className="w-full max-w-md">
-        <div className="mb-6 flex flex-col items-center gap-3">
-          <img
-            src="https://dziinqtztpolawyfbakr.supabase.co/storage/v1/object/public/assets/image_Pippit_202606022141.png"
-            alt="OdontoSistema"
-            className="h-14 w-14 rounded-2xl object-contain shadow-[var(--shadow-lift)]"
-          />
-          <div className="text-center">
-            <h1 className="text-2xl font-bold">OdontoClinic</h1>
-            <p className="text-sm text-muted-foreground">Acesso da equipe</p>
+        <div className="w-full max-w-md">
+          <div className="mb-6 flex flex-col items-center gap-3">
+            <img
+              src="https://dziinqtztpolawyfbakr.supabase.co/storage/v1/object/public/assets/image_Pippit_202606022141.png"
+              alt="OdontoSistema"
+              className="h-14 w-14 rounded-2xl object-contain shadow-[var(--shadow-lift)]"
+            />
+            <div className="text-center">
+              <h1 className="text-2xl font-bold">OdontoClinic</h1>
+              <p className="text-sm text-muted-foreground">Acesso da equipe</p>
+            </div>
           </div>
-        </div>
 
-        <Card className="p-6 sm:p-8 shadow-[var(--shadow-lift)]">
-          <h2 className="text-lg font-semibold">Entrar</h2>
-          <p className="text-sm text-muted-foreground">Acesse o painel da sua clínica.</p>
-          <form onSubmit={submit} className="mt-6 grid gap-4">
-            <div className="grid gap-1.5">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" required autoFocus
-                value={email} onChange={(e) => setEmail(e.target.value)} />
-            </div>
-            <div className="grid gap-1.5">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Senha</Label>
-                <button type="button" onClick={forgot} className="text-xs text-primary hover:underline">
-                  Esqueci a senha
-                </button>
+          <Card className="p-6 sm:p-8 shadow-[var(--shadow-lift)]">
+            <h2 className="text-lg font-semibold">Entrar</h2>
+            <p className="text-sm text-muted-foreground">Acesse o painel da sua clínica.</p>
+            <form onSubmit={submit} className="mt-6 grid gap-4">
+              <div className="grid gap-1.5">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  required
+                  autoFocus
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
               </div>
-              <Input id="password" type="password" required
-                value={password} onChange={(e) => setPassword(e.target.value)} />
-            </div>
-            <Button type="submit" size="lg" disabled={loading}>
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Entrar"}
-            </Button>
-          </form>
-          <p className="mt-6 text-center text-sm text-muted-foreground">
-            Ainda não tem conta?{" "}
-            <Link to="/criar-empresa" className="font-medium text-primary hover:underline">
-              Criar empresa
-            </Link>
-          </p>
-        </Card>
-      </div>
+              <div className="grid gap-1.5">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Senha</Label>
+                  <button
+                    type="button"
+                    onClick={forgot}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    Esqueci a senha
+                  </button>
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+              <Button type="submit" size="lg" disabled={loading}>
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Entrar"}
+              </Button>
+            </form>
+            <p className="mt-6 text-center text-sm text-muted-foreground">
+              Ainda não tem conta?{" "}
+              <Link to="/criar-empresa" className="font-medium text-primary hover:underline">
+                Criar empresa
+              </Link>
+            </p>
+          </Card>
+        </div>
       </div>
     </div>
   );

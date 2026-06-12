@@ -10,20 +10,46 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { Plus, Loader2, MoreVertical, Trash2, Send, UserX, UserCheck } from "lucide-react";
+import {
+  Plus,
+  Loader2,
+  MoreVertical,
+  Trash2,
+  Send,
+  UserX,
+  UserCheck,
+  ShieldCheck,
+} from "lucide-react";
 import { inviteUser, deleteUser, resendInvite } from "@/lib/invites.functions";
+import { roleGuard, ROLE_LABEL, type AppRole } from "@/lib/rbac";
 
 export const Route = createFileRoute("/_authenticated/usuarios")({
+  // Gestão de equipe é restrita ao proprietário (e admin da plataforma)
+  beforeLoad: roleGuard(["clinic_owner", "platform_admin"]),
   component: UsersPage,
   head: () => ({ meta: [{ title: "Usuários — OdontoClinic" }] }),
 });
@@ -36,6 +62,7 @@ type Profile = {
   profile_image_url: string | null;
   status: string;
   created_at: string;
+  role: AppRole;
 };
 
 function UsersPage() {
@@ -55,7 +82,7 @@ function UsersPage() {
     if (!me?.company_id) return;
     const { data } = await supabase
       .from("profiles")
-      .select("id,first_name,last_name,email,profile_image_url,status,created_at")
+      .select("id,first_name,last_name,email,profile_image_url,status,created_at,role")
       .eq("company_id", me.company_id)
       .order("created_at", { ascending: true });
     setUsers((data ?? []) as Profile[]);
@@ -70,7 +97,9 @@ function UsersPage() {
     if (!inviteEmail) return;
     setInviting(true);
     try {
-      await invite({ data: { email: inviteEmail, redirectTo: `${window.location.origin}/aceitar-convite` } });
+      await invite({
+        data: { email: inviteEmail, redirectTo: `${window.location.origin}/aceitar-convite` },
+      });
       toast.success("Convite enviado!");
       setInviteEmail("");
       setDialogOpen(false);
@@ -107,7 +136,20 @@ function UsersPage() {
     const next = u.status === "active" ? "inactive" : "active";
     const { error } = await supabase.from("profiles").update({ status: next }).eq("id", u.id);
     if (error) toast.error("Erro ao atualizar");
-    else { toast.success("Status atualizado"); load(); }
+    else {
+      toast.success("Status atualizado");
+      load();
+    }
+  };
+
+  const changeRole = async (u: Profile, role: AppRole) => {
+    const { error } = await supabase.from("profiles").update({ role }).eq("id", u.id);
+    if (error)
+      toast.error(error.message.includes("permissão") ? error.message : "Erro ao alterar função");
+    else {
+      toast.success(`Função alterada para ${ROLE_LABEL[role]}`);
+      load();
+    }
   };
 
   return (
@@ -125,11 +167,15 @@ function UsersPage() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+        <div className="flex justify-center py-16">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </div>
       ) : (
         <Card className="divide-y divide-border">
           {users.map((u) => {
-            const initials = `${u.first_name?.[0] ?? ""}${u.last_name?.[0] ?? ""}`.toUpperCase() || u.email[0].toUpperCase();
+            const initials =
+              `${u.first_name?.[0] ?? ""}${u.last_name?.[0] ?? ""}`.toUpperCase() ||
+              u.email[0].toUpperCase();
             const isMe = u.id === me?.id;
             const isPending = !u.first_name && !u.last_name;
             return (
@@ -137,12 +183,17 @@ function UsersPage() {
                 <div className="flex items-center gap-3 min-w-0">
                   <Avatar className="h-10 w-10">
                     <AvatarImage src={u.profile_image_url ?? undefined} />
-                    <AvatarFallback className="bg-primary text-primary-foreground text-sm">{initials}</AvatarFallback>
+                    <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                      {initials}
+                    </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0">
                     <p className="font-medium truncate">
-                      {isPending ? <span className="text-muted-foreground italic">Convite pendente</span> :
-                        `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim()}
+                      {isPending ? (
+                        <span className="text-muted-foreground italic">Convite pendente</span>
+                      ) : (
+                        `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim()
+                      )}
                       {isMe && <span className="ml-2 text-xs text-muted-foreground">(você)</span>}
                     </p>
                     <p className="text-xs text-muted-foreground truncate">{u.email}</p>
@@ -152,12 +203,27 @@ function UsersPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className={
-                    u.status === "active" ? "bg-success/15 text-success border-success/30"
-                    : u.status === "pending" ? "bg-warning/15 text-warning border-warning/30"
-                    : "bg-muted text-muted-foreground"
-                  }>
-                    {u.status === "active" ? "Ativo" : u.status === "pending" ? "Pendente" : "Inativo"}
+                  <Badge
+                    variant="outline"
+                    className="hidden sm:inline-flex bg-primary/10 text-primary border-primary/30"
+                  >
+                    {ROLE_LABEL[u.role] ?? u.role}
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className={
+                      u.status === "active"
+                        ? "bg-success/15 text-success border-success/30"
+                        : u.status === "pending"
+                          ? "bg-warning/15 text-warning border-warning/30"
+                          : "bg-muted text-muted-foreground"
+                    }
+                  >
+                    {u.status === "active"
+                      ? "Ativo"
+                      : u.status === "pending"
+                        ? "Pendente"
+                        : "Inativo"}
                   </Badge>
                   {!isMe && (
                     <DropdownMenu>
@@ -173,11 +239,28 @@ function UsersPage() {
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuItem onClick={() => toggleStatus(u)}>
-                          {u.status === "active"
-                            ? <><UserX className="mr-2 h-4 w-4" /> Desativar</>
-                            : <><UserCheck className="mr-2 h-4 w-4" /> Ativar</>}
+                          {u.status === "active" ? (
+                            <>
+                              <UserX className="mr-2 h-4 w-4" /> Desativar
+                            </>
+                          ) : (
+                            <>
+                              <UserCheck className="mr-2 h-4 w-4" /> Ativar
+                            </>
+                          )}
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setToDelete(u)} className="text-destructive focus:text-destructive">
+                        {u.role !== "platform_admin" &&
+                          (["clinic_owner", "dentist", "staff"] as const)
+                            .filter((r) => r !== u.role)
+                            .map((r) => (
+                              <DropdownMenuItem key={r} onClick={() => changeRole(u, r)}>
+                                <ShieldCheck className="mr-2 h-4 w-4" /> Tornar {ROLE_LABEL[r]}
+                              </DropdownMenuItem>
+                            ))}
+                        <DropdownMenuItem
+                          onClick={() => setToDelete(u)}
+                          className="text-destructive focus:text-destructive"
+                        >
                           <Trash2 className="mr-2 h-4 w-4" /> Excluir
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -200,11 +283,19 @@ function UsersPage() {
           </DialogHeader>
           <div className="grid gap-2 py-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" autoFocus value={inviteEmail}
-              onChange={(e) => setInviteEmail(e.target.value)} placeholder="colega@clinica.com" />
+            <Input
+              id="email"
+              type="email"
+              autoFocus
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              placeholder="colega@clinica.com"
+            />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              Cancelar
+            </Button>
             <Button onClick={handleInvite} disabled={inviting || !inviteEmail}>
               {inviting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enviar convite"}
             </Button>
@@ -222,8 +313,13 @@ function UsersPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={(e) => { e.preventDefault(); handleDelete(); }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleDelete();
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
