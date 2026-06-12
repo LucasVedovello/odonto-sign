@@ -52,9 +52,11 @@ export function AppHeader() {
     };
 
     if (isAdmin) {
-      // platform_admin: visão da plataforma
+      // platform_admin: visão da plataforma + acesso operacional (contratos/prontuário)
       add("Dashboard", BarChart3, "/admin/dashboard");
       add("Admin", ShieldCheck, "/admin");
+      add("Contratos", LayoutDashboard, "/");
+      add("Prontuário", ClipboardList, "/prontuario");
       add("Logs", ScrollText, "/admin/logs");
       tabs.push({ type: "separator" as const });
       routes.push(null);
