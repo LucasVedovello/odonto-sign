@@ -1,5 +1,5 @@
 // Exportação de dados para PDF (jsPDF + autotable) e Excel (SheetJS).
-// Usado pelas listagens (pacientes, consultas, logs).
+// Usado pelas listagens (ex.: contratos/pacientes).
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";

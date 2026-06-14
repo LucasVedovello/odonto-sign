@@ -11,8 +11,6 @@ import {
   ShieldCheck,
   Headset,
   ClipboardList,
-  CalendarClock,
-  ScrollText,
   Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -54,7 +52,6 @@ export function AppHeader() {
       // platform_admin: visão da plataforma + acesso operacional (contratos/prontuário)
       add("Contratos", LayoutDashboard, "/");
       add("Prontuário", ClipboardList, "/prontuario");
-      add("Logs", ScrollText, "/admin/logs");
       add("Admin", ShieldCheck, "/admin");
       tabs.push({ type: "separator" as const });
       routes.push(null);
@@ -63,7 +60,6 @@ export function AppHeader() {
       // clinic_owner: gestão completa da clínica
       add("Contratos", LayoutDashboard, "/");
       add("Prontuário", ClipboardList, "/prontuario");
-      add("Consultas", CalendarClock, "/consultas");
       add("Usuários", Users, "/usuarios");
       tabs.push({ type: "separator" as const });
       routes.push(null);
@@ -72,7 +68,6 @@ export function AppHeader() {
       // dentist / staff: operação do dia a dia (sem administração)
       add("Contratos", LayoutDashboard, "/");
       add("Prontuário", ClipboardList, "/prontuario");
-      add("Consultas", CalendarClock, "/consultas");
       tabs.push({ type: "separator" as const });
       routes.push(null);
       add("Suporte", Headset, "/suporte");
@@ -150,14 +145,9 @@ export function AppHeader() {
                 <UserCircle className="mr-2 h-4 w-4" /> Editar perfil
               </DropdownMenuItem>
               {isOwner && (
-                <>
-                  <DropdownMenuItem onClick={() => navigate({ to: "/dashboard/logs" })}>
-                    <ScrollText className="mr-2 h-4 w-4" /> Logs da clínica
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate({ to: "/lixeira" })}>
-                    <Trash2 className="mr-2 h-4 w-4" /> Lixeira
-                  </DropdownMenuItem>
-                </>
+                <DropdownMenuItem onClick={() => navigate({ to: "/lixeira" })}>
+                  <Trash2 className="mr-2 h-4 w-4" /> Lixeira
+                </DropdownMenuItem>
               )}
               {isAdmin && (
                 <DropdownMenuItem onClick={() => navigate({ to: "/lixeira" })}>
