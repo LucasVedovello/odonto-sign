@@ -531,8 +531,23 @@ function ProntuarioPage() {
       .eq("prontuario_id", id)
       .order("created_at");
     if (!row) return;
+
+    // Tipo do contrato vem de patients.procedimentos (TEXT[]); a ficha de
+    // Prótese (IOP054) só entra quando "protese" está entre os procedimentos.
+    let isProtese = false;
+    if (row.patient_id) {
+      const { data: pat } = await db
+        .from("patients")
+        .select("procedimentos")
+        .eq("id", row.patient_id)
+        .single();
+      isProtese = (pat?.procedimentos ?? []).some(
+        (proc: string) => (proc ?? "").toLowerCase() === "protese",
+      );
+    }
+
     const { generateProntuarioPdf } = await import("@/lib/prontuario-pdf");
-    const doc = await generateProntuarioPdf(row, evs ?? []);
+    const doc = await generateProntuarioPdf(row, evs ?? [], { isProtese });
     doc.save(
       `prontuario-${(row.nome ?? "paciente").replace(/\s+/g, "_")}-${row.data ?? "s-data"}.pdf`,
     );

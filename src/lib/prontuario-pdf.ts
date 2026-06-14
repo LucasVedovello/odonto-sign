@@ -26,6 +26,7 @@
 const URLS = {
   plano:   "https://dziinqtztpolawyfbakr.supabase.co/storage/v1/object/public/assets/ficha-planejamento.jpg",
   verso:   "https://dziinqtztpolawyfbakr.supabase.co/storage/v1/object/public/assets/ficha-planejamento-verso.jpg",
+  protese: "https://dziinqtztpolawyfbakr.supabase.co/storage/v1/object/public/assets/iop054-protese.jpg",
   eventos: "https://dziinqtztpolawyfbakr.supabase.co/storage/v1/object/public/assets/ficha-eventos.jpg",
 };
 
@@ -127,6 +128,29 @@ const IOP046_SIG_PACIENTE = { x: 236, y: 70, w: 54, h: 6 };
 // assinatura do paciente. Verifique/ajuste com o botão "Grid calibração" da
 // tela de Prontuários (gera o PDF com grade de 10mm sobre o template).
 const IOP046_SIG_DOUTOR = { x: 178, y: 70, w: 54, h: 6 };
+
+// ─────────────────────────────────────────────────────────────────────────
+//  IOP054 — Ficha de Planejamento de Prótese (somente contratos de Prótese)
+// ─────────────────────────────────────────────────────────────────────────
+// Mesmo cabeçalho da IOP046 (DATA / PLANEJADO POR / Nº PRONTUÁRIO / Nº CONTRATO
+// na linha 1; NOME / DATA DE NASC / RG na linha 2; ENDEREÇO / TELEFONE na 3).
+// Os rótulos são impressos no topo-esquerdo de cada célula; os valores vão
+// ABAIXO do rótulo (Y na metade inferior da célula), mesmo padrão da IOP046.
+// Reutiliza as MESMAS chaves de `p` já carregadas — nada é buscado de novo.
+const IOP054_FIELDS: FieldPos[] = [
+  // Linha 1 (célula y ~11–19; baseline ~16.5)
+  { key: "data",            x: 54,  y: 16.5, maxWidth: 30, date: true },
+  { key: "planejado_por",   x: 87,  y: 16.5, maxWidth: 38, size: 9 },
+  { key: "num_prontuario",  x: 223, y: 16.5, maxWidth: 22 },
+  { key: "num_contrato",    x: 248, y: 16.5, maxWidth: 44 },
+  // Linha 2 (célula y ~19–27; baseline ~25)
+  { key: "nome",            x: 54,  y: 25, maxWidth: 162 },
+  { key: "data_nasc",       x: 223, y: 25, maxWidth: 22, date: true },
+  { key: "rg",              x: 248, y: 25, maxWidth: 44 },
+  // Linha 3 (célula y ~27–35; baseline ~33)
+  { key: "endereco",        x: 54,  y: 33, maxWidth: 190 },
+  { key: "telefone",        x: 248, y: 33, maxWidth: 44 },
+];
 
 // ─────────────────────────────────────────────────────────────────────────
 //  Arcada Superior (página 1) — centros de coluna (X) e de linha (Y), mm
@@ -267,10 +291,18 @@ export async function generateCalibrationPdf(): Promise<any> {
 // ─────────────────────────────────────────────────────────────────────────
 //  GERAÇÃO PRINCIPAL
 // ─────────────────────────────────────────────────────────────────────────
-export async function generateProntuarioPdf(p: any, eventos: any[]): Promise<any> {
+export async function generateProntuarioPdf(
+  p: any,
+  eventos: any[],
+  opts: { isProtese?: boolean } = {},
+): Promise<any> {
   const { jsPDF } = await import("jspdf");
-  const [bg1, bgVerso, bg2] = await Promise.all([
-    toBase64(URLS.plano), toBase64(URLS.verso), toBase64(URLS.eventos),
+  // bgProtese (IOP054) só é baixado para contratos de Prótese.
+  const [bg1, bgVerso, bgProtese, bg2] = await Promise.all([
+    toBase64(URLS.plano),
+    toBase64(URLS.verso),
+    opts.isProtese ? toBase64(URLS.protese) : Promise.resolve(null),
+    toBase64(URLS.eventos),
   ]);
 
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
@@ -425,6 +457,22 @@ export async function generateProntuarioPdf(p: any, eventos: any[]): Promise<any
         ODONTOGRAMA.maxWidth, 1, 9, 5,
       );
     });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // PÁGINA EXTRA — IOP054 Ficha de Planejamento de Prótese
+  // Apenas para contratos de Prótese; entra ENTRE a arcada (verso) e os
+  // Eventos (IOP043). Implante/Ortodontia não recebem esta página.
+  // ═══════════════════════════════════════════════════════════════════════
+  if (opts.isProtese) {
+    doc.addPage();
+    if (bgProtese) { try { doc.addImage(bgProtese, "JPEG", 0, 0, W, H); } catch { /* skip */ } }
+    setFont();
+    for (const f of IOP054_FIELDS) {
+      const raw = p[f.key];
+      const val = f.date ? fmtDate(raw) : raw;
+      fitText(val, f.x, f.y, f.maxWidth, f.maxLines ?? 1, f.size ?? 10, f.minSize ?? 5);
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════════════
