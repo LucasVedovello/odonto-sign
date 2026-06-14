@@ -261,7 +261,14 @@ function ReceptionDashboard() {
       .eq("id", toDelete.id);
     setDeleting(false);
     if (error) {
-      toast.error("Erro ao excluir");
+      // Log completo para diagnóstico (message, details, hint, code do PostgREST)
+      console.error("[contratos] erro ao excluir paciente", {
+        id: toDelete.id,
+        status: toDelete.status,
+        company_id: profile?.company_id,
+        error,
+      });
+      toast.error(`Erro ao excluir${error.message ? `: ${error.message}` : ""}`);
       return;
     }
     toast.success("Cadastro movido para a lixeira");
