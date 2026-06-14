@@ -24,12 +24,10 @@ import { Route as AuthenticatedSuporteRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedProntuarioRouteImport } from './routes/_authenticated/prontuario'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedLixeiraRouteImport } from './routes/_authenticated/lixeira'
-import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedConsultasRouteImport } from './routes/_authenticated/consultas'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedDashboardLogsRouteImport } from './routes/_authenticated/dashboard_.logs'
 import { Route as AuthenticatedAdminLogsRouteImport } from './routes/_authenticated/admin_.logs'
-import { Route as AuthenticatedAdminDashboardRouteImport } from './routes/_authenticated/admin_.dashboard'
 
 const TestRoute = TestRouteImport.update({
   id: '/test',
@@ -105,11 +103,6 @@ const AuthenticatedLixeiraRoute = AuthenticatedLixeiraRouteImport.update({
   path: '/lixeira',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
 const AuthenticatedConsultasRoute = AuthenticatedConsultasRouteImport.update({
   id: '/consultas',
   path: '/consultas',
@@ -131,12 +124,6 @@ const AuthenticatedAdminLogsRoute = AuthenticatedAdminLogsRouteImport.update({
   path: '/admin/logs',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedAdminDashboardRoute =
-  AuthenticatedAdminDashboardRouteImport.update({
-    id: '/admin_/dashboard',
-    path: '/admin/dashboard',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -149,14 +136,12 @@ export interface FileRoutesByFullPath {
   '/test': typeof TestRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/consultas': typeof AuthenticatedConsultasRoute
-  '/dashboard': typeof AuthenticatedDashboardRoute
   '/lixeira': typeof AuthenticatedLixeiraRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/prontuario': typeof AuthenticatedProntuarioRoute
   '/suporte': typeof AuthenticatedSuporteRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/cadastro/$token': typeof CadastroTokenRoute
-  '/admin/dashboard': typeof AuthenticatedAdminDashboardRoute
   '/admin/logs': typeof AuthenticatedAdminLogsRoute
   '/dashboard/logs': typeof AuthenticatedDashboardLogsRoute
 }
@@ -170,7 +155,6 @@ export interface FileRoutesByTo {
   '/test': typeof TestRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/consultas': typeof AuthenticatedConsultasRoute
-  '/dashboard': typeof AuthenticatedDashboardRoute
   '/lixeira': typeof AuthenticatedLixeiraRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/prontuario': typeof AuthenticatedProntuarioRoute
@@ -178,7 +162,6 @@ export interface FileRoutesByTo {
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/cadastro/$token': typeof CadastroTokenRoute
   '/': typeof AuthenticatedIndexRoute
-  '/admin/dashboard': typeof AuthenticatedAdminDashboardRoute
   '/admin/logs': typeof AuthenticatedAdminLogsRoute
   '/dashboard/logs': typeof AuthenticatedDashboardLogsRoute
 }
@@ -194,7 +177,6 @@ export interface FileRoutesById {
   '/test': typeof TestRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/consultas': typeof AuthenticatedConsultasRoute
-  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/lixeira': typeof AuthenticatedLixeiraRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/prontuario': typeof AuthenticatedProntuarioRoute
@@ -202,7 +184,6 @@ export interface FileRoutesById {
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/cadastro/$token': typeof CadastroTokenRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
-  '/_authenticated/admin_/dashboard': typeof AuthenticatedAdminDashboardRoute
   '/_authenticated/admin_/logs': typeof AuthenticatedAdminLogsRoute
   '/_authenticated/dashboard_/logs': typeof AuthenticatedDashboardLogsRoute
 }
@@ -219,14 +200,12 @@ export interface FileRouteTypes {
     | '/test'
     | '/admin'
     | '/consultas'
-    | '/dashboard'
     | '/lixeira'
     | '/perfil'
     | '/prontuario'
     | '/suporte'
     | '/usuarios'
     | '/cadastro/$token'
-    | '/admin/dashboard'
     | '/admin/logs'
     | '/dashboard/logs'
   fileRoutesByTo: FileRoutesByTo
@@ -240,7 +219,6 @@ export interface FileRouteTypes {
     | '/test'
     | '/admin'
     | '/consultas'
-    | '/dashboard'
     | '/lixeira'
     | '/perfil'
     | '/prontuario'
@@ -248,7 +226,6 @@ export interface FileRouteTypes {
     | '/usuarios'
     | '/cadastro/$token'
     | '/'
-    | '/admin/dashboard'
     | '/admin/logs'
     | '/dashboard/logs'
   id:
@@ -263,7 +240,6 @@ export interface FileRouteTypes {
     | '/test'
     | '/_authenticated/admin'
     | '/_authenticated/consultas'
-    | '/_authenticated/dashboard'
     | '/_authenticated/lixeira'
     | '/_authenticated/perfil'
     | '/_authenticated/prontuario'
@@ -271,7 +247,6 @@ export interface FileRouteTypes {
     | '/_authenticated/usuarios'
     | '/cadastro/$token'
     | '/_authenticated/'
-    | '/_authenticated/admin_/dashboard'
     | '/_authenticated/admin_/logs'
     | '/_authenticated/dashboard_/logs'
   fileRoutesById: FileRoutesById
@@ -395,13 +370,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLixeiraRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/dashboard': {
-      id: '/_authenticated/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/_authenticated/consultas': {
       id: '/_authenticated/consultas'
       path: '/consultas'
@@ -430,27 +398,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminLogsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/admin_/dashboard': {
-      id: '/_authenticated/admin_/dashboard'
-      path: '/admin/dashboard'
-      fullPath: '/admin/dashboard'
-      preLoaderRoute: typeof AuthenticatedAdminDashboardRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
   }
 }
 
 interface AuthenticatedRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedConsultasRoute: typeof AuthenticatedConsultasRoute
-  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedLixeiraRoute: typeof AuthenticatedLixeiraRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedProntuarioRoute: typeof AuthenticatedProntuarioRoute
   AuthenticatedSuporteRoute: typeof AuthenticatedSuporteRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
-  AuthenticatedAdminDashboardRoute: typeof AuthenticatedAdminDashboardRoute
   AuthenticatedAdminLogsRoute: typeof AuthenticatedAdminLogsRoute
   AuthenticatedDashboardLogsRoute: typeof AuthenticatedDashboardLogsRoute
 }
@@ -458,14 +417,12 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedConsultasRoute: AuthenticatedConsultasRoute,
-  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedLixeiraRoute: AuthenticatedLixeiraRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedProntuarioRoute: AuthenticatedProntuarioRoute,
   AuthenticatedSuporteRoute: AuthenticatedSuporteRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
-  AuthenticatedAdminDashboardRoute: AuthenticatedAdminDashboardRoute,
   AuthenticatedAdminLogsRoute: AuthenticatedAdminLogsRoute,
   AuthenticatedDashboardLogsRoute: AuthenticatedDashboardLogsRoute,
 }

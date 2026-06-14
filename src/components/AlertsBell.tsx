@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import { useNavigate } from "@tanstack/react-router";
 import { Bell, Building2, ShieldAlert, UserX, AlertTriangle, CreditCard } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -53,7 +52,6 @@ const fmtDate = (iso: string) =>
   }).format(new Date(iso));
 
 export function AlertsBell() {
-  const navigate = useNavigate();
   const qc = useQueryClient();
 
   const { data: alerts = [] } = useQuery({
@@ -152,13 +150,6 @@ export function AlertsBell() {
             </DropdownMenuItem>
           );
         })}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={() => navigate({ to: "/admin/dashboard" })}
-          className="justify-center text-xs text-primary"
-        >
-          Ver dashboard administrativo
-        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

@@ -1,5 +1,5 @@
 // Exportação de dados para PDF (jsPDF + autotable) e Excel (SheetJS).
-// Usado pelas listagens (pacientes, consultas, logs) e dashboards.
+// Usado pelas listagens (pacientes, consultas, logs).
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
@@ -71,55 +71,4 @@ export function exportTableExcel<T>(opts: {
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, (opts.sheetName ?? "Dados").slice(0, 31));
   XLSX.writeFile(wb, `${opts.fileName}-${stamp()}.xlsx`);
-}
-
-/** Exporta um resumo de dashboard (cards + tabelas) para PDF. */
-export function exportDashboardPdf(opts: {
-  title: string;
-  period?: string;
-  cards: [string, string][];
-  tables?: { title: string; head: string[]; body: string[][] }[];
-  fileName: string;
-}) {
-  const doc = new jsPDF();
-
-  doc.setFontSize(16);
-  doc.text(opts.title, 14, 16);
-  doc.setFontSize(10);
-  doc.setTextColor(110);
-  doc.text(
-    [
-      opts.period ? `Período: ${opts.period}` : null,
-      `Gerado em ${new Date().toLocaleString("pt-BR")}`,
-    ]
-      .filter(Boolean)
-      .join(" — "),
-    14,
-    23,
-  );
-
-  autoTable(doc, {
-    startY: 28,
-    head: [["Indicador", "Valor"]],
-    body: opts.cards,
-    styles: { fontSize: 9, cellPadding: 2.5 },
-    headStyles: { fillColor: [37, 99, 235] },
-  });
-
-  for (const table of opts.tables ?? []) {
-    const lastY =
-      (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 28;
-    doc.setFontSize(12);
-    doc.setTextColor(30);
-    doc.text(table.title, 14, lastY + 10);
-    autoTable(doc, {
-      startY: lastY + 13,
-      head: [table.head],
-      body: table.body,
-      styles: { fontSize: 8, cellPadding: 2 },
-      headStyles: { fillColor: [37, 99, 235] },
-    });
-  }
-
-  doc.save(`${opts.fileName}-${stamp()}.pdf`);
 }

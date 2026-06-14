@@ -12,7 +12,6 @@ import {
   Headset,
   ClipboardList,
   CalendarClock,
-  BarChart3,
   ScrollText,
   Trash2,
 } from "lucide-react";
@@ -55,7 +54,6 @@ export function AppHeader() {
       // platform_admin: visão da plataforma + acesso operacional (contratos/prontuário)
       add("Contratos", LayoutDashboard, "/");
       add("Prontuário", ClipboardList, "/prontuario");
-      add("Dashboard", BarChart3, "/admin/dashboard");
       add("Logs", ScrollText, "/admin/logs");
       add("Admin", ShieldCheck, "/admin");
       tabs.push({ type: "separator" as const });
@@ -65,7 +63,6 @@ export function AppHeader() {
       // clinic_owner: gestão completa da clínica
       add("Contratos", LayoutDashboard, "/");
       add("Prontuário", ClipboardList, "/prontuario");
-      add("Dashboard", BarChart3, "/dashboard");
       add("Consultas", CalendarClock, "/consultas");
       add("Usuários", Users, "/usuarios");
       tabs.push({ type: "separator" as const });
