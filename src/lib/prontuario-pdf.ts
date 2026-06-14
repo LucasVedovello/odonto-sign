@@ -137,19 +137,25 @@ const IOP046_SIG_DOUTOR = { x: 178, y: 70, w: 54, h: 6 };
 // Os rótulos são impressos no topo-esquerdo de cada célula; os valores vão
 // ABAIXO do rótulo (Y na metade inferior da célula), mesmo padrão da IOP046.
 // Reutiliza as MESMAS chaves de `p` já carregadas — nada é buscado de novo.
+//
+// Coordenadas medidas por pixel-scan da grade do template iop054-protese.jpg
+// (1477×1065 px → 297×210 mm). Bordas das colunas: logo|cells 51.7 · DATA|PLAN
+// 85.7 · PLAN|título 119.6 · título|PRONT 221.8 · PRONT|CONTR 254.4 · borda dir.
+// 290.0. Linhas: topo 12.0 · L1/L2 20.5 · L2/L3 28.3 · base 36.2. O valor fica
+// ABAIXO do rótulo (baseline na metade inferior da célula) p/ não sobrepor a label.
 const IOP054_FIELDS: FieldPos[] = [
-  // Linha 1 (célula y ~11–19; baseline ~16.5)
-  { key: "data",            x: 54,  y: 16.5, maxWidth: 30, date: true },
-  { key: "planejado_por",   x: 87,  y: 16.5, maxWidth: 38, size: 9 },
-  { key: "num_prontuario",  x: 223, y: 16.5, maxWidth: 22 },
-  { key: "num_contrato",    x: 248, y: 16.5, maxWidth: 44 },
-  // Linha 2 (célula y ~19–27; baseline ~25)
-  { key: "nome",            x: 54,  y: 25, maxWidth: 162 },
-  { key: "data_nasc",       x: 223, y: 25, maxWidth: 22, date: true },
-  { key: "rg",              x: 248, y: 25, maxWidth: 44 },
-  // Linha 3 (célula y ~27–35; baseline ~33)
-  { key: "endereco",        x: 54,  y: 33, maxWidth: 190 },
-  { key: "telefone",        x: 248, y: 33, maxWidth: 44 },
+  // Linha 1 (célula y 12.0–20.5; baseline ~19, abaixo do rótulo)
+  { key: "data",            x: 54.5,  y: 19,   maxWidth: 30, date: true },
+  { key: "planejado_por",   x: 88.5,  y: 19,   maxWidth: 30, size: 9 },
+  { key: "num_prontuario",  x: 224.5, y: 19,   maxWidth: 28 },
+  { key: "num_contrato",    x: 257,   y: 19,   maxWidth: 31 },
+  // Linha 2 (célula y 20.5–28.3; baseline ~26.8)
+  { key: "nome",            x: 54.5,  y: 26.8, maxWidth: 164 },
+  { key: "data_nasc",       x: 224.5, y: 26.8, maxWidth: 28, date: true },
+  { key: "rg",              x: 257,   y: 26.8, maxWidth: 31 },
+  // Linha 3 (célula y 28.3–36.2; baseline ~34.7)
+  { key: "endereco",        x: 54.5,  y: 34.7, maxWidth: 196 },
+  { key: "telefone",        x: 257,   y: 34.7, maxWidth: 31 },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────
