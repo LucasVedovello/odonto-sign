@@ -524,13 +524,6 @@ function ProntuarioPage() {
     load();
   };
 
-  // ── Calibration grid PDF ─────────────────────────────────────────────────
-  const downloadCalibration = async () => {
-    const { generateCalibrationPdf } = await import("@/lib/prontuario-pdf");
-    const doc = await generateCalibrationPdf();
-    doc.save("grid-calibracao.pdf");
-  };
-
   // ── Download PDF ────────────────────────────────────────────────────────
   const downloadPdf = async (id: string) => {
     const { data: row } = await db.from("prontuarios").select("*").eq("id", id).single();
@@ -1171,14 +1164,6 @@ function ProntuarioPage() {
           <p className="text-sm text-muted-foreground">Fichas clínicas e planejamentos</p>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={downloadCalibration}
-            className="gap-1.5 text-xs hidden sm:flex"
-          >
-            <Download className="h-3.5 w-3.5" /> Grid calibração
-          </Button>
           <Button onClick={openNew} className="gap-2">
             <Plus className="h-4 w-4" /> Novo Prontuário
           </Button>

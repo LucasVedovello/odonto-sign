@@ -37,10 +37,9 @@ import {
   Trash2,
   User,
   MessageCircle,
-  FileSpreadsheet,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { exportTablePdf, exportTableExcel, type ExportColumn } from "@/lib/export";
+import { exportTablePdf, type ExportColumn } from "@/lib/export";
 
 export const Route = createFileRoute("/_authenticated/")({
   component: ReceptionDashboard,
@@ -301,21 +300,6 @@ function ReceptionDashboard() {
             }
           >
             <Download className="h-3.5 w-3.5" /> PDF
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-            onClick={() =>
-              exportTableExcel({
-                sheetName: "Pacientes",
-                columns: patientExportColumns,
-                rows: filtered,
-                fileName: "pacientes",
-              })
-            }
-          >
-            <FileSpreadsheet className="h-3.5 w-3.5" /> Excel
           </Button>
           <Button onClick={() => setDialogOpen(true)} size="lg" className="gap-2">
             <Plus className="h-4 w-4" /> Novo Cadastro
