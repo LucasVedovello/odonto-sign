@@ -83,7 +83,7 @@ function LoginPage() {
         <div className="w-full max-w-md">
           <div className="mb-6 flex flex-col items-center gap-3">
             <img
-              src="https://dziinqtztpolawyfbakr.supabase.co/storage/v1/object/public/assets/logo.jpg"
+              src="https://dziinqtztpolawyfbakr.supabase.co/storage/v1/object/public/assets/icone.jpg"
               alt="OdontoSistema"
               className="h-14 w-14 rounded-2xl object-contain shadow-[var(--shadow-lift)]"
             />
