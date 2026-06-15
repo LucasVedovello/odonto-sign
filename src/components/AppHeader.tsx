@@ -89,11 +89,13 @@ export function AppHeader() {
         <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3 sm:px-6">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 min-w-0 shrink-0">
-            <img
-              src="https://dziinqtztpolawyfbakr.supabase.co/storage/v1/object/public/assets/icone.jpg"
-              alt="OdontoSistema"
-              className="h-12 w-12 shrink-0 rounded-full object-cover bg-white ring-1 ring-border shadow-[var(--shadow-card)]"
-            />
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white ring-1 ring-border shadow-[var(--shadow-card)]">
+              <img
+                src="https://dziinqtztpolawyfbakr.supabase.co/storage/v1/object/public/assets/icone.jpg"
+                alt="OdontoSistema"
+                className="h-full w-full translate-x-[2%] -translate-y-[4%] object-cover"
+              />
+            </span>
             <div className="hidden sm:block min-w-0">
               <h1 className="text-base font-semibold leading-tight truncate">OdontoSign</h1>
               <p className="text-xs text-muted-foreground truncate">Cadastro Digital</p>

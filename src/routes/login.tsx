@@ -82,11 +82,13 @@ function LoginPage() {
       <div className="flex items-center justify-center px-4 pb-16">
         <div className="w-full max-w-md">
           <div className="mb-6 flex flex-col items-center gap-3">
-            <img
-              src="https://dziinqtztpolawyfbakr.supabase.co/storage/v1/object/public/assets/icone.jpg"
-              alt="OdontoSistema"
-              className="h-24 w-24 rounded-full object-cover bg-white ring-1 ring-border shadow-[var(--shadow-lift)]"
-            />
+            <span className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-white ring-1 ring-border shadow-[var(--shadow-lift)]">
+              <img
+                src="https://dziinqtztpolawyfbakr.supabase.co/storage/v1/object/public/assets/icone.jpg"
+                alt="OdontoSistema"
+                className="h-full w-full translate-x-[2%] -translate-y-[4%] object-cover"
+              />
+            </span>
             <div className="text-center">
               <h1 className="text-2xl font-bold">OdontoSign</h1>
               <p className="text-sm text-muted-foreground">Acesso da equipe</p>
