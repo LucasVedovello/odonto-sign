@@ -31,6 +31,7 @@ type SupportMessage = {
   sender_role: "user" | "admin";
   content: string | null; attachment_url: string | null; attachment_name: string | null;
   created_at: string;
+  images?: string[]; // só na 1ª mensagem sintética (anexos do ticket inicial)
 };
 
 const STATUS: Record<string, { label: string; cls: string }> = {
@@ -137,16 +138,19 @@ function SupportPage() {
       const { data: prof } = await supabase.from("profiles").select("company_id").eq("id", user.id).single();
       if (!prof?.company_id) throw new Error("Empresa não encontrada.");
 
-      const imagePaths: string[] = [];
+      // Anexos do ticket inicial vão para o bucket público support-attachments;
+      // salvamos a URL pública (não o path) para exibir direto no chat.
+      const imageUrls: string[] = [];
       for (const file of files) {
         const path = `${user.id}/${Date.now()}_${sanitize(file.name)}`;
-        const { error } = await supabase.storage.from("support-images").upload(path, file);
+        const { error } = await supabase.storage.from("support-attachments").upload(path, file);
         if (error) throw error;
-        imagePaths.push(path);
+        const { data: { publicUrl } } = supabase.storage.from("support-attachments").getPublicUrl(path);
+        imageUrls.push(publicUrl);
       }
       const { data: ticket, error: insertErr } = await db
         .from("support_tickets")
-        .insert({ user_id: user.id, company_id: prof.company_id, title: title.trim(), message: message.trim(), images: imagePaths })
+        .insert({ user_id: user.id, company_id: prof.company_id, title: title.trim(), message: message.trim(), images: imageUrls })
         .select("id").single();
       if (insertErr || !ticket) throw insertErr ?? new Error("Erro ao criar ticket");
 
@@ -181,11 +185,10 @@ function SupportPage() {
       if (attachFile) {
         const path = `${activeTicket.id}/${Date.now()}_${sanitize(attachFile.name)}`;
         const { error: upErr } = await supabase.storage.from("support-attachments").upload(path, attachFile);
-        if (!upErr) {
-          const { data: { publicUrl } } = supabase.storage.from("support-attachments").getPublicUrl(path);
-          attachmentUrl = publicUrl;
-          attachmentName = attachFile.name;
-        }
+        if (upErr) throw upErr; // não engolir falha de upload — sem isso a msg ia só com texto
+        const { data: { publicUrl } } = supabase.storage.from("support-attachments").getPublicUrl(path);
+        attachmentUrl = publicUrl;
+        attachmentName = attachFile.name;
         setAttachFile(null);
       }
       const { error } = await db.from("support_messages").insert({
@@ -196,7 +199,7 @@ function SupportPage() {
       setReply("");
       await loadMessages(activeTicket.id);
     } catch (err) {
-      toast.error("Erro ao enviar mensagem");
+      toast.error(err instanceof Error ? err.message : "Erro ao enviar mensagem");
     } finally {
       setSendingReply(false);
     }
@@ -210,6 +213,7 @@ function SupportPage() {
       id: "initial", ticket_id: activeTicket.id, sender_id: activeTicket.user_id,
       sender_role: "user", content: activeTicket.message,
       attachment_url: null, attachment_name: null, created_at: activeTicket.created_at,
+      images: activeTicket.images ?? [],
     };
     const allMessages = [syntheticFirst, ...messages];
 
@@ -249,6 +253,14 @@ function SupportPage() {
                             className={cn("mt-1 flex items-center gap-1.5 underline text-xs", isMe ? "text-primary-foreground/80" : "text-primary")}>
                             <Paperclip className="h-3 w-3" />{msg.attachment_name || "Anexo"}
                           </a>
+                    )}
+                    {msg.images && msg.images.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {msg.images.map((url, idx) => (
+                          <img key={idx} src={url} alt="" onClick={() => setLightboxUrl(url)}
+                            className="max-h-48 max-w-full cursor-pointer rounded-lg object-cover" />
+                        ))}
+                      </div>
                     )}
                     <p className={cn("text-xs mt-1 opacity-60", isMe ? "text-right" : "text-left")}>{fmtDate(msg.created_at)}</p>
                   </div>
