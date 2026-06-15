@@ -22,6 +22,8 @@ type AuthState = {
   loading: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  /** Define a clínica ativa (valida vínculo via RPC) e recarrega o perfil. */
+  switchCompany: (companyId: string) => Promise<void>;
 };
 
 const Ctx = createContext<AuthState>({
@@ -30,6 +32,7 @@ const Ctx = createContext<AuthState>({
   loading: true,
   signOut: async () => {},
   refreshProfile: async () => {},
+  switchCompany: async () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -96,6 +99,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
         refreshProfile: async () => {
           if (session?.user) await loadProfile(session.user.id);
+        },
+        switchCompany: async (companyId: string) => {
+          const { error } = await supabase.rpc("set_active_company", {
+            p_company_id: companyId,
+          });
+          if (error) throw error;
+          // Recarrega o perfil (company_id/role da clínica ativa) e
+          // invalida o cache para refazer as queries no novo escopo.
+          if (session?.user) await loadProfile(session.user.id);
+          qc.invalidateQueries();
         },
       }}
     >

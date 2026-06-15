@@ -23,14 +23,14 @@ function LoginPage() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
+    const { data: signIn, error } = await supabase.auth.signInWithPassword({ email, password });
     // Auditoria: registra a tentativa (sucesso ou falha) sem bloquear o fluxo
     supabase.rpc("record_login_attempt", { p_email: email, p_success: !error }).then(
       () => {},
       () => {},
     );
     if (error) {
+      setLoading(false);
       toast.error(
         error.message === "Email not confirmed"
           ? "Confirme seu email antes de entrar"
@@ -38,7 +38,50 @@ function LoginPage() {
       );
       return;
     }
-    navigate({ to: "/" });
+
+    await routeAfterLogin(signIn.user?.id);
+    setLoading(false);
+  };
+
+  // Decide o destino pós-login com base nas clínicas vinculadas.
+  //  • admin → dashboard (sem seleção)
+  //  • 1 clínica aprovada → entra direto
+  //  • 2+ clínicas aprovadas → tela de seleção
+  //  • 0 aprovadas → tela de seleção (mostra status / cadastro)
+  // Se as RPCs de múltiplas clínicas ainda não existirem no banco,
+  // faz fallback para o comportamento legado (vai direto ao dashboard).
+  const routeAfterLogin = async (userId?: string) => {
+    try {
+      if (userId) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("is_admin")
+          .eq("id", userId)
+          .maybeSingle();
+        if (profile?.is_admin) {
+          window.location.assign("/");
+          return;
+        }
+      }
+
+      const { data, error: rpcError } = await supabase.rpc("get_user_companies");
+      if (rpcError) throw rpcError;
+
+      const approved = (data ?? []).filter((c) => c.approval_status === "approved");
+      if (approved.length === 1) {
+        const { error: setErr } = await supabase.rpc("set_active_company", {
+          p_company_id: approved[0].company_id,
+        });
+        if (setErr) throw setErr;
+        // Recarga completa garante que o AuthProvider releia a clínica ativa.
+        window.location.assign("/");
+      } else {
+        navigate({ to: "/select-company" });
+      }
+    } catch {
+      // Banco ainda sem suporte a múltiplas clínicas → fluxo legado.
+      navigate({ to: "/" });
+    }
   };
 
   const forgot = async () => {

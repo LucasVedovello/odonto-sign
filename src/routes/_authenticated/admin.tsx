@@ -112,6 +112,7 @@ type Patient = {
   signed_at: string | null;
   company_id: string;
 };
+type CompanyUser = { user_id: string; company_id: string; role: AppRole };
 type TicketUser = { first_name: string | null; last_name: string | null; email: string };
 type Ticket = {
   id: string;
@@ -194,6 +195,7 @@ function AdminPage() {
     profiles: Profile[];
     patients: Patient[];
     tickets: Ticket[];
+    companyUsers: CompanyUser[];
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
@@ -225,13 +227,18 @@ function AdminPage() {
   const msgsEndRef = useRef<HTMLDivElement>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
-  // Gestão de usuários (troca de role)
-  const [roleChange, setRoleChange] = useState<{ user: Profile; newRole: AppRole } | null>(null);
+  // Gestão de usuários (troca de role) — companyId é a clínica do card,
+  // pois o vínculo/role é por clínica em company_users.
+  const [roleChange, setRoleChange] = useState<{
+    user: Profile;
+    companyId: string;
+    newRole: AppRole;
+  } | null>(null);
   const [changingRole, setChangingRole] = useState(false);
   const [usersClinicFilter, setUsersClinicFilter] = useState("all");
 
   const load = async () => {
-    const [c, p, pa, tk] = await Promise.all([
+    const [c, p, pa, tk, cu] = await Promise.all([
       db
         .from("companies")
         .select(
@@ -253,12 +260,25 @@ function AdminPage() {
         )
         .order("created_at", { ascending: false })
         .limit(200),
+      // Vínculos N:N usuário↔clínica (fonte de verdade da gestão de usuários)
+      db.from("company_users").select("user_id,company_id,role"),
     ]);
+    const profilesData = (p.data ?? []) as Profile[];
+    const companyUsersData = (cu.data ?? []) as CompanyUser[];
+    // Fallback legado: se a tabela company_users ainda não existe/está vazia,
+    // deriva os vínculos de profiles.company_id para não regredir a tela.
+    const effectiveCompanyUsers =
+      companyUsersData.length > 0
+        ? companyUsersData
+        : profilesData
+            .filter((pr) => pr.company_id)
+            .map((pr) => ({ user_id: pr.id, company_id: pr.company_id, role: pr.role }));
     setData({
       companies: (c.data ?? []) as Company[],
-      profiles: (p.data ?? []) as Profile[],
+      profiles: profilesData,
       patients: (pa.data ?? []) as Patient[],
       tickets: (tk.data ?? []) as Ticket[],
+      companyUsers: effectiveCompanyUsers,
     });
     setLoading(false);
   };
@@ -351,7 +371,12 @@ function AdminPage() {
           })
           .eq("id", company.id);
         if (error) throw error;
-        const owner = data.profiles.find((p) => p.company_id === company.id);
+        const ownerLink =
+          data.companyUsers.find((l) => l.company_id === company.id && l.role === "clinic_owner") ??
+          data.companyUsers.find((l) => l.company_id === company.id);
+        const owner =
+          (ownerLink && data.profiles.find((p) => p.id === ownerLink.user_id)) ??
+          data.profiles.find((p) => p.company_id === company.id);
         if (owner)
           supabase.functions
             .invoke("notify-company-approved", {
@@ -375,7 +400,12 @@ function AdminPage() {
           .update({ approval_status: "rejected", rejection_reason: rejectionReason.trim() })
           .eq("id", company.id);
         if (error) throw error;
-        const owner = data.profiles.find((p) => p.company_id === company.id);
+        const ownerLink =
+          data.companyUsers.find((l) => l.company_id === company.id && l.role === "clinic_owner") ??
+          data.companyUsers.find((l) => l.company_id === company.id);
+        const owner =
+          (ownerLink && data.profiles.find((p) => p.id === ownerLink.user_id)) ??
+          data.profiles.find((p) => p.company_id === company.id);
         if (owner)
           supabase.functions
             .invoke("notify-company-approved", {
@@ -535,10 +565,11 @@ function AdminPage() {
   const handleChangeRole = async () => {
     if (!roleChange) return;
     setChangingRole(true);
-    const { error } = await supabase
-      .from("profiles")
-      .update({ role: roleChange.newRole })
-      .eq("id", roleChange.user.id);
+    const { error } = await supabase.rpc("set_company_user_role", {
+      p_user_id: roleChange.user.id,
+      p_company_id: roleChange.companyId,
+      p_role: roleChange.newRole,
+    });
     setChangingRole(false);
     if (error) {
       toast.error(error.message.includes("permissão") ? error.message : "Erro ao alterar função");
@@ -634,7 +665,7 @@ function AdminPage() {
                     {APPROVAL_LABEL[c.approval_status]}
                   </Badge>
                   <Badge variant="outline">
-                    {data.profiles.filter((p) => p.company_id === c.id).length} usuários
+                    {data.companyUsers.filter((l) => l.company_id === c.id).length} usuários
                   </Badge>
                   <Badge variant="outline">
                     {data.patients.filter((p) => p.company_id === c.id).length} pacientes
@@ -684,7 +715,14 @@ function AdminPage() {
             );
             const clinicCards = visibleClinics
               .map((c) => {
-                let members = data.profiles.filter((p) => p.company_id === c.id);
+                // Membros vêm de company_users (com role por clínica), não de profiles.company_id.
+                let members = data.companyUsers
+                  .filter((l) => l.company_id === c.id)
+                  .map((l) => {
+                    const prof = data.profiles.find((p) => p.id === l.user_id);
+                    return prof ? ({ ...prof, role: l.role } as Profile) : null;
+                  })
+                  .filter((p): p is Profile => p !== null);
                 if (ql)
                   members = members.filter(
                     (p) => fs(p.email) || fs(p.first_name) || fs(p.last_name),
@@ -744,7 +782,11 @@ function AdminPage() {
                                   value={u.role}
                                   onValueChange={(v) => {
                                     if (v !== u.role)
-                                      setRoleChange({ user: u, newRole: v as AppRole });
+                                      setRoleChange({
+                                        user: u,
+                                        companyId: c.id,
+                                        newRole: v as AppRole,
+                                      });
                                   }}
                                 >
                                   <SelectTrigger className="h-8 w-[150px] text-xs">

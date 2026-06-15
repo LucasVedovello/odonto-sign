@@ -344,6 +344,45 @@ export type Database = {
           },
         ]
       }
+      company_users: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_users_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_users_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       login_attempts: {
         Row: {
           created_at: string
@@ -868,6 +907,50 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_company_for_current_user: { Args: { p: Json }; Returns: string }
+      get_company_members: {
+        Args: { p_company_id: string }
+        Returns: {
+          created_at: string
+          email: string
+          first_name: string | null
+          last_name: string | null
+          profile_image_url: string | null
+          role: Database["public"]["Enums"]["user_role"]
+          status: string
+          user_id: string
+        }[]
+      }
+      get_user_companies: {
+        Args: never
+        Returns: {
+          approval_status: string
+          cidade: string | null
+          company_id: string
+          company_name: string
+          nome_fantasia: string | null
+          role: Database["public"]["Enums"]["user_role"]
+          uf: string | null
+        }[]
+      }
+      is_company_member: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_company_owner: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: boolean
+      }
+      set_active_company: { Args: { p_company_id: string }; Returns: undefined }
+      set_company_user_role: {
+        Args: {
+          p_company_id: string
+          p_role: Database["public"]["Enums"]["user_role"]
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      user_company_ids: { Args: { _user_id: string }; Returns: string[] }
       fn_request_meta: { Args: never; Returns: Record<string, unknown> }
       fn_write_audit: {
         Args: {

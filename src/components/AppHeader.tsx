@@ -12,6 +12,8 @@ import {
   Headset,
   ClipboardList,
   Trash2,
+  Building2,
+  PlusCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -146,6 +148,16 @@ export function AppHeader() {
               <DropdownMenuItem onClick={() => navigate({ to: "/perfil" })}>
                 <UserCircle className="mr-2 h-4 w-4" /> Editar perfil
               </DropdownMenuItem>
+              {!isAdmin && (
+                <>
+                  <DropdownMenuItem onClick={() => navigate({ to: "/select-company" })}>
+                    <Building2 className="mr-2 h-4 w-4" /> Trocar de clínica
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate({ to: "/adicionar-clinica" })}>
+                    <PlusCircle className="mr-2 h-4 w-4" /> Adicionar nova clínica
+                  </DropdownMenuItem>
+                </>
+              )}
               {isOwner && (
                 <DropdownMenuItem onClick={() => navigate({ to: "/lixeira" })}>
                   <Trash2 className="mr-2 h-4 w-4" /> Lixeira

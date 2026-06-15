@@ -80,12 +80,33 @@ function UsersPage() {
 
   const load = useCallback(async () => {
     if (!me?.company_id) return;
-    const { data } = await supabase
-      .from("profiles")
-      .select("id,first_name,last_name,email,profile_image_url,status,created_at,role")
-      .eq("company_id", me.company_id)
-      .order("created_at", { ascending: true });
-    setUsers((data ?? []) as Profile[]);
+    // Fonte de verdade da equipe é company_users (via RPC), não profiles.company_id —
+    // um membro pode ter outra clínica como ativa.
+    const { data, error } = await supabase.rpc("get_company_members", {
+      p_company_id: me.company_id,
+    });
+    if (!error && data) {
+      setUsers(
+        data.map((r) => ({
+          id: r.user_id,
+          first_name: r.first_name,
+          last_name: r.last_name,
+          email: r.email,
+          profile_image_url: r.profile_image_url,
+          status: r.status,
+          created_at: r.created_at,
+          role: r.role as AppRole,
+        })),
+      );
+    } else {
+      // Fallback legado (banco ainda sem company_users): lista por profiles.company_id.
+      const { data: legacy } = await supabase
+        .from("profiles")
+        .select("id,first_name,last_name,email,profile_image_url,status,created_at,role")
+        .eq("company_id", me.company_id)
+        .order("created_at", { ascending: true });
+      setUsers((legacy ?? []) as Profile[]);
+    }
     setLoading(false);
   }, [me?.company_id]);
 
@@ -143,7 +164,12 @@ function UsersPage() {
   };
 
   const changeRole = async (u: Profile, role: AppRole) => {
-    const { error } = await supabase.from("profiles").update({ role }).eq("id", u.id);
+    if (!me?.company_id) return;
+    const { error } = await supabase.rpc("set_company_user_role", {
+      p_user_id: u.id,
+      p_company_id: me.company_id,
+      p_role: role,
+    });
     if (error)
       toast.error(error.message.includes("permissão") ? error.message : "Erro ao alterar função");
     else {

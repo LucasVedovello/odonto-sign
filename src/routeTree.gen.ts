@@ -10,10 +10,12 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TestRouteImport } from './routes/test'
+import { Route as SelectCompanyRouteImport } from './routes/select-company'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as CriarEmpresaRouteImport } from './routes/criar-empresa'
 import { Route as AguardandoAprovacaoRouteImport } from './routes/aguardando-aprovacao'
+import { Route as AdicionarClinicaRouteImport } from './routes/adicionar-clinica'
 import { Route as AcessoNegadoRouteImport } from './routes/acesso-negado'
 import { Route as AceitarConviteRouteImport } from './routes/aceitar-convite'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
@@ -29,6 +31,11 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 const TestRoute = TestRouteImport.update({
   id: '/test',
   path: '/test',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SelectCompanyRoute = SelectCompanyRouteImport.update({
+  id: '/select-company',
+  path: '/select-company',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -49,6 +56,11 @@ const CriarEmpresaRoute = CriarEmpresaRouteImport.update({
 const AguardandoAprovacaoRoute = AguardandoAprovacaoRouteImport.update({
   id: '/aguardando-aprovacao',
   path: '/aguardando-aprovacao',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdicionarClinicaRoute = AdicionarClinicaRouteImport.update({
+  id: '/adicionar-clinica',
+  path: '/adicionar-clinica',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AcessoNegadoRoute = AcessoNegadoRouteImport.update({
@@ -110,10 +122,12 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/aceitar-convite': typeof AceitarConviteRoute
   '/acesso-negado': typeof AcessoNegadoRoute
+  '/adicionar-clinica': typeof AdicionarClinicaRoute
   '/aguardando-aprovacao': typeof AguardandoAprovacaoRoute
   '/criar-empresa': typeof CriarEmpresaRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/select-company': typeof SelectCompanyRoute
   '/test': typeof TestRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/lixeira': typeof AuthenticatedLixeiraRoute
@@ -126,10 +140,12 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/aceitar-convite': typeof AceitarConviteRoute
   '/acesso-negado': typeof AcessoNegadoRoute
+  '/adicionar-clinica': typeof AdicionarClinicaRoute
   '/aguardando-aprovacao': typeof AguardandoAprovacaoRoute
   '/criar-empresa': typeof CriarEmpresaRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/select-company': typeof SelectCompanyRoute
   '/test': typeof TestRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/lixeira': typeof AuthenticatedLixeiraRoute
@@ -145,10 +161,12 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/aceitar-convite': typeof AceitarConviteRoute
   '/acesso-negado': typeof AcessoNegadoRoute
+  '/adicionar-clinica': typeof AdicionarClinicaRoute
   '/aguardando-aprovacao': typeof AguardandoAprovacaoRoute
   '/criar-empresa': typeof CriarEmpresaRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/select-company': typeof SelectCompanyRoute
   '/test': typeof TestRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/lixeira': typeof AuthenticatedLixeiraRoute
@@ -165,10 +183,12 @@ export interface FileRouteTypes {
     | '/'
     | '/aceitar-convite'
     | '/acesso-negado'
+    | '/adicionar-clinica'
     | '/aguardando-aprovacao'
     | '/criar-empresa'
     | '/login'
     | '/reset-password'
+    | '/select-company'
     | '/test'
     | '/admin'
     | '/lixeira'
@@ -181,10 +201,12 @@ export interface FileRouteTypes {
   to:
     | '/aceitar-convite'
     | '/acesso-negado'
+    | '/adicionar-clinica'
     | '/aguardando-aprovacao'
     | '/criar-empresa'
     | '/login'
     | '/reset-password'
+    | '/select-company'
     | '/test'
     | '/admin'
     | '/lixeira'
@@ -199,10 +221,12 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/aceitar-convite'
     | '/acesso-negado'
+    | '/adicionar-clinica'
     | '/aguardando-aprovacao'
     | '/criar-empresa'
     | '/login'
     | '/reset-password'
+    | '/select-company'
     | '/test'
     | '/_authenticated/admin'
     | '/_authenticated/lixeira'
@@ -218,10 +242,12 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AceitarConviteRoute: typeof AceitarConviteRoute
   AcessoNegadoRoute: typeof AcessoNegadoRoute
+  AdicionarClinicaRoute: typeof AdicionarClinicaRoute
   AguardandoAprovacaoRoute: typeof AguardandoAprovacaoRoute
   CriarEmpresaRoute: typeof CriarEmpresaRoute
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  SelectCompanyRoute: typeof SelectCompanyRoute
   TestRoute: typeof TestRoute
   CadastroTokenRoute: typeof CadastroTokenRoute
 }
@@ -233,6 +259,13 @@ declare module '@tanstack/react-router' {
       path: '/test'
       fullPath: '/test'
       preLoaderRoute: typeof TestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/select-company': {
+      id: '/select-company'
+      path: '/select-company'
+      fullPath: '/select-company'
+      preLoaderRoute: typeof SelectCompanyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -261,6 +294,13 @@ declare module '@tanstack/react-router' {
       path: '/aguardando-aprovacao'
       fullPath: '/aguardando-aprovacao'
       preLoaderRoute: typeof AguardandoAprovacaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/adicionar-clinica': {
+      id: '/adicionar-clinica'
+      path: '/adicionar-clinica'
+      fullPath: '/adicionar-clinica'
+      preLoaderRoute: typeof AdicionarClinicaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/acesso-negado': {
@@ -371,10 +411,12 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AceitarConviteRoute: AceitarConviteRoute,
   AcessoNegadoRoute: AcessoNegadoRoute,
+  AdicionarClinicaRoute: AdicionarClinicaRoute,
   AguardandoAprovacaoRoute: AguardandoAprovacaoRoute,
   CriarEmpresaRoute: CriarEmpresaRoute,
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  SelectCompanyRoute: SelectCompanyRoute,
   TestRoute: TestRoute,
   CadastroTokenRoute: CadastroTokenRoute,
 }
