@@ -364,6 +364,15 @@ function ProntuarioPage() {
   const eventoAssinado = (e: Evento) =>
     !e.dirty && !!e.assinatura_doutor && !!e.assinatura_paciente;
 
+  // O atesto da anamnese (informações iniciais: doutor + paciente) é assinado
+  // UMA única vez, no preenchimento inicial. Considera-se já assinado quando há
+  // `initial_signed_at` OU — para registros anteriores a essa coluna — quando as
+  // assinaturas iniciais já estão armazenadas. Estando assinado, o atesto NÃO é
+  // mostrado nem solicitado novamente; eventos usam só a assinatura por procedimento.
+  const anamneseAssinada =
+    !!(form as any).initial_signed_at ||
+    !!((form as any).assinatura_doutor && (form as any).assinatura_paciente_planejamento);
+
   const openNew = () => {
     setForm(EMPTY_FORM());
     setPatientSearch("");
@@ -1065,51 +1074,70 @@ function ProntuarioPage() {
           </Card>
         )}
 
-        {/* ── STEP 3 — Assinaturas ── */}
-        {step === 3 && (
-          <div className="grid gap-6 sm:grid-cols-2">
-            <Card className="p-5">
-              <h3 className="mb-1 font-semibold flex items-center gap-2">
-                <PenLine className="h-4 w-4 text-primary" /> Assinatura do Doutor
-              </h3>
-              <p className="mb-3 text-xs text-muted-foreground">
-                Assinatura do responsável pelo atendimento
-              </p>
-              <div className="rounded-xl border-2 border-dashed border-border bg-white dark:bg-background overflow-hidden">
-                <SignaturePad ref={sigDoutorRef} className="block h-36 w-full" />
+        {/* ── STEP 3 — Atesto da anamnese (informações iniciais) ──
+            Assinado UMA única vez, no preenchimento inicial. Se já assinado,
+            apenas confirma — nunca re-solicita o atesto. A assinatura por
+            procedimento fica no Passo 2 (Eventos). */}
+        {step === 3 &&
+          (anamneseAssinada ? (
+            <Card className="flex items-start gap-3 p-6">
+              <CheckSquare className="mt-0.5 h-5 w-5 shrink-0 text-success" />
+              <div>
+                <h3 className="font-semibold">Anamnese já assinada</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  O atesto das informações iniciais (doutor + paciente) já foi assinado
+                  {(form as any).initial_signed_at
+                    ? ` em ${new Date((form as any).initial_signed_at).toLocaleDateString("pt-BR")}`
+                    : ""}{" "}
+                  e não será solicitado novamente. Para registrar procedimentos, use o Passo 2 —
+                  cada procedimento é assinado individualmente (doutor + paciente).
+                </p>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => sigDoutorRef.current?.clear()}
-                className="mt-1 gap-1.5 text-xs text-muted-foreground"
-              >
-                <Eraser className="h-3.5 w-3.5" /> Limpar
-              </Button>
             </Card>
+          ) : (
+            <div className="grid gap-6 sm:grid-cols-2">
+              <Card className="p-5">
+                <h3 className="mb-1 font-semibold flex items-center gap-2">
+                  <PenLine className="h-4 w-4 text-primary" /> Assinatura do Doutor
+                </h3>
+                <p className="mb-3 text-xs text-muted-foreground">
+                  Assinatura do responsável pelo atendimento
+                </p>
+                <div className="rounded-xl border-2 border-dashed border-border bg-white dark:bg-background overflow-hidden">
+                  <SignaturePad ref={sigDoutorRef} className="block h-36 w-full" />
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => sigDoutorRef.current?.clear()}
+                  className="mt-1 gap-1.5 text-xs text-muted-foreground"
+                >
+                  <Eraser className="h-3.5 w-3.5" /> Limpar
+                </Button>
+              </Card>
 
-            <Card className="p-5">
-              <h3 className="mb-1 font-semibold flex items-center gap-2">
-                <PenLine className="h-4 w-4 text-primary" /> Assinatura do Paciente
-              </h3>
-              <p className="mb-3 text-xs text-muted-foreground">
-                "Atesto serem verdadeiras as informações que prestei quanto ao meu estado geral de
-                saúde."
-              </p>
-              <div className="rounded-xl border-2 border-dashed border-border bg-white dark:bg-background overflow-hidden">
-                <SignaturePad ref={sigPacienteRef} className="block h-36 w-full" />
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => sigPacienteRef.current?.clear()}
-                className="mt-1 gap-1.5 text-xs text-muted-foreground"
-              >
-                <Eraser className="h-3.5 w-3.5" /> Limpar
-              </Button>
-            </Card>
-          </div>
-        )}
+              <Card className="p-5">
+                <h3 className="mb-1 font-semibold flex items-center gap-2">
+                  <PenLine className="h-4 w-4 text-primary" /> Assinatura do Paciente
+                </h3>
+                <p className="mb-3 text-xs text-muted-foreground">
+                  "Atesto serem verdadeiras as informações que prestei quanto ao meu estado geral de
+                  saúde."
+                </p>
+                <div className="rounded-xl border-2 border-dashed border-border bg-white dark:bg-background overflow-hidden">
+                  <SignaturePad ref={sigPacienteRef} className="block h-36 w-full" />
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => sigPacienteRef.current?.clear()}
+                  className="mt-1 gap-1.5 text-xs text-muted-foreground"
+                >
+                  <Eraser className="h-3.5 w-3.5" /> Limpar
+                </Button>
+              </Card>
+            </div>
+          ))}
 
         {/* Navigation */}
         <div className="mt-6 flex items-center justify-between gap-3">
