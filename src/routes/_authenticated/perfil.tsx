@@ -12,7 +12,7 @@ import { Loader2, Upload, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/perfil")({
   component: ProfilePage,
-  head: () => ({ meta: [{ title: "Meu perfil — OdontoClinic" }] }),
+  head: () => ({ meta: [{ title: "Meu perfil — OdontoSign" }] }),
 });
 
 const ACCEPTED = ["image/jpeg", "image/jpg", "image/png", "image/webp"];

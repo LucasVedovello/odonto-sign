@@ -23,7 +23,7 @@ import { roleGuard, useUserRole } from "@/lib/rbac";
 export const Route = createFileRoute("/_authenticated/lixeira")({
   beforeLoad: roleGuard(["clinic_owner", "platform_admin"]),
   component: TrashPage,
-  head: () => ({ meta: [{ title: "Lixeira — OdontoClinic" }] }),
+  head: () => ({ meta: [{ title: "Lixeira — OdontoSign" }] }),
 });
 
 type TrashTable = "patients" | "prontuarios" | "appointments";

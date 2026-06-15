@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
   Os botões acima requerem login no painel admin. Acesse <a href="${ADMIN_URL}/admin">${ADMIN_URL}/admin</a> diretamente se preferir.
 </p>
 <hr style="margin:24px 0;border:none;border-top:1px solid #e5e7eb">
-<p style="color:#9ca3af;font-size:12px">OdontoClinic — Sistema de Gestão Odontológica</p>
+<p style="color:#9ca3af;font-size:12px">OdontoSign — Sistema de Gestão Odontológica</p>
 </body></html>`;
 
     const res = await fetch("https://api.resend.com/emails", {
@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         from: "onboarding@resend.dev",
         to: ["lucas.vedovelloo09@gmail.com"],
-        subject: `[OdontoClinic] Nova clínica aguardando aprovação: ${companyName}`,
+        subject: `[OdontoSign] Nova clínica aguardando aprovação: ${companyName}`,
         html,
       }),
     });

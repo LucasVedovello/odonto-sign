@@ -6,7 +6,7 @@ import { Hourglass } from "lucide-react";
 
 export const Route = createFileRoute("/aguardando-aprovacao")({
   component: AguardandoAprovacaoPage,
-  head: () => ({ meta: [{ title: "Cadastro em análise — OdontoClinic" }] }),
+  head: () => ({ meta: [{ title: "Cadastro em análise — OdontoSign" }] }),
 });
 
 function AguardandoAprovacaoPage() {

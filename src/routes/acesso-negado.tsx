@@ -6,7 +6,7 @@ import { ShieldOff } from "lucide-react";
 
 export const Route = createFileRoute("/acesso-negado")({
   component: AcessoNegadoPage,
-  head: () => ({ meta: [{ title: "Cadastro não aprovado — OdontoClinic" }] }),
+  head: () => ({ meta: [{ title: "Cadastro não aprovado — OdontoSign" }] }),
 });
 
 function AcessoNegadoPage() {

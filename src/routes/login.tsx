@@ -11,7 +11,7 @@ import { ContainerScroll } from "@/components/ui/container-scroll-animation";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
-  head: () => ({ meta: [{ title: "Entrar — OdontoClinic" }] }),
+  head: () => ({ meta: [{ title: "Entrar — OdontoSign" }] }),
 });
 
 function LoginPage() {
@@ -64,17 +64,17 @@ function LoginPage() {
             <h1 className="text-4xl md:text-6xl font-bold leading-tight">
               Organize sua clínica com
               <br />
-              <span className="text-primary">OdontoClinic</span>
+              <span className="text-primary">OdontoSign</span>
             </h1>
             <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-              Prontuários digitais, contratos, agendamentos e muito mais — tudo num só lugar.
+              Prontuários digitais, contratos e muito mais — tudo num só lugar.
             </p>
           </>
         }
       >
         <img
-          src="https://dziinqtztpolawyfbakr.supabase.co/storage/v1/object/public/assets/image_Pippit_202606022141.png"
-          alt="OdontoClinic Dashboard"
+          src="https://dziinqtztpolawyfbakr.supabase.co/storage/v1/object/public/assets/logo.jpg"
+          alt="OdontoSign Dashboard"
           className="w-full h-full object-cover object-top rounded-xl"
         />
       </ContainerScroll>
@@ -83,12 +83,12 @@ function LoginPage() {
         <div className="w-full max-w-md">
           <div className="mb-6 flex flex-col items-center gap-3">
             <img
-              src="https://dziinqtztpolawyfbakr.supabase.co/storage/v1/object/public/assets/image_Pippit_202606022141.png"
+              src="https://dziinqtztpolawyfbakr.supabase.co/storage/v1/object/public/assets/logo.jpg"
               alt="OdontoSistema"
               className="h-14 w-14 rounded-2xl object-contain shadow-[var(--shadow-lift)]"
             />
             <div className="text-center">
-              <h1 className="text-2xl font-bold">OdontoClinic</h1>
+              <h1 className="text-2xl font-bold">OdontoSign</h1>
               <p className="text-sm text-muted-foreground">Acesso da equipe</p>
             </div>
           </div>

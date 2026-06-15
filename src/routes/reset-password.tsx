@@ -10,7 +10,7 @@ import { Loader2, Stethoscope } from "lucide-react";
 
 export const Route = createFileRoute("/reset-password")({
   component: ResetPage,
-  head: () => ({ meta: [{ title: "Redefinir senha — OdontoClinic" }] }),
+  head: () => ({ meta: [{ title: "Redefinir senha — OdontoSign" }] }),
 });
 
 function ResetPage() {

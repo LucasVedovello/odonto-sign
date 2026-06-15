@@ -5,7 +5,7 @@ export function OdontoLogo({ size = 40 }: { size?: number }) {
       height={size}
       viewBox="0 0 40 40"
       xmlns="http://www.w3.org/2000/svg"
-      aria-label="OdontoClinic"
+      aria-label="OdontoSign"
     >
       <defs>
         <linearGradient id="oc-grad" x1="0%" y1="0%" x2="100%" y2="100%">

@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/suporte")({
   component: SupportPage,
-  head: () => ({ meta: [{ title: "Suporte — OdontoClinic" }] }),
+  head: () => ({ meta: [{ title: "Suporte — OdontoSign" }] }),
 });
 
 // support_tickets and support_messages are not in the generated types yet —

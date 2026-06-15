@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
   </table>
   <div style="background:#f4f4f5;border-radius:8px;padding:16px;white-space:pre-wrap;line-height:1.6">${message}</div>
   <hr style="margin:24px 0;border:none;border-top:1px solid #e5e7eb">
-  <p style="color:#9ca3af;font-size:12px">OdontoClinic — Sistema de Gestão Odontológica</p>
+  <p style="color:#9ca3af;font-size:12px">OdontoSign — Sistema de Gestão Odontológica</p>
 </body>
 </html>`;
 
@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         from: "onboarding@resend.dev",
         to: ["lucas.vedovelloo09@gmail.com"],
-        subject: `[OdontoClinic Suporte] Novo ticket: ${title}`,
+        subject: `[OdontoSign Suporte] Novo ticket: ${title}`,
         html,
       }),
     });

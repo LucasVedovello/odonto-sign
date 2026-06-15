@@ -44,7 +44,7 @@ import { exportTablePdf, exportTableExcel, type ExportColumn } from "@/lib/expor
 
 export const Route = createFileRoute("/_authenticated/")({
   component: ReceptionDashboard,
-  head: () => ({ meta: [{ title: "Contratos — OdontoClinic" }] }),
+  head: () => ({ meta: [{ title: "Contratos — OdontoSign" }] }),
 });
 
 type Patient = {
@@ -202,7 +202,7 @@ function ReceptionDashboard() {
   };
 
   const buildWhatsappMsg = (url: string) =>
-    `Olá! Segue o link para assinatura do seu contrato com a OdontoClinic. Este link expira em 5 minutos. Acesse: ${url}`;
+    `Olá! Segue o link para assinatura do seu contrato com a OdontoSign. Este link expira em 5 minutos. Acesse: ${url}`;
 
   const handleOpenWhatsApp = () => {
     if (!whatsappAsk) return;

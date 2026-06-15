@@ -74,7 +74,7 @@ Transformar o sistema atual (single-tenant, sem login) em uma plataforma SaaS pr
 - `/perfil` — editar perfil próprio (foto, nome, sobrenome, senha)
 
 ### Layout autenticado
-- Header com logo OdontoClinic
+- Header com logo OdontoSign
 - Menu de perfil no canto superior direito (dropdown com avatar):
   - Editar perfil
   - Tema escuro (toggle)
@@ -116,7 +116,7 @@ Transformar o sistema atual (single-tenant, sem login) em uma plataforma SaaS pr
 ## 6. Emails
 
 - Setup de email infrastructure + scaffold de auth email templates (confirmação, reset)
-- Scaffold transactional email para convites de usuário com branding OdontoClinic
+- Scaffold transactional email para convites de usuário com branding OdontoSign
 - Será necessário configurar domínio de email (dialog será apresentado)
 
 ---

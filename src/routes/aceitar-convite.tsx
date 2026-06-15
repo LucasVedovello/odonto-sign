@@ -10,7 +10,7 @@ import { Loader2, Stethoscope } from "lucide-react";
 
 export const Route = createFileRoute("/aceitar-convite")({
   component: AcceptInvitePage,
-  head: () => ({ meta: [{ title: "Aceitar convite — OdontoClinic" }] }),
+  head: () => ({ meta: [{ title: "Aceitar convite — OdontoSign" }] }),
 });
 
 function AcceptInvitePage() {

@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/cadastro/$token")({
   component: PatientFlow,
-  head: () => ({ meta: [{ title: "Cadastro do Paciente — OdontoClinic" }] }),
+  head: () => ({ meta: [{ title: "Cadastro do Paciente — OdontoSign" }] }),
 });
 
 type Step = "form" | "contract" | "signature" | "done"; // "signature" kept for backward compat
@@ -265,12 +265,12 @@ function PatientFlow() {
       <header className="border-b border-border bg-card/60 backdrop-blur">
         <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-4">
           <img
-            src="https://dziinqtztpolawyfbakr.supabase.co/storage/v1/object/public/assets/image_Pippit_202606022141.png"
+            src="https://dziinqtztpolawyfbakr.supabase.co/storage/v1/object/public/assets/logo.jpg"
             alt="OdontoSistema"
             className="h-10 w-10 rounded-lg object-contain"
           />
           <div>
-            <h1 className="text-base font-semibold leading-tight">OdontoClinic</h1>
+            <h1 className="text-base font-semibold leading-tight">OdontoSign</h1>
             <p className="text-xs text-muted-foreground">
               {patient.prontuario ? `Prontuário ${patient.prontuario}` : "Cadastro digital"}
             </p>

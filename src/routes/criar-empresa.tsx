@@ -10,7 +10,7 @@ import { Loader2, Stethoscope, CheckCircle2 } from "lucide-react";
 
 export const Route = createFileRoute("/criar-empresa")({
   component: CreateCompanyPage,
-  head: () => ({ meta: [{ title: "Criar empresa — OdontoClinic" }] }),
+  head: () => ({ meta: [{ title: "Criar empresa — OdontoSign" }] }),
 });
 
 function CreateCompanyPage() {

@@ -17,20 +17,20 @@ Deno.serve(async (req) => {
     if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY not set");
 
     const subject = approved
-      ? "Sua clínica foi aprovada no OdontoClinic! 🎉"
-      : "Atualização sobre seu cadastro no OdontoClinic";
+      ? "Sua clínica foi aprovada no OdontoSign! 🎉"
+      : "Atualização sobre seu cadastro no OdontoSign";
 
     const html = approved
       ? `
 <!DOCTYPE html><html lang="pt-BR"><body style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a">
-<h2 style="color:#16a34a">Boas-vindas ao OdontoClinic, ${ownerName}! 🎉</h2>
+<h2 style="color:#16a34a">Boas-vindas ao OdontoSign, ${ownerName}! 🎉</h2>
 <p>Sua clínica <strong>${companyName}</strong> foi <strong>aprovada</strong> e já está ativa na plataforma.</p>
 <p>Acesse agora e comece a usar:</p>
 <a href="${APP_URL}" style="display:inline-block;background:#3b5bdb;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;margin-top:8px">
-  Acessar OdontoClinic
+  Acessar OdontoSign
 </a>
 <hr style="margin:24px 0;border:none;border-top:1px solid #e5e7eb">
-<p style="color:#9ca3af;font-size:12px">OdontoClinic — Sistema de Gestão Odontológica</p>
+<p style="color:#9ca3af;font-size:12px">OdontoSign — Sistema de Gestão Odontológica</p>
 </body></html>`
       : `
 <!DOCTYPE html><html lang="pt-BR"><body style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a">
@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
 ${rejectionReason ? `<div style="background:#fef2f2;border-left:4px solid #dc2626;padding:12px 16px;border-radius:4px;margin:16px 0"><strong>Motivo:</strong> ${rejectionReason}</div>` : ""}
 <p>Se tiver dúvidas ou quiser recorrer, entre em contato com nosso suporte acessando o painel e abrindo um ticket.</p>
 <hr style="margin:24px 0;border:none;border-top:1px solid #e5e7eb">
-<p style="color:#9ca3af;font-size:12px">OdontoClinic — Sistema de Gestão Odontológica</p>
+<p style="color:#9ca3af;font-size:12px">OdontoSign — Sistema de Gestão Odontológica</p>
 </body></html>`;
 
     const res = await fetch("https://api.resend.com/emails", {

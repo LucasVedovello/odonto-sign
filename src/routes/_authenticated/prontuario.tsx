@@ -35,7 +35,7 @@ import { SignatureDialog, type DualSignature } from "@/components/SignatureDialo
 
 export const Route = createFileRoute("/_authenticated/prontuario")({
   component: ProntuarioPage,
-  head: () => ({ meta: [{ title: "Prontuários — OdontoClinic" }] }),
+  head: () => ({ meta: [{ title: "Prontuários — OdontoSign" }] }),
 });
 
 // ── Types ───────────────────────────────────────────────────────────────────

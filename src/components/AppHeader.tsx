@@ -90,12 +90,12 @@ export function AppHeader() {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 min-w-0 shrink-0">
             <img
-              src="https://dziinqtztpolawyfbakr.supabase.co/storage/v1/object/public/assets/image_Pippit_202606022141.png"
+              src="https://dziinqtztpolawyfbakr.supabase.co/storage/v1/object/public/assets/logo.jpg"
               alt="OdontoSistema"
               className="h-10 w-10 shrink-0 rounded-lg object-contain shadow-[var(--shadow-card)]"
             />
             <div className="hidden sm:block min-w-0">
-              <h1 className="text-base font-semibold leading-tight truncate">OdontoClinic</h1>
+              <h1 className="text-base font-semibold leading-tight truncate">OdontoSign</h1>
               <p className="text-xs text-muted-foreground truncate">Cadastro Digital</p>
             </div>
           </Link>

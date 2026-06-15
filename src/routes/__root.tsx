@@ -57,7 +57,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "OdontoClinic — Cadastro Digital" },
+      { title: "OdontoSign — Cadastro Digital" },
       { name: "description", content: "Cadastro e assinatura digital de pacientes." },
     ],
     links: [{ rel: "stylesheet", href: appCss }],

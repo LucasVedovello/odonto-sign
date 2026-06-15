@@ -51,7 +51,7 @@ export const Route = createFileRoute("/_authenticated/usuarios")({
   // Gestão de equipe é restrita ao proprietário (e admin da plataforma)
   beforeLoad: roleGuard(["clinic_owner", "platform_admin"]),
   component: UsersPage,
-  head: () => ({ meta: [{ title: "Usuários — OdontoClinic" }] }),
+  head: () => ({ meta: [{ title: "Usuários — OdontoSign" }] }),
 });
 
 type Profile = {

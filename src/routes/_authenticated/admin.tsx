@@ -40,7 +40,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
     }
   },
   component: AdminPage,
-  head: () => ({ meta: [{ title: "Super Admin — OdontoClinic" }] }),
+  head: () => ({ meta: [{ title: "Super Admin — OdontoSign" }] }),
 });
 
 // Cast to any for tables not yet in generated types

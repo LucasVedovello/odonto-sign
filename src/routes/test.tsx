@@ -46,11 +46,11 @@ function DashboardMock() {
       <header className="flex items-center justify-between border-b px-4 py-2 bg-card/80 shrink-0">
         <div className="flex items-center gap-2">
           <img
-            src="https://dziinqtztpolawyfbakr.supabase.co/storage/v1/object/public/assets/image_Pippit_202606022141.png"
+            src="https://dziinqtztpolawyfbakr.supabase.co/storage/v1/object/public/assets/logo.jpg"
             alt="logo"
             className="h-6 w-6 rounded object-contain"
           />
-          <span className="font-semibold leading-none">OdontoClinic</span>
+          <span className="font-semibold leading-none">OdontoSign</span>
         </div>
         <nav className="flex items-center gap-1">
           {["Contratos","Prontuário","Usuários"].map((label) => (
@@ -140,7 +140,7 @@ function TestPage() {
             <h1 className="text-4xl md:text-6xl font-bold leading-tight">
               Organize sua clínica com
               <br />
-              <span className="text-primary">OdontoClinic</span>
+              <span className="text-primary">OdontoSign</span>
             </h1>
             <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
               Prontuários digitais, contratos, agendamentos e muito mais — tudo num só lugar.
