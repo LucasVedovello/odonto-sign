@@ -85,7 +85,7 @@ function LoginPage() {
             <img
               src="https://dziinqtztpolawyfbakr.supabase.co/storage/v1/object/public/assets/icone.jpg"
               alt="OdontoSistema"
-              className="h-14 w-14 rounded-2xl object-contain shadow-[var(--shadow-lift)]"
+              className="h-24 w-24 rounded-full object-cover bg-white ring-1 ring-border shadow-[var(--shadow-lift)]"
             />
             <div className="text-center">
               <h1 className="text-2xl font-bold">OdontoSign</h1>

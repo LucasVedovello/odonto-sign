@@ -92,7 +92,7 @@ export function AppHeader() {
             <img
               src="https://dziinqtztpolawyfbakr.supabase.co/storage/v1/object/public/assets/icone.jpg"
               alt="OdontoSistema"
-              className="h-10 w-10 shrink-0 rounded-lg object-contain shadow-[var(--shadow-card)]"
+              className="h-12 w-12 shrink-0 rounded-full object-cover bg-white ring-1 ring-border shadow-[var(--shadow-card)]"
             />
             <div className="hidden sm:block min-w-0">
               <h1 className="text-base font-semibold leading-tight truncate">OdontoSign</h1>
