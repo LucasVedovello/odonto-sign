@@ -242,34 +242,97 @@ export type Database = {
       }
       companies: {
         Row: {
+          accepted_terms_at: string | null
           approval_status: string | null
           approved_at: string | null
           approved_by: string | null
+          bairro: string | null
+          cep: string | null
+          cidade: string | null
+          cnpj: string | null
           company_email: string
           company_name: string
+          complemento: string | null
+          contact_email: string | null
           created_at: string
+          deleted_at: string | null
           id: string
+          inscricao_estadual: string | null
+          last_activity_at: string | null
+          logradouro: string | null
+          nome_fantasia: string | null
+          numero: string | null
+          phone: string | null
+          razao_social: string | null
           rejection_reason: string | null
+          responsavel_cro: string | null
+          responsavel_cro_uf: string | null
+          responsavel_nome: string | null
+          site: string | null
+          subscription_expires_at: string | null
+          uf: string | null
         }
         Insert: {
+          accepted_terms_at?: string | null
           approval_status?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj?: string | null
           company_email: string
           company_name: string
+          complemento?: string | null
+          contact_email?: string | null
           created_at?: string
+          deleted_at?: string | null
           id?: string
+          inscricao_estadual?: string | null
+          last_activity_at?: string | null
+          logradouro?: string | null
+          nome_fantasia?: string | null
+          numero?: string | null
+          phone?: string | null
+          razao_social?: string | null
           rejection_reason?: string | null
+          responsavel_cro?: string | null
+          responsavel_cro_uf?: string | null
+          responsavel_nome?: string | null
+          site?: string | null
+          subscription_expires_at?: string | null
+          uf?: string | null
         }
         Update: {
+          accepted_terms_at?: string | null
           approval_status?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj?: string | null
           company_email?: string
           company_name?: string
+          complemento?: string | null
+          contact_email?: string | null
           created_at?: string
+          deleted_at?: string | null
           id?: string
+          inscricao_estadual?: string | null
+          last_activity_at?: string | null
+          logradouro?: string | null
+          nome_fantasia?: string | null
+          numero?: string | null
+          phone?: string | null
+          razao_social?: string | null
           rejection_reason?: string | null
+          responsavel_cro?: string | null
+          responsavel_cro_uf?: string | null
+          responsavel_nome?: string | null
+          site?: string | null
+          subscription_expires_at?: string | null
+          uf?: string | null
         }
         Relationships: [
           {
@@ -805,37 +868,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      clinic_appointments_series: {
-        Args: { p_from?: string; p_granularity?: string; p_to?: string }
-        Returns: {
-          bucket: string
-          cancelled: number
-          finished: number
-          total: number
-        }[]
-      }
-      clinic_dashboard_stats: {
-        Args: { p_from?: string; p_to?: string }
-        Returns: Json
-      }
-      clinic_dentist_performance: {
-        Args: { p_from?: string; p_to?: string }
-        Returns: {
-          avg_duration: number
-          dentist_id: string
-          dentist_name: string
-          finished_appointments: number
-          total_appointments: number
-        }[]
-      }
-      clinic_patients_series: {
-        Args: { p_months?: number }
-        Returns: {
-          cumulative: number
-          month: string
-          new_patients: number
-        }[]
-      }
       fn_request_meta: { Args: never; Returns: Record<string, unknown> }
       fn_write_audit: {
         Args: {
@@ -846,6 +878,54 @@ export type Database = {
         }
         Returns: undefined
       }
+      generate_admin_alerts: { Args: never; Returns: undefined }
+      get_clinics_activity_ranking: {
+        Args: { p_limit?: number }
+        Returns: {
+          company_id: string
+          company_name: string
+          last_activity_at: string
+          total_appointments: number
+        }[]
+      }
+      get_clinics_growth: {
+        Args: never
+        Returns: {
+          accumulated: number
+          month_label: string
+          new_clinics: number
+        }[]
+      }
+      get_inactive_clinics: {
+        Args: { p_days?: number }
+        Returns: {
+          company_id: string
+          company_name: string
+          last_activity_at: string
+        }[]
+      }
+      get_most_active_users: {
+        Args: {
+          p_limit?: number
+          p_role?: Database["public"]["Enums"]["user_role"]
+        }
+        Returns: {
+          total_actions: number
+          user_id: string
+          user_name: string
+        }[]
+      }
+      get_platform_averages: { Args: never; Returns: Json }
+      get_platform_dashboard_stats: { Args: never; Returns: Json }
+      get_stats_by_dentist: {
+        Args: { p_company_id: string }
+        Returns: {
+          avg_minutes: number
+          dentist_id: string
+          dentist_name: string
+          total_appointments: number
+        }[]
+      }
       get_user_company_id:
         | { Args: never; Returns: string }
         | { Args: { _user_id: string }; Returns: string }
@@ -855,6 +935,13 @@ export type Database = {
             Args: { _user_id: string }
             Returns: Database["public"]["Enums"]["user_role"]
           }
+      get_users_growth: {
+        Args: never
+        Returns: {
+          month_label: string
+          total: number
+        }[]
+      }
       is_clinic_owner: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       log_audit_event: {
@@ -862,45 +949,6 @@ export type Database = {
         Returns: undefined
       }
       next_prontuario: { Args: never; Returns: string }
-      platform_company_activity: {
-        Args: never
-        Returns: {
-          appointments: number
-          approval_status: string
-          company_id: string
-          company_name: string
-          inactive: boolean
-          last_activity: string
-          patients: number
-          records: number
-          users: number
-        }[]
-      }
-      platform_dashboard_stats: { Args: never; Returns: Json }
-      platform_growth_series: {
-        Args: { p_months?: number }
-        Returns: {
-          appointments: number
-          cumulative_companies: number
-          month: string
-          new_companies: number
-          new_patients: number
-          new_users: number
-          records: number
-        }[]
-      }
-      platform_top_users: {
-        Args: { p_days?: number; p_limit?: number }
-        Returns: {
-          actions: number
-          company_name: string
-          last_action: string
-          user_email: string
-          user_id: string
-          user_name: string
-          user_role: string
-        }[]
-      }
       record_login_attempt: {
         Args: { p_email: string; p_success: boolean }
         Returns: undefined
