@@ -149,14 +149,15 @@ export function AppHeader() {
                 <UserCircle className="mr-2 h-4 w-4" /> Editar perfil
               </DropdownMenuItem>
               {!isAdmin && (
-                <>
-                  <DropdownMenuItem onClick={() => navigate({ to: "/select-company" })}>
-                    <Building2 className="mr-2 h-4 w-4" /> Trocar de clínica
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate({ to: "/adicionar-clinica" })}>
-                    <PlusCircle className="mr-2 h-4 w-4" /> Adicionar nova clínica
-                  </DropdownMenuItem>
-                </>
+                <DropdownMenuItem onClick={() => navigate({ to: "/select-company" })}>
+                  <Building2 className="mr-2 h-4 w-4" /> Trocar de clínica
+                </DropdownMenuItem>
+              )}
+              {/* Cadastrar nova clínica é exclusivo do proprietário (clinic_owner). */}
+              {!isAdmin && isOwner && (
+                <DropdownMenuItem onClick={() => navigate({ to: "/adicionar-clinica" })}>
+                  <PlusCircle className="mr-2 h-4 w-4" /> Adicionar nova clínica
+                </DropdownMenuItem>
               )}
               {isOwner && (
                 <DropdownMenuItem onClick={() => navigate({ to: "/lixeira" })}>

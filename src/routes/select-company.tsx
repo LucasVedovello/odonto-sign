@@ -71,6 +71,8 @@ function SelectCompanyPage() {
 
   const approved = companies.filter((c) => c.approval_status === "approved");
   const others = companies.filter((c) => c.approval_status !== "approved");
+  // Cadastrar nova clínica é exclusivo de quem é clinic_owner em algum vínculo.
+  const canAddClinic = companies.some((c) => c.role === "clinic_owner");
 
   return (
     <div className="min-h-screen px-4 py-10">
@@ -102,11 +104,8 @@ function SelectCompanyPage() {
             </div>
             <h2 className="text-lg font-semibold">Nenhuma clínica vinculada ao seu usuário</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              Cadastre uma nova clínica para começar a usar a plataforma.
+              Entre em contato com o administrador da sua clínica para liberar o acesso.
             </p>
-            <Button className="mt-6 gap-2" onClick={() => navigate({ to: "/adicionar-clinica" })}>
-              <Plus className="h-4 w-4" /> Cadastrar nova clínica
-            </Button>
           </Card>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
@@ -190,7 +189,7 @@ function SelectCompanyPage() {
           </div>
         )}
 
-        {companies.length > 0 && (
+        {companies.length > 0 && canAddClinic && (
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
             <Button
               variant="outline"

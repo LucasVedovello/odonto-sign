@@ -1,7 +1,10 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { ArrowLeft, Stethoscope } from "lucide-react";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { ArrowLeft, Loader2, ShieldAlert, Stethoscope } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getServerSession } from "@/integrations/supabase/session-check.server";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { CompanyWizard } from "@/components/company-wizard";
 
 export const Route = createFileRoute("/adicionar-clinica")({
@@ -21,6 +24,55 @@ export const Route = createFileRoute("/adicionar-clinica")({
 });
 
 function AddClinicPage() {
+  const navigate = useNavigate();
+  // Cadastrar nova clínica é exclusivo de clinic_owner (defesa contra URL direta).
+  const [allowed, setAllowed] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const { data, error } = await supabase.rpc("get_user_companies");
+      if (!active) return;
+      // Em erro (ex.: banco legado), não bloqueia — a visibilidade dos botões
+      // já é a barreira principal. Caso contrário, exige role clinic_owner.
+      setAllowed(error ? true : (data ?? []).some((c) => c.role === "clinic_owner"));
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (allowed === null) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!allowed) {
+    return (
+      <div className="flex min-h-screen items-center justify-center px-4 py-10">
+        <Card className="max-w-md p-8 text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-warning/15">
+            <ShieldAlert className="h-7 w-7 text-warning" />
+          </div>
+          <h2 className="text-lg font-semibold">Acesso restrito</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Apenas proprietários de clínica podem cadastrar uma nova clínica.
+          </p>
+          <Button
+            className="mt-6"
+            variant="outline"
+            onClick={() => navigate({ to: "/select-company" })}
+          >
+            Voltar para minhas clínicas
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-10">
       <div className="w-full max-w-lg">
