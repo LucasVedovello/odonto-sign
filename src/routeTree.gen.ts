@@ -28,7 +28,6 @@ import { Route as AuthenticatedSuporteRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedProntuarioRouteImport } from './routes/_authenticated/prontuario'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedLixeiraRouteImport } from './routes/_authenticated/lixeira'
-import { Route as AuthenticatedCadastrosRouteImport } from './routes/_authenticated/cadastros'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedTermosIndexRouteImport } from './routes/_authenticated/termos/index'
 import { Route as AuthenticatedContratosIndexRouteImport } from './routes/_authenticated/contratos/index'
@@ -129,11 +128,6 @@ const AuthenticatedLixeiraRoute = AuthenticatedLixeiraRouteImport.update({
   path: '/lixeira',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedCadastrosRoute = AuthenticatedCadastrosRouteImport.update({
-  id: '/cadastros',
-  path: '/cadastros',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -175,7 +169,6 @@ export interface FileRoutesByFullPath {
   '/select-company': typeof SelectCompanyRoute
   '/test': typeof TestRoute
   '/admin': typeof AuthenticatedAdminRoute
-  '/cadastros': typeof AuthenticatedCadastrosRoute
   '/lixeira': typeof AuthenticatedLixeiraRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/prontuario': typeof AuthenticatedProntuarioRoute
@@ -200,7 +193,6 @@ export interface FileRoutesByTo {
   '/select-company': typeof SelectCompanyRoute
   '/test': typeof TestRoute
   '/admin': typeof AuthenticatedAdminRoute
-  '/cadastros': typeof AuthenticatedCadastrosRoute
   '/lixeira': typeof AuthenticatedLixeiraRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/prontuario': typeof AuthenticatedProntuarioRoute
@@ -228,7 +220,6 @@ export interface FileRoutesById {
   '/select-company': typeof SelectCompanyRoute
   '/test': typeof TestRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
-  '/_authenticated/cadastros': typeof AuthenticatedCadastrosRoute
   '/_authenticated/lixeira': typeof AuthenticatedLixeiraRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/prontuario': typeof AuthenticatedProntuarioRoute
@@ -257,7 +248,6 @@ export interface FileRouteTypes {
     | '/select-company'
     | '/test'
     | '/admin'
-    | '/cadastros'
     | '/lixeira'
     | '/perfil'
     | '/prontuario'
@@ -282,7 +272,6 @@ export interface FileRouteTypes {
     | '/select-company'
     | '/test'
     | '/admin'
-    | '/cadastros'
     | '/lixeira'
     | '/perfil'
     | '/prontuario'
@@ -309,7 +298,6 @@ export interface FileRouteTypes {
     | '/select-company'
     | '/test'
     | '/_authenticated/admin'
-    | '/_authenticated/cadastros'
     | '/_authenticated/lixeira'
     | '/_authenticated/perfil'
     | '/_authenticated/prontuario'
@@ -476,13 +464,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLixeiraRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/cadastros': {
-      id: '/_authenticated/cadastros'
-      path: '/cadastros'
-      fullPath: '/cadastros'
-      preLoaderRoute: typeof AuthenticatedCadastrosRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/_authenticated/admin': {
       id: '/_authenticated/admin'
       path: '/admin'
@@ -523,7 +504,6 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
-  AuthenticatedCadastrosRoute: typeof AuthenticatedCadastrosRoute
   AuthenticatedLixeiraRoute: typeof AuthenticatedLixeiraRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedProntuarioRoute: typeof AuthenticatedProntuarioRoute
@@ -538,7 +518,6 @@ interface AuthenticatedRouteChildren {
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
-  AuthenticatedCadastrosRoute: AuthenticatedCadastrosRoute,
   AuthenticatedLixeiraRoute: AuthenticatedLixeiraRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedProntuarioRoute: AuthenticatedProntuarioRoute,
