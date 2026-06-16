@@ -514,11 +514,16 @@ function ProntuarioPage() {
   const handleDelete = async () => {
     if (!deleteId) return;
     setDeleting(true);
-    await db
+    const { error } = await db
       .from("prontuarios")
       .update({ deleted_at: new Date().toISOString() })
       .eq("id", deleteId);
     setDeleting(false);
+    if (error) {
+      console.error("[prontuario] soft delete error:", error.message);
+      toast.error("Não foi possível mover para a lixeira. Tente novamente.");
+      return;
+    }
     toast.success("Prontuário movido para a lixeira");
     setDeleteId(null);
     load();

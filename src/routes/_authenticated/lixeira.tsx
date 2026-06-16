@@ -1,7 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Trash2, RotateCcw, Loader2, User, ClipboardList, CalendarClock } from "lucide-react";
+import {
+  Trash2,
+  RotateCcw,
+  Loader2,
+  User,
+  ClipboardList,
+  CalendarClock,
+  FileSignature,
+  ScrollText,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,7 +35,12 @@ export const Route = createFileRoute("/_authenticated/lixeira")({
   head: () => ({ meta: [{ title: "Lixeira — OdontoSign" }] }),
 });
 
-type TrashTable = "patients" | "prontuarios" | "appointments";
+type TrashTable = "patients" | "prontuarios" | "appointments" | "contracts" | "terms";
+
+// Retenção: itens permanecem na lixeira por 30 dias antes do expurgo automático.
+const RETENTION_DAYS = 30;
+const purgeDate = (iso: string) =>
+  new Date(new Date(iso).getTime() + RETENTION_DAYS * 24 * 60 * 60 * 1000);
 
 type TrashItem = {
   id: string;
@@ -80,16 +94,30 @@ function TrashPage() {
             deleted_at: p.deleted_at!,
           }));
         }
+        if (table === "appointments") {
+          const { data } = await supabase
+            .from("appointments")
+            .select("id,scheduled_at,deleted_at,patients(nome)")
+            .not("deleted_at", "is", null)
+            .order("deleted_at", { ascending: false });
+          return (data ?? []).map((a) => ({
+            id: a.id,
+            label: (a.patients as { nome: string | null } | null)?.nome ?? "Paciente removido",
+            sublabel: `Agendada para ${fmtDate(a.scheduled_at)}`,
+            deleted_at: a.deleted_at!,
+          }));
+        }
+        // contracts | terms (schemas idênticos)
         const { data } = await supabase
-          .from("appointments")
-          .select("id,scheduled_at,deleted_at,patients(nome)")
+          .from(table as "contracts")
+          .select("id,patient_name,title,deleted_at")
           .not("deleted_at", "is", null)
           .order("deleted_at", { ascending: false });
-        return (data ?? []).map((a) => ({
-          id: a.id,
-          label: (a.patients as { nome: string | null } | null)?.nome ?? "Paciente removido",
-          sublabel: `Agendada para ${fmtDate(a.scheduled_at)}`,
-          deleted_at: a.deleted_at!,
+        return (data ?? []).map((d) => ({
+          id: d.id,
+          label: d.patient_name ?? "Sem nome",
+          sublabel: d.title ?? "—",
+          deleted_at: d.deleted_at!,
         }));
       },
     });
@@ -97,6 +125,8 @@ function TrashPage() {
   const patients = useTrashQuery("patients");
   const prontuarios = useTrashQuery("prontuarios");
   const appointments = useTrashQuery("appointments");
+  const contracts = useTrashQuery("contracts");
+  const terms = useTrashQuery("terms");
 
   const refresh = (table: TrashTable) => qc.invalidateQueries({ queryKey: ["trash", table] });
 
@@ -152,6 +182,13 @@ function TrashPage() {
               <Badge variant="outline" className="text-xs">
                 excluído em {fmtDate(item.deleted_at)}
               </Badge>
+              <Badge
+                variant="outline"
+                className="text-xs text-muted-foreground"
+                title="Removido automaticamente 30 dias após a exclusão"
+              >
+                expira em {fmtDate(purgeDate(item.deleted_at).toISOString())}
+              </Badge>
               <Button
                 size="sm"
                 variant="outline"
@@ -192,21 +229,29 @@ function TrashPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="patients">
-        <TabsList>
-          <TabsTrigger value="patients">Pacientes ({patients.data?.length ?? 0})</TabsTrigger>
+      <Tabs defaultValue="contracts">
+        <TabsList className="flex-wrap">
+          <TabsTrigger value="contracts">Contratos ({contracts.data?.length ?? 0})</TabsTrigger>
+          <TabsTrigger value="terms">Termos ({terms.data?.length ?? 0})</TabsTrigger>
           <TabsTrigger value="prontuarios">
             Prontuários ({prontuarios.data?.length ?? 0})
           </TabsTrigger>
+          <TabsTrigger value="patients">Pacientes ({patients.data?.length ?? 0})</TabsTrigger>
           <TabsTrigger value="appointments">
             Consultas ({appointments.data?.length ?? 0})
           </TabsTrigger>
         </TabsList>
-        <TabsContent value="patients" className="mt-4">
-          {renderList("patients", patients, <User className="h-4 w-4" />)}
+        <TabsContent value="contracts" className="mt-4">
+          {renderList("contracts", contracts, <FileSignature className="h-4 w-4" />)}
+        </TabsContent>
+        <TabsContent value="terms" className="mt-4">
+          {renderList("terms", terms, <ScrollText className="h-4 w-4" />)}
         </TabsContent>
         <TabsContent value="prontuarios" className="mt-4">
           {renderList("prontuarios", prontuarios, <ClipboardList className="h-4 w-4" />)}
+        </TabsContent>
+        <TabsContent value="patients" className="mt-4">
+          {renderList("patients", patients, <User className="h-4 w-4" />)}
         </TabsContent>
         <TabsContent value="appointments" className="mt-4">
           {renderList("appointments", appointments, <CalendarClock className="h-4 w-4" />)}

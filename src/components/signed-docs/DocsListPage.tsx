@@ -76,6 +76,7 @@ export function DocsListPage({ kind }: { kind: DocKind }) {
       .from(cfg.table as "contracts")
       .select("id,patient_name,title,status,created_at")
       .eq("company_id", profile.company_id)
+      .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(300);
     if (error) toast.error(`Erro ao carregar ${cfg.labelPlural.toLowerCase()}`);
@@ -172,31 +173,21 @@ export function DocsListPage({ kind }: { kind: DocKind }) {
     }
   };
 
-  // Exclui o documento: remove os PDFs do Storage (best-effort) e o registro.
+  // Move o documento para a lixeira (soft delete). Os PDFs no Storage são
+  // preservados para permitir a restauração; o expurgo definitivo ocorre após
+  // 30 dias (job agendado no banco).
   const confirmDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      const { data: paths } = await supabase
-        .from(cfg.table as "contracts")
-        .select("original_pdf_path,signed_pdf_path")
-        .eq("id", deleteTarget.id)
-        .maybeSingle();
-      const files = [paths?.original_pdf_path, paths?.signed_pdf_path].filter(
-        (p): p is string => !!p,
-      );
-      if (files.length) {
-        await supabase.storage.from(cfg.bucket).remove(files);
-      }
-
       const { error } = await supabase
         .from(cfg.table as "contracts")
-        .delete()
+        .update({ deleted_at: new Date().toISOString() })
         .eq("id", deleteTarget.id);
       if (error) throw error;
 
       setRows((prev) => prev.filter((r) => r.id !== deleteTarget.id));
-      toast.success(`${cfg.label} excluído`);
+      toast.success(`${cfg.label} movido para a lixeira`);
       setDeleteTarget(null);
     } catch (e) {
       console.error(e);
@@ -397,8 +388,8 @@ export function DocsListPage({ kind }: { kind: DocKind }) {
             <AlertDialogTitle>Excluir {cfg.label.toLowerCase()}?</AlertDialogTitle>
             <AlertDialogDescription>
               Tem certeza que deseja excluir este {cfg.label.toLowerCase()}
-              {deleteTarget?.patient_name ? ` de ${deleteTarget.patient_name}` : ""}? Esta ação não
-              pode ser desfeita.
+              {deleteTarget?.patient_name ? ` de ${deleteTarget.patient_name}` : ""}? Ele será
+              movido para a lixeira e poderá ser restaurado em até 30 dias.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
