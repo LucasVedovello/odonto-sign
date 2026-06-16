@@ -80,6 +80,13 @@ BEGIN
     -- Mesmo padrão já usado nos links públicos de pacientes.
     EXECUTE format('CREATE POLICY "public_read" ON public.%1$I FOR SELECT USING (TRUE);', t);
     EXECUTE format('CREATE POLICY "public_update" ON public.%1$I FOR UPDATE USING (TRUE);', t);
+
+    -- Realtime: a tela de listagem assina postgres_changes para atualizar ao vivo.
+    BEGIN
+      EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE public.%1$I;', t);
+    EXCEPTION WHEN OTHERS THEN
+      NULL; -- publicação ausente ou tabela já incluída: ignora
+    END;
   END LOOP;
 END $$;
 
