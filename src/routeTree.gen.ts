@@ -21,6 +21,8 @@ import { Route as AceitarConviteRouteImport } from './routes/aceitar-convite'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as CadastroTokenRouteImport } from './routes/cadastro.$token'
+import { Route as AssinarTermoUuidRouteImport } from './routes/assinar-termo.$uuid'
+import { Route as AssinarContratoUuidRouteImport } from './routes/assinar-contrato.$uuid'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AuthenticatedSuporteRouteImport } from './routes/_authenticated/suporte'
 import { Route as AuthenticatedProntuarioRouteImport } from './routes/_authenticated/prontuario'
@@ -28,12 +30,10 @@ import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedLixeiraRouteImport } from './routes/_authenticated/lixeira'
 import { Route as AuthenticatedCadastrosRouteImport } from './routes/_authenticated/cadastros'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
-import { Route as PTokenIndexRouteImport } from './routes/p/$token/index'
+import { Route as AuthenticatedTermosIndexRouteImport } from './routes/_authenticated/termos/index'
 import { Route as AuthenticatedContratosIndexRouteImport } from './routes/_authenticated/contratos/index'
-import { Route as PTokenAssinarRouteImport } from './routes/p/$token/assinar'
-import { Route as AuthenticatedContratosNovoRouteImport } from './routes/_authenticated/contratos/novo'
-import { Route as AuthenticatedContratosIdIndexRouteImport } from './routes/_authenticated/contratos/$id/index'
-import { Route as AuthenticatedContratosIdEditarRouteImport } from './routes/_authenticated/contratos/$id/editar'
+import { Route as AuthenticatedTermosIdRouteImport } from './routes/_authenticated/termos/$id'
+import { Route as AuthenticatedContratosIdRouteImport } from './routes/_authenticated/contratos/$id'
 
 const TestRoute = TestRouteImport.update({
   id: '/test',
@@ -94,6 +94,16 @@ const CadastroTokenRoute = CadastroTokenRouteImport.update({
   path: '/cadastro/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AssinarTermoUuidRoute = AssinarTermoUuidRouteImport.update({
+  id: '/assinar-termo/$uuid',
+  path: '/assinar-termo/$uuid',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AssinarContratoUuidRoute = AssinarContratoUuidRouteImport.update({
+  id: '/assinar-contrato/$uuid',
+  path: '/assinar-contrato/$uuid',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedUsuariosRoute = AuthenticatedUsuariosRouteImport.update({
   id: '/usuarios',
   path: '/usuarios',
@@ -129,38 +139,27 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const PTokenIndexRoute = PTokenIndexRouteImport.update({
-  id: '/p/$token/',
-  path: '/p/$token/',
-  getParentRoute: () => rootRouteImport,
-} as any)
+const AuthenticatedTermosIndexRoute =
+  AuthenticatedTermosIndexRouteImport.update({
+    id: '/termos/',
+    path: '/termos/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedContratosIndexRoute =
   AuthenticatedContratosIndexRouteImport.update({
     id: '/contratos/',
     path: '/contratos/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const PTokenAssinarRoute = PTokenAssinarRouteImport.update({
-  id: '/p/$token/assinar',
-  path: '/p/$token/assinar',
-  getParentRoute: () => rootRouteImport,
+const AuthenticatedTermosIdRoute = AuthenticatedTermosIdRouteImport.update({
+  id: '/termos/$id',
+  path: '/termos/$id',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedContratosNovoRoute =
-  AuthenticatedContratosNovoRouteImport.update({
-    id: '/contratos/novo',
-    path: '/contratos/novo',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedContratosIdIndexRoute =
-  AuthenticatedContratosIdIndexRouteImport.update({
-    id: '/contratos/$id/',
-    path: '/contratos/$id/',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedContratosIdEditarRoute =
-  AuthenticatedContratosIdEditarRouteImport.update({
-    id: '/contratos/$id/editar',
-    path: '/contratos/$id/editar',
+const AuthenticatedContratosIdRoute =
+  AuthenticatedContratosIdRouteImport.update({
+    id: '/contratos/$id',
+    path: '/contratos/$id',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 
@@ -182,13 +181,13 @@ export interface FileRoutesByFullPath {
   '/prontuario': typeof AuthenticatedProntuarioRoute
   '/suporte': typeof AuthenticatedSuporteRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
+  '/assinar-contrato/$uuid': typeof AssinarContratoUuidRoute
+  '/assinar-termo/$uuid': typeof AssinarTermoUuidRoute
   '/cadastro/$token': typeof CadastroTokenRoute
-  '/contratos/novo': typeof AuthenticatedContratosNovoRoute
-  '/p/$token/assinar': typeof PTokenAssinarRoute
+  '/contratos/$id': typeof AuthenticatedContratosIdRoute
+  '/termos/$id': typeof AuthenticatedTermosIdRoute
   '/contratos/': typeof AuthenticatedContratosIndexRoute
-  '/p/$token/': typeof PTokenIndexRoute
-  '/contratos/$id/editar': typeof AuthenticatedContratosIdEditarRoute
-  '/contratos/$id/': typeof AuthenticatedContratosIdIndexRoute
+  '/termos/': typeof AuthenticatedTermosIndexRoute
 }
 export interface FileRoutesByTo {
   '/aceitar-convite': typeof AceitarConviteRoute
@@ -207,14 +206,14 @@ export interface FileRoutesByTo {
   '/prontuario': typeof AuthenticatedProntuarioRoute
   '/suporte': typeof AuthenticatedSuporteRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
+  '/assinar-contrato/$uuid': typeof AssinarContratoUuidRoute
+  '/assinar-termo/$uuid': typeof AssinarTermoUuidRoute
   '/cadastro/$token': typeof CadastroTokenRoute
   '/': typeof AuthenticatedIndexRoute
-  '/contratos/novo': typeof AuthenticatedContratosNovoRoute
-  '/p/$token/assinar': typeof PTokenAssinarRoute
+  '/contratos/$id': typeof AuthenticatedContratosIdRoute
+  '/termos/$id': typeof AuthenticatedTermosIdRoute
   '/contratos': typeof AuthenticatedContratosIndexRoute
-  '/p/$token': typeof PTokenIndexRoute
-  '/contratos/$id/editar': typeof AuthenticatedContratosIdEditarRoute
-  '/contratos/$id': typeof AuthenticatedContratosIdIndexRoute
+  '/termos': typeof AuthenticatedTermosIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -235,14 +234,14 @@ export interface FileRoutesById {
   '/_authenticated/prontuario': typeof AuthenticatedProntuarioRoute
   '/_authenticated/suporte': typeof AuthenticatedSuporteRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
+  '/assinar-contrato/$uuid': typeof AssinarContratoUuidRoute
+  '/assinar-termo/$uuid': typeof AssinarTermoUuidRoute
   '/cadastro/$token': typeof CadastroTokenRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
-  '/_authenticated/contratos/novo': typeof AuthenticatedContratosNovoRoute
-  '/p/$token/assinar': typeof PTokenAssinarRoute
+  '/_authenticated/contratos/$id': typeof AuthenticatedContratosIdRoute
+  '/_authenticated/termos/$id': typeof AuthenticatedTermosIdRoute
   '/_authenticated/contratos/': typeof AuthenticatedContratosIndexRoute
-  '/p/$token/': typeof PTokenIndexRoute
-  '/_authenticated/contratos/$id/editar': typeof AuthenticatedContratosIdEditarRoute
-  '/_authenticated/contratos/$id/': typeof AuthenticatedContratosIdIndexRoute
+  '/_authenticated/termos/': typeof AuthenticatedTermosIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -264,13 +263,13 @@ export interface FileRouteTypes {
     | '/prontuario'
     | '/suporte'
     | '/usuarios'
+    | '/assinar-contrato/$uuid'
+    | '/assinar-termo/$uuid'
     | '/cadastro/$token'
-    | '/contratos/novo'
-    | '/p/$token/assinar'
+    | '/contratos/$id'
+    | '/termos/$id'
     | '/contratos/'
-    | '/p/$token/'
-    | '/contratos/$id/editar'
-    | '/contratos/$id/'
+    | '/termos/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/aceitar-convite'
@@ -289,14 +288,14 @@ export interface FileRouteTypes {
     | '/prontuario'
     | '/suporte'
     | '/usuarios'
+    | '/assinar-contrato/$uuid'
+    | '/assinar-termo/$uuid'
     | '/cadastro/$token'
     | '/'
-    | '/contratos/novo'
-    | '/p/$token/assinar'
-    | '/contratos'
-    | '/p/$token'
-    | '/contratos/$id/editar'
     | '/contratos/$id'
+    | '/termos/$id'
+    | '/contratos'
+    | '/termos'
   id:
     | '__root__'
     | '/_authenticated'
@@ -316,14 +315,14 @@ export interface FileRouteTypes {
     | '/_authenticated/prontuario'
     | '/_authenticated/suporte'
     | '/_authenticated/usuarios'
+    | '/assinar-contrato/$uuid'
+    | '/assinar-termo/$uuid'
     | '/cadastro/$token'
     | '/_authenticated/'
-    | '/_authenticated/contratos/novo'
-    | '/p/$token/assinar'
+    | '/_authenticated/contratos/$id'
+    | '/_authenticated/termos/$id'
     | '/_authenticated/contratos/'
-    | '/p/$token/'
-    | '/_authenticated/contratos/$id/editar'
-    | '/_authenticated/contratos/$id/'
+    | '/_authenticated/termos/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -337,9 +336,9 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SelectCompanyRoute: typeof SelectCompanyRoute
   TestRoute: typeof TestRoute
+  AssinarContratoUuidRoute: typeof AssinarContratoUuidRoute
+  AssinarTermoUuidRoute: typeof AssinarTermoUuidRoute
   CadastroTokenRoute: typeof CadastroTokenRoute
-  PTokenAssinarRoute: typeof PTokenAssinarRoute
-  PTokenIndexRoute: typeof PTokenIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -428,6 +427,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CadastroTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/assinar-termo/$uuid': {
+      id: '/assinar-termo/$uuid'
+      path: '/assinar-termo/$uuid'
+      fullPath: '/assinar-termo/$uuid'
+      preLoaderRoute: typeof AssinarTermoUuidRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/assinar-contrato/$uuid': {
+      id: '/assinar-contrato/$uuid'
+      path: '/assinar-contrato/$uuid'
+      fullPath: '/assinar-contrato/$uuid'
+      preLoaderRoute: typeof AssinarContratoUuidRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/usuarios': {
       id: '/_authenticated/usuarios'
       path: '/usuarios'
@@ -477,12 +490,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/p/$token/': {
-      id: '/p/$token/'
-      path: '/p/$token'
-      fullPath: '/p/$token/'
-      preLoaderRoute: typeof PTokenIndexRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/termos/': {
+      id: '/_authenticated/termos/'
+      path: '/termos'
+      fullPath: '/termos/'
+      preLoaderRoute: typeof AuthenticatedTermosIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/contratos/': {
       id: '/_authenticated/contratos/'
@@ -491,32 +504,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedContratosIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/p/$token/assinar': {
-      id: '/p/$token/assinar'
-      path: '/p/$token/assinar'
-      fullPath: '/p/$token/assinar'
-      preLoaderRoute: typeof PTokenAssinarRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/contratos/novo': {
-      id: '/_authenticated/contratos/novo'
-      path: '/contratos/novo'
-      fullPath: '/contratos/novo'
-      preLoaderRoute: typeof AuthenticatedContratosNovoRouteImport
+    '/_authenticated/termos/$id': {
+      id: '/_authenticated/termos/$id'
+      path: '/termos/$id'
+      fullPath: '/termos/$id'
+      preLoaderRoute: typeof AuthenticatedTermosIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/contratos/$id/': {
-      id: '/_authenticated/contratos/$id/'
+    '/_authenticated/contratos/$id': {
+      id: '/_authenticated/contratos/$id'
       path: '/contratos/$id'
-      fullPath: '/contratos/$id/'
-      preLoaderRoute: typeof AuthenticatedContratosIdIndexRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/contratos/$id/editar': {
-      id: '/_authenticated/contratos/$id/editar'
-      path: '/contratos/$id/editar'
-      fullPath: '/contratos/$id/editar'
-      preLoaderRoute: typeof AuthenticatedContratosIdEditarRouteImport
+      fullPath: '/contratos/$id'
+      preLoaderRoute: typeof AuthenticatedContratosIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
   }
@@ -531,10 +530,10 @@ interface AuthenticatedRouteChildren {
   AuthenticatedSuporteRoute: typeof AuthenticatedSuporteRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
-  AuthenticatedContratosNovoRoute: typeof AuthenticatedContratosNovoRoute
+  AuthenticatedContratosIdRoute: typeof AuthenticatedContratosIdRoute
+  AuthenticatedTermosIdRoute: typeof AuthenticatedTermosIdRoute
   AuthenticatedContratosIndexRoute: typeof AuthenticatedContratosIndexRoute
-  AuthenticatedContratosIdEditarRoute: typeof AuthenticatedContratosIdEditarRoute
-  AuthenticatedContratosIdIndexRoute: typeof AuthenticatedContratosIdIndexRoute
+  AuthenticatedTermosIndexRoute: typeof AuthenticatedTermosIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -546,10 +545,10 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedSuporteRoute: AuthenticatedSuporteRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
-  AuthenticatedContratosNovoRoute: AuthenticatedContratosNovoRoute,
+  AuthenticatedContratosIdRoute: AuthenticatedContratosIdRoute,
+  AuthenticatedTermosIdRoute: AuthenticatedTermosIdRoute,
   AuthenticatedContratosIndexRoute: AuthenticatedContratosIndexRoute,
-  AuthenticatedContratosIdEditarRoute: AuthenticatedContratosIdEditarRoute,
-  AuthenticatedContratosIdIndexRoute: AuthenticatedContratosIdIndexRoute,
+  AuthenticatedTermosIndexRoute: AuthenticatedTermosIndexRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
@@ -567,9 +566,9 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SelectCompanyRoute: SelectCompanyRoute,
   TestRoute: TestRoute,
+  AssinarContratoUuidRoute: AssinarContratoUuidRoute,
+  AssinarTermoUuidRoute: AssinarTermoUuidRoute,
   CadastroTokenRoute: CadastroTokenRoute,
-  PTokenAssinarRoute: PTokenAssinarRoute,
-  PTokenIndexRoute: PTokenIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

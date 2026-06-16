@@ -387,174 +387,60 @@ export type Database = {
         Row: {
           id: string
           company_id: string | null
-          contract_number: number
-          treatment_type: string
-          has_parcela_facil: boolean | null
-          has_compra_programada: boolean | null
-          has_pagamento_recorrente: boolean | null
-          contratante_nome: string | null
-          contratante_nascimento: string | null
-          contratante_cpf: string | null
-          contratante_rg: string | null
-          contratante_profissao: string | null
-          contratante_sexo: string | null
-          contratante_endereco: string | null
-          contratante_telefone: string | null
-          contratante_celular: string | null
-          contratante_email: string | null
-          paciente_nome: string | null
-          paciente_nascimento: string | null
-          paciente_cpf: string | null
-          paciente_rg: string | null
-          paciente_profissao: string | null
-          paciente_sexo: string | null
-          paciente_endereco: string | null
-          paciente_telefone: string | null
-          paciente_celular: string | null
-          paciente_email: string | null
-          referencia_1_nome: string | null
-          referencia_1_telefone: string | null
-          referencia_2_nome: string | null
-          referencia_2_telefone: string | null
-          procedimentos: Json | null
-          valor_total: number | null
-          desconto: number | null
-          valor_final: number | null
-          valor_ortodontico: number | null
-          valor_nao_ortodontico: number | null
-          documentacao_ortodontica: number | null
-          entrada_tipo: string | null
-          entrada_valor: number | null
-          sinal_valor: number | null
-          parcelamento_tipo: string | null
-          parcelamento_qtd: number | null
-          parcelamento_valor: number | null
-          vencimento_dia: number | null
-          venc_primeira_parcela: string | null
-          materiais_extras: Json | null
+          patient_id: string | null
+          patient_name: string
+          title: string | null
+          original_pdf_path: string
+          signed_pdf_path: string | null
           status: string
-          patient_token: string
-          signing_token: string
+          public_token: string
           clinic_signature: string | null
+          clinic_signature_pos: Json | null
           patient_signature: string | null
-          signed_at: string | null
+          patient_signature_pos: Json | null
           clinic_signed_at: string | null
+          patient_signed_at: string | null
+          created_by: string | null
           created_at: string
           updated_at: string
         }
         Insert: {
           id?: string
           company_id?: string | null
-          contract_number?: number
-          treatment_type: string
-          has_parcela_facil?: boolean | null
-          has_compra_programada?: boolean | null
-          has_pagamento_recorrente?: boolean | null
-          contratante_nome?: string | null
-          contratante_nascimento?: string | null
-          contratante_cpf?: string | null
-          contratante_rg?: string | null
-          contratante_profissao?: string | null
-          contratante_sexo?: string | null
-          contratante_endereco?: string | null
-          contratante_telefone?: string | null
-          contratante_celular?: string | null
-          contratante_email?: string | null
-          paciente_nome?: string | null
-          paciente_nascimento?: string | null
-          paciente_cpf?: string | null
-          paciente_rg?: string | null
-          paciente_profissao?: string | null
-          paciente_sexo?: string | null
-          paciente_endereco?: string | null
-          paciente_telefone?: string | null
-          paciente_celular?: string | null
-          paciente_email?: string | null
-          referencia_1_nome?: string | null
-          referencia_1_telefone?: string | null
-          referencia_2_nome?: string | null
-          referencia_2_telefone?: string | null
-          procedimentos?: Json | null
-          valor_total?: number | null
-          desconto?: number | null
-          valor_final?: number | null
-          valor_ortodontico?: number | null
-          valor_nao_ortodontico?: number | null
-          documentacao_ortodontica?: number | null
-          entrada_tipo?: string | null
-          entrada_valor?: number | null
-          sinal_valor?: number | null
-          parcelamento_tipo?: string | null
-          parcelamento_qtd?: number | null
-          parcelamento_valor?: number | null
-          vencimento_dia?: number | null
-          venc_primeira_parcela?: string | null
-          materiais_extras?: Json | null
+          patient_id?: string | null
+          patient_name: string
+          title?: string | null
+          original_pdf_path: string
+          signed_pdf_path?: string | null
           status?: string
-          patient_token?: string
-          signing_token?: string
+          public_token?: string
           clinic_signature?: string | null
+          clinic_signature_pos?: Json | null
           patient_signature?: string | null
-          signed_at?: string | null
+          patient_signature_pos?: Json | null
           clinic_signed_at?: string | null
+          patient_signed_at?: string | null
+          created_by?: string | null
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
           company_id?: string | null
-          contract_number?: number
-          treatment_type?: string
-          has_parcela_facil?: boolean | null
-          has_compra_programada?: boolean | null
-          has_pagamento_recorrente?: boolean | null
-          contratante_nome?: string | null
-          contratante_nascimento?: string | null
-          contratante_cpf?: string | null
-          contratante_rg?: string | null
-          contratante_profissao?: string | null
-          contratante_sexo?: string | null
-          contratante_endereco?: string | null
-          contratante_telefone?: string | null
-          contratante_celular?: string | null
-          contratante_email?: string | null
-          paciente_nome?: string | null
-          paciente_nascimento?: string | null
-          paciente_cpf?: string | null
-          paciente_rg?: string | null
-          paciente_profissao?: string | null
-          paciente_sexo?: string | null
-          paciente_endereco?: string | null
-          paciente_telefone?: string | null
-          paciente_celular?: string | null
-          paciente_email?: string | null
-          referencia_1_nome?: string | null
-          referencia_1_telefone?: string | null
-          referencia_2_nome?: string | null
-          referencia_2_telefone?: string | null
-          procedimentos?: Json | null
-          valor_total?: number | null
-          desconto?: number | null
-          valor_final?: number | null
-          valor_ortodontico?: number | null
-          valor_nao_ortodontico?: number | null
-          documentacao_ortodontica?: number | null
-          entrada_tipo?: string | null
-          entrada_valor?: number | null
-          sinal_valor?: number | null
-          parcelamento_tipo?: string | null
-          parcelamento_qtd?: number | null
-          parcelamento_valor?: number | null
-          vencimento_dia?: number | null
-          venc_primeira_parcela?: string | null
-          materiais_extras?: Json | null
+          patient_id?: string | null
+          patient_name?: string
+          title?: string | null
+          original_pdf_path?: string
+          signed_pdf_path?: string | null
           status?: string
-          patient_token?: string
-          signing_token?: string
+          public_token?: string
           clinic_signature?: string | null
+          clinic_signature_pos?: Json | null
           patient_signature?: string | null
-          signed_at?: string | null
+          patient_signature_pos?: Json | null
           clinic_signed_at?: string | null
+          patient_signed_at?: string | null
+          created_by?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -564,6 +450,91 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      terms: {
+        Row: {
+          id: string
+          company_id: string | null
+          patient_id: string | null
+          patient_name: string
+          title: string | null
+          original_pdf_path: string
+          signed_pdf_path: string | null
+          status: string
+          public_token: string
+          clinic_signature: string | null
+          clinic_signature_pos: Json | null
+          patient_signature: string | null
+          patient_signature_pos: Json | null
+          clinic_signed_at: string | null
+          patient_signed_at: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id?: string | null
+          patient_id?: string | null
+          patient_name: string
+          title?: string | null
+          original_pdf_path: string
+          signed_pdf_path?: string | null
+          status?: string
+          public_token?: string
+          clinic_signature?: string | null
+          clinic_signature_pos?: Json | null
+          patient_signature?: string | null
+          patient_signature_pos?: Json | null
+          clinic_signed_at?: string | null
+          patient_signed_at?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          company_id?: string | null
+          patient_id?: string | null
+          patient_name?: string
+          title?: string | null
+          original_pdf_path?: string
+          signed_pdf_path?: string | null
+          status?: string
+          public_token?: string
+          clinic_signature?: string | null
+          clinic_signature_pos?: Json | null
+          patient_signature?: string | null
+          patient_signature_pos?: Json | null
+          clinic_signed_at?: string | null
+          patient_signed_at?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "terms_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "terms_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
             referencedColumns: ["id"]
           },
         ]

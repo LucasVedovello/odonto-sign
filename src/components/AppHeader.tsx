@@ -12,6 +12,7 @@ import {
   Headset,
   ClipboardList,
   FileSignature,
+  ScrollText,
   Trash2,
   Building2,
   PlusCircle,
@@ -52,10 +53,11 @@ export function AppHeader() {
     };
 
     if (isAdmin) {
-      // platform_admin: visão da plataforma + acesso operacional (contratos/prontuário)
+      // platform_admin: visão da plataforma + acesso operacional
       add("Contratos", FileSignature, "/contratos");
-      add("Cadastros", LayoutDashboard, "/cadastros");
+      add("Termos", ScrollText, "/termos");
       add("Prontuário", ClipboardList, "/prontuario");
+      add("Cadastros", LayoutDashboard, "/cadastros");
       add("Admin", ShieldCheck, "/admin");
       tabs.push({ type: "separator" as const });
       routes.push(null);
@@ -63,8 +65,9 @@ export function AppHeader() {
     } else if (isOwner) {
       // clinic_owner: gestão completa da clínica
       add("Contratos", FileSignature, "/contratos");
-      add("Cadastros", LayoutDashboard, "/cadastros");
+      add("Termos", ScrollText, "/termos");
       add("Prontuário", ClipboardList, "/prontuario");
+      add("Cadastros", LayoutDashboard, "/cadastros");
       add("Usuários", Users, "/usuarios");
       tabs.push({ type: "separator" as const });
       routes.push(null);
@@ -72,8 +75,9 @@ export function AppHeader() {
     } else {
       // dentist / staff: operação do dia a dia (sem administração)
       add("Contratos", FileSignature, "/contratos");
-      add("Cadastros", LayoutDashboard, "/cadastros");
+      add("Termos", ScrollText, "/termos");
       add("Prontuário", ClipboardList, "/prontuario");
+      add("Cadastros", LayoutDashboard, "/cadastros");
       tabs.push({ type: "separator" as const });
       routes.push(null);
       add("Suporte", Headset, "/suporte");
