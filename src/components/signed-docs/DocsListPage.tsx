@@ -26,13 +26,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Table,
   TableBody,
   TableCell,
@@ -53,8 +46,6 @@ import type { DetectResult } from "@/lib/pdf-detect";
 
 type Row = Pick<SignedDoc, "id" | "patient_name" | "title" | "status" | "created_at">;
 
-type PatientOpt = { id: string; nome: string | null; prontuario: string | null };
-
 export function DocsListPage({ kind }: { kind: DocKind }) {
   const cfg = docConfig(kind);
   const { profile } = useAuth();
@@ -65,8 +56,6 @@ export function DocsListPage({ kind }: { kind: DocKind }) {
 
   // ── Diálogo de novo documento ─────────────────────────────────────────────
   const [open, setOpen] = useState(false);
-  const [patients, setPatients] = useState<PatientOpt[]>([]);
-  const [patientId, setPatientId] = useState<string>("");
   const [patientName, setPatientName] = useState("");
   const [title, setTitle] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -106,32 +95,10 @@ export function DocsListPage({ kind }: { kind: DocKind }) {
     };
   }, [load, profile, cfg.table]);
 
-  // Carrega pacientes da clínica para associação (opcional).
-  useEffect(() => {
-    if (!open || !profile?.company_id) return;
-    (async () => {
-      const { data } = await supabase
-        .from("patients")
-        .select("id,nome,prontuario")
-        .eq("company_id", profile.company_id)
-        .is("deleted_at", null)
-        .order("nome", { ascending: true })
-        .limit(1000);
-      setPatients((data ?? []) as PatientOpt[]);
-    })();
-  }, [open, profile]);
-
   const resetForm = () => {
-    setPatientId("");
     setPatientName("");
     setTitle("");
     setFile(null);
-  };
-
-  const onPickPatient = (id: string) => {
-    setPatientId(id);
-    const p = patients.find((x) => x.id === id);
-    if (p?.nome && !patientName.trim()) setPatientName(p.nome);
   };
 
   const create = async () => {
@@ -178,7 +145,7 @@ export function DocsListPage({ kind }: { kind: DocKind }) {
         .from(cfg.table as "contracts")
         .insert({
           company_id: profile.company_id,
-          patient_id: patientId || null,
+          patient_id: null,
           patient_name: patientName.trim(),
           title: title.trim() || null,
           original_pdf_path: path,
@@ -371,23 +338,6 @@ export function DocsListPage({ kind }: { kind: DocKind }) {
           </DialogHeader>
 
           <div className="grid gap-4">
-            <div className="grid gap-1.5">
-              <Label>Paciente (opcional)</Label>
-              <Select value={patientId} onValueChange={onPickPatient}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecionar paciente cadastrado" />
-                </SelectTrigger>
-                <SelectContent>
-                  {patients.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.nome || "Sem nome"}
-                      {p.prontuario ? ` — ${p.prontuario}` : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
             <div className="grid gap-1.5">
               <Label>Nome do paciente *</Label>
               <Input
