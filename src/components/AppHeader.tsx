@@ -57,7 +57,6 @@ export function AppHeader() {
       add("Contratos", FileSignature, "/contratos");
       add("Termos", ScrollText, "/termos");
       add("Prontuário", ClipboardList, "/prontuario");
-      add("Cadastros", LayoutDashboard, "/cadastros");
       add("Admin", ShieldCheck, "/admin");
       tabs.push({ type: "separator" as const });
       routes.push(null);
@@ -67,7 +66,6 @@ export function AppHeader() {
       add("Contratos", FileSignature, "/contratos");
       add("Termos", ScrollText, "/termos");
       add("Prontuário", ClipboardList, "/prontuario");
-      add("Cadastros", LayoutDashboard, "/cadastros");
       add("Usuários", Users, "/usuarios");
       tabs.push({ type: "separator" as const });
       routes.push(null);
@@ -77,7 +75,6 @@ export function AppHeader() {
       add("Contratos", FileSignature, "/contratos");
       add("Termos", ScrollText, "/termos");
       add("Prontuário", ClipboardList, "/prontuario");
-      add("Cadastros", LayoutDashboard, "/cadastros");
       tabs.push({ type: "separator" as const });
       routes.push(null);
       add("Suporte", Headset, "/suporte");
