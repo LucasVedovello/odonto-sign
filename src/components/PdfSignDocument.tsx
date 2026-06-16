@@ -97,9 +97,8 @@ export function PdfSignDocument({
     const rect = e.currentTarget.getBoundingClientRect();
     const px = (e.clientX - rect.left) / rect.width;
     const py = (e.clientY - rect.top) / rect.height;
-    // Centraliza o campo no clique e mantém dentro dos limites da página.
-    const x = Math.min(Math.max(px - boxSize.w / 2, 0), 1 - boxSize.w);
-    const y = Math.min(Math.max(py - boxSize.h / 2, 0), 1 - boxSize.h);
+    const x = Math.min(Math.max(px, 0), 1 - (boxSize?.w ?? 0));
+    const y = Math.min(Math.max(py, 0), 1 - (boxSize?.h ?? 0));
     onPlace(pageNum, x, y);
   };
 
