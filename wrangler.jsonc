@@ -6,6 +6,6 @@
   "main": "src/server.ts",
   "vars": {
     "VITE_SUPABASE_URL": "https://dziinqtztpolawyfbakr.supabase.co",
-    "VITE_SUPABASE_ANON_KEY": "sb_publishable_G5IQkBw9-ZkcUqGuMqUwzw_7-9zmgiH"
+    "VITE_SUPABASE_PUBLISHABLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6aWlucXR6dHBvbGF3eWZiYWtyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4MzAyNDgsImV4cCI6MjA5NTQwNjI0OH0.1BUrCWZuG9aN1sc1t0ZEEimQ4Z-Sl9ulwoAGHpNbmXs"
   }
 }
