@@ -7,7 +7,18 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { ArrowLeft, Check, Copy, Download, Eraser, Loader2, MapPin, PenLine } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  Copy,
+  Download,
+  Eraser,
+  Loader2,
+  MapPin,
+  PenLine,
+  Plus,
+  X,
+} from "lucide-react";
 import { PdfSignDocument, type SigOverlay, type TextOverlay } from "@/components/PdfSignDocument";
 import { SignDialog } from "@/components/SignDialog";
 import {
@@ -18,10 +29,15 @@ import {
   docConfig,
   publicSignUrl,
   type AutoTextField,
+  type AutoTextKind,
   type DocKind,
   type SignaturePos,
   type SignedDoc,
 } from "@/lib/signed-docs";
+
+// Tamanho padrão de uma caixa de texto ao posicionar (razões da página).
+// Mais baixa que a de assinatura, pois cabe apenas uma linha de texto.
+const DEFAULT_TEXT_SIZE = { w: 0.32, h: 0.035 };
 
 export function DocDetailPage({ kind, id }: { kind: DocKind; id: string }) {
   const cfg = docConfig(kind);
@@ -30,10 +46,21 @@ export function DocDetailPage({ kind, id }: { kind: DocKind; id: string }) {
   const [saving, setSaving] = useState(false);
 
   // Fase aguardando_clinica — campos (arrays) e assinatura única da clínica.
-  const [placing, setPlacing] = useState<"clinic" | "patient" | null>(null);
+  const [placing, setPlacing] = useState<"clinic" | "patient" | "text" | null>(null);
   const [clinicFields, setClinicFields] = useState<SignaturePos[]>([]);
   const [patientFields, setPatientFields] = useState<SignaturePos[]>([]);
   const [textFields, setTextFields] = useState<AutoTextField[]>([]);
+  // Modelo do próximo campo de texto a posicionar (Data/CNPJ/Responsável/livre).
+  const [pendingText, setPendingText] = useState<{
+    kind: AutoTextKind;
+    label: string;
+    value: string;
+  } | null>(null);
+  // Dados da clínica para pré-preencher os campos (CNPJ, responsável).
+  const [company, setCompany] = useState<{
+    cnpj: string | null;
+    responsavel_nome: string | null;
+  } | null>(null);
   const [clinicSig, setClinicSig] = useState<string | null>(null);
   const [signOpen, setSignOpen] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -66,6 +93,16 @@ export function DocDetailPage({ kind, id }: { kind: DocKind; id: string }) {
     );
     setClinicSig(d.clinic_signature);
     setLoading(false);
+
+    // Carrega CNPJ/responsável da clínica para pré-preencher os campos de texto.
+    if (d.company_id) {
+      const { data: comp } = await supabase
+        .from("companies")
+        .select("cnpj,responsavel_nome")
+        .eq("id", d.company_id)
+        .maybeSingle();
+      setCompany(comp ?? null);
+    }
   }, [cfg.table, id]);
 
   useEffect(() => {
@@ -80,13 +117,32 @@ export function DocDetailPage({ kind, id }: { kind: DocKind; id: string }) {
   // Clicar no documento ADICIONA um campo da parte ativa (permite vários).
   const onPlace = (page: number, x: number, y: number) => {
     if (!placing) return;
+    if (placing === "text") {
+      const t = pendingText ?? { kind: "other" as AutoTextKind, label: "Texto livre", value: "" };
+      setTextFields((p) => [
+        ...p,
+        { page, x, y, ...DEFAULT_TEXT_SIZE, kind: t.kind, label: t.label, value: t.value },
+      ]);
+      setPlacing(null);
+      setPendingText(null);
+      return;
+    }
     const pos: SignaturePos = { page, x, y, ...DEFAULT_SIG_SIZE };
     if (placing === "clinic") setClinicFields((p) => [...p, pos]);
     else setPatientFields((p) => [...p, pos]);
   };
 
+  // Inicia o posicionamento de um novo campo de texto com um modelo pré-preenchido.
+  const startAddText = (tpl: { kind: AutoTextKind; label: string; value: string }) => {
+    setPendingText(tpl);
+    setPlacing("text");
+  };
+
   const setTextValue = (i: number, value: string) =>
     setTextFields((prev) => prev.map((f, idx) => (idx === i ? { ...f, value } : f)));
+
+  const removeTextField = (i: number) =>
+    setTextFields((prev) => prev.filter((_, idx) => idx !== i));
 
   // Confirma a assinatura da clínica (aplicada a TODOS os campos dela) e libera o link.
   const confirmClinic = async () => {
@@ -320,7 +376,7 @@ export function DocDetailPage({ kind, id }: { kind: DocKind; id: string }) {
               Confirmar e gerar link
             </Button>
           </div>
-          {placing && (
+          {(placing === "clinic" || placing === "patient") && (
             <p className="mt-2 text-xs font-medium text-primary">
               Clique sobre o documento para adicionar um campo
               {placing === "clinic" ? " da clínica" : " do paciente"} (pode adicionar vários).
@@ -329,28 +385,114 @@ export function DocDetailPage({ kind, id }: { kind: DocKind; id: string }) {
         </Card>
       )}
 
-      {/* ── Campos de texto editáveis (data/local/CPF...) ── */}
-      {isClinicPhase && textFields.length > 0 && (
+      {/* ── Campos de texto editáveis (data/CNPJ/responsável/local...) ── */}
+      {isClinicPhase && (
         <Card className="mb-6 p-4">
-          <h2 className="mb-1 font-semibold">Campos de texto detectados</h2>
+          <h2 className="mb-1 font-semibold">Campos de texto</h2>
           <p className="mb-3 text-sm text-muted-foreground">
-            Preencha os campos abaixo (data, local, CPF...). O texto é inserido no documento na
-            posição do campo. Deixe em branco para não preencher.
+            Adicione campos para a clínica preencher antes de assinar (data, CNPJ, nome do
+            responsável...). Clique em um botão abaixo e depois clique no documento para posicionar
+            o campo. Os valores são salvos junto com o {cfg.label.toLowerCase()}.
           </p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {textFields.map((f, i) => (
-              <div key={i} className="grid gap-1.5">
-                <Label className="text-xs">
-                  {f.label} <span className="text-muted-foreground">(pág. {f.page})</span>
-                </Label>
-                <Input
-                  value={f.value ?? ""}
-                  onChange={(e) => setTextValue(i, e.target.value)}
-                  placeholder={f.label}
-                />
-              </div>
-            ))}
+          <div className="mb-3 flex flex-wrap gap-2">
+            <Button
+              variant={placing === "text" && pendingText?.label === "Data" ? "default" : "outline"}
+              size="sm"
+              className="gap-1.5"
+              onClick={() =>
+                startAddText({
+                  kind: "date",
+                  label: "Data",
+                  value: defaultFieldValue("date", doc.clinic_city),
+                })
+              }
+            >
+              <Plus className="h-4 w-4" /> Data
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() =>
+                startAddText({
+                  kind: "other",
+                  label: "CNPJ da clínica",
+                  value: company?.cnpj ?? "",
+                })
+              }
+            >
+              <Plus className="h-4 w-4" /> CNPJ da clínica
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() =>
+                startAddText({
+                  kind: "other",
+                  label: "Nome do responsável",
+                  value: company?.responsavel_nome ?? "",
+                })
+              }
+            >
+              <Plus className="h-4 w-4" /> Nome do responsável
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() =>
+                startAddText({
+                  kind: "local",
+                  label: "Local",
+                  value: defaultFieldValue("local", doc.clinic_city),
+                })
+              }
+            >
+              <Plus className="h-4 w-4" /> Local
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => startAddText({ kind: "other", label: "Texto livre", value: "" })}
+            >
+              <Plus className="h-4 w-4" /> Texto livre
+            </Button>
           </div>
+          {placing === "text" && (
+            <p className="mb-3 text-xs font-medium text-primary">
+              Clique sobre o documento para posicionar o campo “{pendingText?.label}”.
+            </p>
+          )}
+          {textFields.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhum campo de texto adicionado ainda.</p>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {textFields.map((f, i) => (
+                <div key={i} className="grid gap-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label className="text-xs">
+                      {f.label} <span className="text-muted-foreground">(pág. {f.page})</span>
+                    </Label>
+                    <button
+                      type="button"
+                      onClick={() => removeTextField(i)}
+                      className="text-muted-foreground transition-colors hover:text-destructive"
+                      aria-label={`Remover campo ${f.label}`}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  <Input
+                    value={f.value ?? ""}
+                    onChange={(e) => setTextValue(i, e.target.value)}
+                    placeholder={f.label}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
         </Card>
       )}
 
@@ -410,7 +552,7 @@ export function DocDetailPage({ kind, id }: { kind: DocKind; id: string }) {
           textOverlays={textOverlays}
           onPlace={onPlace}
           placing={!!placing}
-          boxSize={DEFAULT_SIG_SIZE}
+          boxSize={placing === "text" ? DEFAULT_TEXT_SIZE : DEFAULT_SIG_SIZE}
         />
       </Card>
 

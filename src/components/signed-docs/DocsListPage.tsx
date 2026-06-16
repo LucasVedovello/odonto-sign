@@ -16,6 +16,16 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -31,7 +41,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { FileSignature, Loader2, Plus, Search, Upload } from "lucide-react";
+import { FileSignature, Loader2, Plus, Search, Trash2, Upload } from "lucide-react";
 import {
   STATUS_META,
   docConfig,
@@ -61,6 +71,10 @@ export function DocsListPage({ kind }: { kind: DocKind }) {
   const [title, setTitle] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // ── Exclusão ───────────────────────────────────────────────────────────────
+  const [deleteTarget, setDeleteTarget] = useState<Row | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
     if (!profile?.company_id) {
@@ -191,6 +205,40 @@ export function DocsListPage({ kind }: { kind: DocKind }) {
     }
   };
 
+  // Exclui o documento: remove os PDFs do Storage (best-effort) e o registro.
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const { data: paths } = await supabase
+        .from(cfg.table as "contracts")
+        .select("original_pdf_path,signed_pdf_path")
+        .eq("id", deleteTarget.id)
+        .maybeSingle();
+      const files = [paths?.original_pdf_path, paths?.signed_pdf_path].filter(
+        (p): p is string => !!p,
+      );
+      if (files.length) {
+        await supabase.storage.from(cfg.bucket).remove(files);
+      }
+
+      const { error } = await supabase
+        .from(cfg.table as "contracts")
+        .delete()
+        .eq("id", deleteTarget.id);
+      if (error) throw error;
+
+      setRows((prev) => prev.filter((r) => r.id !== deleteTarget.id));
+      toast.success(`${cfg.label} excluído`);
+      setDeleteTarget(null);
+    } catch (e) {
+      console.error(e);
+      toast.error(`Falha ao excluir o ${cfg.label.toLowerCase()}`);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return rows;
@@ -276,15 +324,26 @@ export function DocsListPage({ kind }: { kind: DocKind }) {
                         {new Date(r.created_at).toLocaleDateString("pt-BR")}
                       </TableCell>
                       <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            navigate({ to: `${cfg.listPath}/$id`, params: { id: r.id } })
-                          }
-                        >
-                          Abrir
-                        </Button>
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              navigate({ to: `${cfg.listPath}/$id`, params: { id: r.id } })
+                            }
+                          >
+                            Abrir
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            aria-label={`Excluir ${cfg.label.toLowerCase()}`}
+                            onClick={() => setDeleteTarget(r)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -375,6 +434,38 @@ export function DocsListPage({ kind }: { kind: DocKind }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── Confirmação de exclusão ── */}
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(o) => {
+          if (!o && !deleting) setDeleteTarget(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir {cfg.label.toLowerCase()}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este {cfg.label.toLowerCase()}
+              {deleteTarget?.patient_name ? ` de ${deleteTarget.patient_name}` : ""}? Esta ação não
+              pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                confirmDelete();
+              }}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   );
 }
