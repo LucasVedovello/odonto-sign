@@ -26,7 +26,14 @@ import { Route as AuthenticatedSuporteRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedProntuarioRouteImport } from './routes/_authenticated/prontuario'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedLixeiraRouteImport } from './routes/_authenticated/lixeira'
+import { Route as AuthenticatedCadastrosRouteImport } from './routes/_authenticated/cadastros'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as PTokenIndexRouteImport } from './routes/p/$token/index'
+import { Route as AuthenticatedContratosIndexRouteImport } from './routes/_authenticated/contratos/index'
+import { Route as PTokenAssinarRouteImport } from './routes/p/$token/assinar'
+import { Route as AuthenticatedContratosNovoRouteImport } from './routes/_authenticated/contratos/novo'
+import { Route as AuthenticatedContratosIdIndexRouteImport } from './routes/_authenticated/contratos/$id/index'
+import { Route as AuthenticatedContratosIdEditarRouteImport } from './routes/_authenticated/contratos/$id/editar'
 
 const TestRoute = TestRouteImport.update({
   id: '/test',
@@ -112,11 +119,50 @@ const AuthenticatedLixeiraRoute = AuthenticatedLixeiraRouteImport.update({
   path: '/lixeira',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedCadastrosRoute = AuthenticatedCadastrosRouteImport.update({
+  id: '/cadastros',
+  path: '/cadastros',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const PTokenIndexRoute = PTokenIndexRouteImport.update({
+  id: '/p/$token/',
+  path: '/p/$token/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedContratosIndexRoute =
+  AuthenticatedContratosIndexRouteImport.update({
+    id: '/contratos/',
+    path: '/contratos/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const PTokenAssinarRoute = PTokenAssinarRouteImport.update({
+  id: '/p/$token/assinar',
+  path: '/p/$token/assinar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedContratosNovoRoute =
+  AuthenticatedContratosNovoRouteImport.update({
+    id: '/contratos/novo',
+    path: '/contratos/novo',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedContratosIdIndexRoute =
+  AuthenticatedContratosIdIndexRouteImport.update({
+    id: '/contratos/$id/',
+    path: '/contratos/$id/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedContratosIdEditarRoute =
+  AuthenticatedContratosIdEditarRouteImport.update({
+    id: '/contratos/$id/editar',
+    path: '/contratos/$id/editar',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -130,12 +176,19 @@ export interface FileRoutesByFullPath {
   '/select-company': typeof SelectCompanyRoute
   '/test': typeof TestRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/cadastros': typeof AuthenticatedCadastrosRoute
   '/lixeira': typeof AuthenticatedLixeiraRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/prontuario': typeof AuthenticatedProntuarioRoute
   '/suporte': typeof AuthenticatedSuporteRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/cadastro/$token': typeof CadastroTokenRoute
+  '/contratos/novo': typeof AuthenticatedContratosNovoRoute
+  '/p/$token/assinar': typeof PTokenAssinarRoute
+  '/contratos/': typeof AuthenticatedContratosIndexRoute
+  '/p/$token/': typeof PTokenIndexRoute
+  '/contratos/$id/editar': typeof AuthenticatedContratosIdEditarRoute
+  '/contratos/$id/': typeof AuthenticatedContratosIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/aceitar-convite': typeof AceitarConviteRoute
@@ -148,6 +201,7 @@ export interface FileRoutesByTo {
   '/select-company': typeof SelectCompanyRoute
   '/test': typeof TestRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/cadastros': typeof AuthenticatedCadastrosRoute
   '/lixeira': typeof AuthenticatedLixeiraRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/prontuario': typeof AuthenticatedProntuarioRoute
@@ -155,6 +209,12 @@ export interface FileRoutesByTo {
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/cadastro/$token': typeof CadastroTokenRoute
   '/': typeof AuthenticatedIndexRoute
+  '/contratos/novo': typeof AuthenticatedContratosNovoRoute
+  '/p/$token/assinar': typeof PTokenAssinarRoute
+  '/contratos': typeof AuthenticatedContratosIndexRoute
+  '/p/$token': typeof PTokenIndexRoute
+  '/contratos/$id/editar': typeof AuthenticatedContratosIdEditarRoute
+  '/contratos/$id': typeof AuthenticatedContratosIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -169,6 +229,7 @@ export interface FileRoutesById {
   '/select-company': typeof SelectCompanyRoute
   '/test': typeof TestRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/cadastros': typeof AuthenticatedCadastrosRoute
   '/_authenticated/lixeira': typeof AuthenticatedLixeiraRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/prontuario': typeof AuthenticatedProntuarioRoute
@@ -176,6 +237,12 @@ export interface FileRoutesById {
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/cadastro/$token': typeof CadastroTokenRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/contratos/novo': typeof AuthenticatedContratosNovoRoute
+  '/p/$token/assinar': typeof PTokenAssinarRoute
+  '/_authenticated/contratos/': typeof AuthenticatedContratosIndexRoute
+  '/p/$token/': typeof PTokenIndexRoute
+  '/_authenticated/contratos/$id/editar': typeof AuthenticatedContratosIdEditarRoute
+  '/_authenticated/contratos/$id/': typeof AuthenticatedContratosIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -191,12 +258,19 @@ export interface FileRouteTypes {
     | '/select-company'
     | '/test'
     | '/admin'
+    | '/cadastros'
     | '/lixeira'
     | '/perfil'
     | '/prontuario'
     | '/suporte'
     | '/usuarios'
     | '/cadastro/$token'
+    | '/contratos/novo'
+    | '/p/$token/assinar'
+    | '/contratos/'
+    | '/p/$token/'
+    | '/contratos/$id/editar'
+    | '/contratos/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/aceitar-convite'
@@ -209,6 +283,7 @@ export interface FileRouteTypes {
     | '/select-company'
     | '/test'
     | '/admin'
+    | '/cadastros'
     | '/lixeira'
     | '/perfil'
     | '/prontuario'
@@ -216,6 +291,12 @@ export interface FileRouteTypes {
     | '/usuarios'
     | '/cadastro/$token'
     | '/'
+    | '/contratos/novo'
+    | '/p/$token/assinar'
+    | '/contratos'
+    | '/p/$token'
+    | '/contratos/$id/editar'
+    | '/contratos/$id'
   id:
     | '__root__'
     | '/_authenticated'
@@ -229,6 +310,7 @@ export interface FileRouteTypes {
     | '/select-company'
     | '/test'
     | '/_authenticated/admin'
+    | '/_authenticated/cadastros'
     | '/_authenticated/lixeira'
     | '/_authenticated/perfil'
     | '/_authenticated/prontuario'
@@ -236,6 +318,12 @@ export interface FileRouteTypes {
     | '/_authenticated/usuarios'
     | '/cadastro/$token'
     | '/_authenticated/'
+    | '/_authenticated/contratos/novo'
+    | '/p/$token/assinar'
+    | '/_authenticated/contratos/'
+    | '/p/$token/'
+    | '/_authenticated/contratos/$id/editar'
+    | '/_authenticated/contratos/$id/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -250,6 +338,8 @@ export interface RootRouteChildren {
   SelectCompanyRoute: typeof SelectCompanyRoute
   TestRoute: typeof TestRoute
   CadastroTokenRoute: typeof CadastroTokenRoute
+  PTokenAssinarRoute: typeof PTokenAssinarRoute
+  PTokenIndexRoute: typeof PTokenIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -373,6 +463,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLixeiraRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/cadastros': {
+      id: '/_authenticated/cadastros'
+      path: '/cadastros'
+      fullPath: '/cadastros'
+      preLoaderRoute: typeof AuthenticatedCadastrosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/admin': {
       id: '/_authenticated/admin'
       path: '/admin'
@@ -380,27 +477,79 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/p/$token/': {
+      id: '/p/$token/'
+      path: '/p/$token'
+      fullPath: '/p/$token/'
+      preLoaderRoute: typeof PTokenIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/contratos/': {
+      id: '/_authenticated/contratos/'
+      path: '/contratos'
+      fullPath: '/contratos/'
+      preLoaderRoute: typeof AuthenticatedContratosIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/p/$token/assinar': {
+      id: '/p/$token/assinar'
+      path: '/p/$token/assinar'
+      fullPath: '/p/$token/assinar'
+      preLoaderRoute: typeof PTokenAssinarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/contratos/novo': {
+      id: '/_authenticated/contratos/novo'
+      path: '/contratos/novo'
+      fullPath: '/contratos/novo'
+      preLoaderRoute: typeof AuthenticatedContratosNovoRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/contratos/$id/': {
+      id: '/_authenticated/contratos/$id/'
+      path: '/contratos/$id'
+      fullPath: '/contratos/$id/'
+      preLoaderRoute: typeof AuthenticatedContratosIdIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/contratos/$id/editar': {
+      id: '/_authenticated/contratos/$id/editar'
+      path: '/contratos/$id/editar'
+      fullPath: '/contratos/$id/editar'
+      preLoaderRoute: typeof AuthenticatedContratosIdEditarRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
 interface AuthenticatedRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedCadastrosRoute: typeof AuthenticatedCadastrosRoute
   AuthenticatedLixeiraRoute: typeof AuthenticatedLixeiraRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedProntuarioRoute: typeof AuthenticatedProntuarioRoute
   AuthenticatedSuporteRoute: typeof AuthenticatedSuporteRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedContratosNovoRoute: typeof AuthenticatedContratosNovoRoute
+  AuthenticatedContratosIndexRoute: typeof AuthenticatedContratosIndexRoute
+  AuthenticatedContratosIdEditarRoute: typeof AuthenticatedContratosIdEditarRoute
+  AuthenticatedContratosIdIndexRoute: typeof AuthenticatedContratosIdIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedCadastrosRoute: AuthenticatedCadastrosRoute,
   AuthenticatedLixeiraRoute: AuthenticatedLixeiraRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedProntuarioRoute: AuthenticatedProntuarioRoute,
   AuthenticatedSuporteRoute: AuthenticatedSuporteRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedContratosNovoRoute: AuthenticatedContratosNovoRoute,
+  AuthenticatedContratosIndexRoute: AuthenticatedContratosIndexRoute,
+  AuthenticatedContratosIdEditarRoute: AuthenticatedContratosIdEditarRoute,
+  AuthenticatedContratosIdIndexRoute: AuthenticatedContratosIdIndexRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
@@ -419,6 +568,8 @@ const rootRouteChildren: RootRouteChildren = {
   SelectCompanyRoute: SelectCompanyRoute,
   TestRoute: TestRoute,
   CadastroTokenRoute: CadastroTokenRoute,
+  PTokenAssinarRoute: PTokenAssinarRoute,
+  PTokenIndexRoute: PTokenIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
