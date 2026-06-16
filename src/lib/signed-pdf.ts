@@ -25,6 +25,11 @@ export type PlacedSignature = {
   pos: SignaturePos;
 };
 
+export type PlacedText = {
+  text: string; // texto a gravar (data/local)
+  pos: SignaturePos;
+};
+
 // Busca o binário do PDF, com 1 nova tentativa (evita falha por rede instável).
 async function fetchPdfBytes(url: string, attempt = 0): Promise<ArrayBuffer> {
   try {
@@ -79,6 +84,7 @@ export async function renderPdfToImages(url: string): Promise<RenderedPage[]> {
 export async function generateSignedPdf(
   originalUrl: string,
   signatures: PlacedSignature[],
+  texts: PlacedText[] = [],
 ): Promise<import("jspdf").jsPDF> {
   const { jsPDF } = await import("jspdf");
   const pages = await renderPdfToImages(originalUrl);
@@ -93,6 +99,26 @@ export async function generateSignedPdf(
     orientation: orient(first.width, first.height),
   });
 
+  // Grava um texto (data/local) ajustando a fonte para caber na caixa.
+  const drawText = (t: PlacedText, W: number, H: number) => {
+    const value = (t.text ?? "").trim();
+    if (!value) return;
+    const boxX = t.pos.x * W;
+    const boxY = t.pos.y * H;
+    const boxW = t.pos.w * W;
+    const boxH = t.pos.h * H;
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(0, 0, 0);
+    let size = Math.min(Math.max(boxH * 0.85, 6), 13);
+    doc.setFontSize(size);
+    while (doc.getTextWidth(value) > boxW && size > 6) {
+      size -= 0.5;
+      doc.setFontSize(size);
+    }
+    // baseline próximo da base da caixa
+    doc.text(value, boxX, boxY + boxH * 0.78);
+  };
+
   pages.forEach((pg, i) => {
     if (i > 0) {
       doc.addPage([pg.width, pg.height], orient(pg.width, pg.height));
@@ -103,6 +129,8 @@ export async function generateSignedPdf(
     } catch {
       /* se a imagem falhar, mantém a página em branco do mesmo tamanho */
     }
+    // Textos automáticos (data/local) desta página.
+    texts.filter((t) => t.pos.page === i + 1).forEach((t) => drawText(t, pg.width, pg.height));
     // Assinaturas desta página (sem fundo branco — overlay transparente).
     signatures
       .filter((s) => s.pos.page === i + 1)
@@ -126,7 +154,8 @@ export async function generateSignedPdf(
 export async function generateSignedPdfBlob(
   originalUrl: string,
   signatures: PlacedSignature[],
+  texts: PlacedText[] = [],
 ): Promise<Blob> {
-  const doc = await generateSignedPdf(originalUrl, signatures);
+  const doc = await generateSignedPdf(originalUrl, signatures, texts);
   return doc.output("blob");
 }

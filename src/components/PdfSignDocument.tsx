@@ -11,6 +11,11 @@ export type SigOverlay = {
   variant?: "clinic" | "patient";
 };
 
+export type TextOverlay = {
+  pos: SignaturePos;
+  text: string; // texto automático (data/local) — apenas pré-visualização
+};
+
 type RenderedPage = { page: number; src: string };
 
 const VARIANT_CLS: Record<NonNullable<SigOverlay["variant"]>, string> = {
@@ -28,12 +33,14 @@ const VARIANT_CLS: Record<NonNullable<SigOverlay["variant"]>, string> = {
 export function PdfSignDocument({
   url,
   overlays = [],
+  textOverlays = [],
   onPlace,
   placing,
   boxSize = { w: 0.3, h: 0.09 },
 }: {
   url: string;
   overlays?: SigOverlay[];
+  textOverlays?: TextOverlay[];
   onPlace?: (page: number, x: number, y: number) => void;
   placing?: boolean; // habilita o cursor/ação de posicionar
   boxSize?: { w: number; h: number };
@@ -134,6 +141,24 @@ export function PdfSignDocument({
                     {o.label}
                   </span>
                 )}
+              </div>
+            ))}
+          {textOverlays
+            .filter((t) => t.pos.page === pg.page)
+            .map((t, i) => (
+              <div
+                key={`txt-${i}`}
+                className="absolute flex items-center overflow-hidden whitespace-nowrap text-black"
+                style={{
+                  left: `${t.pos.x * 100}%`,
+                  top: `${t.pos.y * 100}%`,
+                  width: `${t.pos.w * 100}%`,
+                  height: `${t.pos.h * 100}%`,
+                  fontSize: "clamp(7px, 1.1vw, 12px)",
+                }}
+                title="Preenchido automaticamente (data/local)"
+              >
+                <span className="truncate font-medium">{t.text}</span>
               </div>
             ))}
         </div>

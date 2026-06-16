@@ -6,9 +6,17 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { CheckCircle2, Clock, Loader2, PenLine } from "lucide-react";
 import { OdontoLogo } from "@/components/OdontoLogo";
-import { PdfSignDocument, type SigOverlay } from "@/components/PdfSignDocument";
+import { PdfSignDocument, type SigOverlay, type TextOverlay } from "@/components/PdfSignDocument";
 import { SignDialog } from "@/components/SignDialog";
-import { docConfig, type DocKind, type SignedDoc } from "@/lib/signed-docs";
+import {
+  asPosArray,
+  autoFieldText,
+  docConfig,
+  type AutoTextField,
+  type DocKind,
+  type SignaturePos,
+  type SignedDoc,
+} from "@/lib/signed-docs";
 
 function PublicHeader({ subtitle }: { subtitle?: string }) {
   return (
@@ -67,22 +75,29 @@ export function PublicSignPage({ kind, token }: { kind: DocKind; token: string }
   const overlays: SigOverlay[] = useMemo(() => {
     if (!doc) return [];
     const list: SigOverlay[] = [];
-    if (doc.clinic_signature_pos)
+    // Assinaturas da clínica (já feitas) em todos os campos dela.
+    for (const pos of asPosArray(doc.clinic_signature_pos)) {
+      list.push({ pos, imageUrl: doc.clinic_signature, label: "Clínica", variant: "clinic" });
+    }
+    // Campos do paciente — mostra a assinatura desenhada (preview) em todos.
+    for (const pos of asPosArray(doc.patient_signature_pos)) {
       list.push({
-        pos: doc.clinic_signature_pos,
-        imageUrl: doc.clinic_signature,
-        label: "Clínica",
-        variant: "clinic",
-      });
-    if (doc.patient_signature_pos)
-      list.push({
-        pos: doc.patient_signature_pos,
+        pos,
         imageUrl: patientSig ?? doc.patient_signature,
         label: "Assine aqui",
         variant: "patient",
       });
+    }
     return list;
   }, [doc, patientSig]);
+
+  const textOverlays: TextOverlay[] = useMemo(() => {
+    if (!doc) return [];
+    return ((doc.auto_text_fields as AutoTextField[]) ?? []).map((f) => ({
+      pos: f,
+      text: autoFieldText(f.kind, doc.clinic_city),
+    }));
+  }, [doc]);
 
   const finalize = async () => {
     if (!doc) return;
@@ -94,20 +109,28 @@ export function PublicSignPage({ kind, token }: { kind: DocKind; token: string }
       toast.error("Assine no campo indicado antes de finalizar");
       return;
     }
-    if (!doc.patient_signature_pos) {
+    const patientFields = asPosArray(doc.patient_signature_pos);
+    if (patientFields.length === 0) {
       toast.error("Campo de assinatura do paciente não definido. Contate a clínica.");
       return;
     }
     setSaving(true);
     try {
-      // Gera o PDF final (original + assinaturas) e salva no Storage.
+      // Gera o PDF final (original + assinaturas + data/local) e salva no Storage.
       const { generateSignedPdfBlob } = await import("@/lib/signed-pdf");
-      const sigs = [];
-      if (doc.clinic_signature && doc.clinic_signature_pos)
-        sigs.push({ dataUrl: doc.clinic_signature, pos: doc.clinic_signature_pos });
-      sigs.push({ dataUrl: patientSig, pos: doc.patient_signature_pos });
+      const sigs: { dataUrl: string; pos: SignaturePos }[] = [];
+      const cs = doc.clinic_signature;
+      if (cs)
+        asPosArray(doc.clinic_signature_pos).forEach((pos) => sigs.push({ dataUrl: cs, pos }));
+      // Mesma assinatura do paciente em todos os campos dele.
+      patientFields.forEach((pos) => sigs.push({ dataUrl: patientSig, pos }));
 
-      const blob = await generateSignedPdfBlob(originalUrl, sigs);
+      const texts = ((doc.auto_text_fields as AutoTextField[]) ?? []).map((f) => ({
+        text: autoFieldText(f.kind, doc.clinic_city),
+        pos: f,
+      }));
+
+      const blob = await generateSignedPdfBlob(originalUrl, sigs, texts);
       const signedPath = `${doc.company_id ?? "public"}/${doc.id}-signed.pdf`;
       const { error: upErr } = await supabase.storage
         .from(cfg.bucket)
@@ -202,7 +225,7 @@ export function PublicSignPage({ kind, token }: { kind: DocKind; token: string }
         </div>
 
         <Card className="p-3 sm:p-4">
-          <PdfSignDocument url={originalUrl} overlays={overlays} />
+          <PdfSignDocument url={originalUrl} overlays={overlays} textOverlays={textOverlays} />
         </Card>
 
         <Card className="mt-4 p-4">

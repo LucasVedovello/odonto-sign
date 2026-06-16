@@ -39,6 +39,7 @@ import {
   type SignedDoc,
   type SignedDocStatus,
 } from "@/lib/signed-docs";
+import type { DetectResult } from "@/lib/pdf-detect";
 
 type Row = Pick<SignedDoc, "id" | "patient_name" | "title" | "status" | "created_at">;
 
@@ -135,6 +136,24 @@ export function DocsListPage({ kind }: { kind: DocKind }) {
     }
     setSaving(true);
     try {
+      // Detecção automática dos campos de assinatura + data/local (genérica por layout).
+      let det: DetectResult = { clinic: [], patient: [], texts: [] };
+      try {
+        const bytes = await file.arrayBuffer();
+        const { detectSignatureFields } = await import("@/lib/pdf-detect");
+        det = await detectSignatureFields(bytes, kind);
+      } catch (e) {
+        console.error("[detect] falha na detecção automática", e);
+      }
+
+      // Cidade da clínica (para os campos de "local").
+      const { data: comp } = await supabase
+        .from("companies")
+        .select("cidade,uf")
+        .eq("id", profile.company_id)
+        .maybeSingle();
+      const city = comp?.cidade ? (comp.uf ? `${comp.cidade} - ${comp.uf}` : comp.cidade) : null;
+
       const path = `${profile.company_id}/${crypto.randomUUID()}.pdf`;
       const { error: upErr } = await supabase.storage
         .from(cfg.bucket)
@@ -151,6 +170,10 @@ export function DocsListPage({ kind }: { kind: DocKind }) {
           original_pdf_path: path,
           status: "aguardando_clinica" as SignedDocStatus,
           created_by: profile.id,
+          clinic_signature_pos: det.clinic,
+          patient_signature_pos: det.patient,
+          auto_text_fields: det.texts,
+          clinic_city: city,
         })
         .select("id")
         .single();

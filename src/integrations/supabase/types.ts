@@ -398,6 +398,8 @@ export type Database = {
           clinic_signature_pos: Json | null
           patient_signature: string | null
           patient_signature_pos: Json | null
+          auto_text_fields: Json | null
+          clinic_city: string | null
           clinic_signed_at: string | null
           patient_signed_at: string | null
           created_by: string | null
@@ -418,6 +420,8 @@ export type Database = {
           clinic_signature_pos?: Json | null
           patient_signature?: string | null
           patient_signature_pos?: Json | null
+          auto_text_fields?: Json | null
+          clinic_city?: string | null
           clinic_signed_at?: string | null
           patient_signed_at?: string | null
           created_by?: string | null
@@ -438,6 +442,8 @@ export type Database = {
           clinic_signature_pos?: Json | null
           patient_signature?: string | null
           patient_signature_pos?: Json | null
+          auto_text_fields?: Json | null
+          clinic_city?: string | null
           clinic_signed_at?: string | null
           patient_signed_at?: string | null
           created_by?: string | null
@@ -476,6 +482,8 @@ export type Database = {
           clinic_signature_pos: Json | null
           patient_signature: string | null
           patient_signature_pos: Json | null
+          auto_text_fields: Json | null
+          clinic_city: string | null
           clinic_signed_at: string | null
           patient_signed_at: string | null
           created_by: string | null
@@ -496,6 +504,8 @@ export type Database = {
           clinic_signature_pos?: Json | null
           patient_signature?: string | null
           patient_signature_pos?: Json | null
+          auto_text_fields?: Json | null
+          clinic_city?: string | null
           clinic_signed_at?: string | null
           patient_signed_at?: string | null
           created_by?: string | null
@@ -516,6 +526,8 @@ export type Database = {
           clinic_signature_pos?: Json | null
           patient_signature?: string | null
           patient_signature_pos?: Json | null
+          auto_text_fields?: Json | null
+          clinic_city?: string | null
           clinic_signed_at?: string | null
           patient_signed_at?: string | null
           created_by?: string | null

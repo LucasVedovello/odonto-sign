@@ -5,14 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { ArrowLeft, Check, Copy, Download, Loader2, MapPin, PenLine } from "lucide-react";
-import { PdfSignDocument, type SigOverlay } from "@/components/PdfSignDocument";
+import { ArrowLeft, Check, Copy, Download, Eraser, Loader2, MapPin, PenLine } from "lucide-react";
+import { PdfSignDocument, type SigOverlay, type TextOverlay } from "@/components/PdfSignDocument";
 import { SignDialog } from "@/components/SignDialog";
 import {
   DEFAULT_SIG_SIZE,
   STATUS_META,
+  asPosArray,
+  autoFieldText,
   docConfig,
   publicSignUrl,
+  type AutoTextField,
   type DocKind,
   type SignaturePos,
   type SignedDoc,
@@ -24,10 +27,11 @@ export function DocDetailPage({ kind, id }: { kind: DocKind; id: string }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Estado da assinatura da clínica (fase aguardando_clinica)
+  // Fase aguardando_clinica — campos (arrays) e assinatura única da clínica.
   const [placing, setPlacing] = useState<"clinic" | "patient" | null>(null);
-  const [clinicPos, setClinicPos] = useState<SignaturePos | null>(null);
-  const [patientPos, setPatientPos] = useState<SignaturePos | null>(null);
+  const [clinicFields, setClinicFields] = useState<SignaturePos[]>([]);
+  const [patientFields, setPatientFields] = useState<SignaturePos[]>([]);
+  const [textFields, setTextFields] = useState<AutoTextField[]>([]);
   const [clinicSig, setClinicSig] = useState<string | null>(null);
   const [signOpen, setSignOpen] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -49,8 +53,9 @@ export function DocDetailPage({ kind, id }: { kind: DocKind; id: string }) {
     }
     const d = data as unknown as SignedDoc;
     setDoc(d);
-    setClinicPos(d.clinic_signature_pos);
-    setPatientPos(d.patient_signature_pos);
+    setClinicFields(asPosArray(d.clinic_signature_pos));
+    setPatientFields(asPosArray(d.patient_signature_pos));
+    setTextFields((d.auto_text_fields as AutoTextField[]) ?? []);
     setClinicSig(d.clinic_signature);
     setLoading(false);
   }, [cfg.table, id]);
@@ -64,37 +69,31 @@ export function DocDetailPage({ kind, id }: { kind: DocKind; id: string }) {
     [doc, publicUrl],
   );
 
+  // Clicar no documento ADICIONA um campo da parte ativa (permite vários).
   const onPlace = (page: number, x: number, y: number) => {
     if (!placing) return;
     const pos: SignaturePos = { page, x, y, ...DEFAULT_SIG_SIZE };
-    if (placing === "clinic") setClinicPos(pos);
-    else setPatientPos(pos);
-    setPlacing(null);
+    if (placing === "clinic") setClinicFields((p) => [...p, pos]);
+    else setPatientFields((p) => [...p, pos]);
   };
 
-  // Confirma a assinatura da clínica e libera o link para o paciente.
+  // Confirma a assinatura da clínica (aplicada a TODOS os campos dela) e libera o link.
   const confirmClinic = async () => {
     if (!doc) return;
-    if (!clinicSig) {
-      toast.error("Assine pela clínica antes de continuar");
-      return;
-    }
-    if (!clinicPos) {
-      toast.error("Posicione o campo de assinatura da clínica");
-      return;
-    }
-    if (!patientPos) {
-      toast.error("Posicione o campo onde o paciente vai assinar");
-      return;
-    }
+    if (!clinicSig) return toast.error("Assine pela clínica antes de continuar");
+    if (clinicFields.length === 0)
+      return toast.error("Nenhum campo de assinatura da clínica. Adicione ao menos um.");
+    if (patientFields.length === 0)
+      return toast.error("Nenhum campo do paciente. Adicione ao menos um.");
     setSaving(true);
     try {
       const { error } = await supabase
         .from(cfg.table as "contracts")
         .update({
           clinic_signature: clinicSig,
-          clinic_signature_pos: clinicPos,
-          patient_signature_pos: patientPos,
+          clinic_signature_pos: clinicFields,
+          patient_signature_pos: patientFields,
+          auto_text_fields: textFields,
           clinic_signed_at: new Date().toISOString(),
           status: "aguardando_paciente",
         })
@@ -137,15 +136,20 @@ export function DocDetailPage({ kind, id }: { kind: DocKind; id: string }) {
         window.open(publicUrl(doc.signed_pdf_path), "_blank");
         return;
       }
-      // Fallback: regenera a partir do original + assinaturas.
       const { generateSignedPdf } = await import("@/lib/signed-pdf");
-      const sigs = [];
-      if (doc.clinic_signature && doc.clinic_signature_pos)
-        sigs.push({ dataUrl: doc.clinic_signature, pos: doc.clinic_signature_pos });
-      if (doc.patient_signature && doc.patient_signature_pos)
-        sigs.push({ dataUrl: doc.patient_signature, pos: doc.patient_signature_pos });
-      const pdf = await generateSignedPdf(originalUrl, sigs);
-      pdf.save(`${cfg.label}-${doc.patient_name}.pdf`);
+      const sigs: { dataUrl: string; pos: SignaturePos }[] = [];
+      const cs = doc.clinic_signature;
+      if (cs)
+        asPosArray(doc.clinic_signature_pos).forEach((pos) => sigs.push({ dataUrl: cs, pos }));
+      const ps = doc.patient_signature;
+      if (ps)
+        asPosArray(doc.patient_signature_pos).forEach((pos) => sigs.push({ dataUrl: ps, pos }));
+      const texts = ((doc.auto_text_fields as AutoTextField[]) ?? []).map((f) => ({
+        text: autoFieldText(f.kind, doc.clinic_city),
+        pos: f,
+      }));
+      const pdf = await generateSignedPdf(originalUrl, sigs, texts);
+      pdf.save(`${cfg.label} ${doc.patient_name}.pdf`);
     } catch (e) {
       console.error(e);
       toast.error("Falha ao gerar o PDF assinado");
@@ -174,25 +178,28 @@ export function DocDetailPage({ kind, id }: { kind: DocKind; id: string }) {
   }
 
   const st = STATUS_META[doc.status];
+  const isClinicPhase = doc.status === "aguardando_clinica";
 
-  // Overlays exibidos conforme a fase.
-  const overlays: SigOverlay[] = [];
-  if (clinicPos)
-    overlays.push({
-      pos: clinicPos,
+  // Overlays de assinatura (clínica: preview da assinatura desenhada; paciente:
+  // imagem só quando já assinado).
+  const overlays: SigOverlay[] = [
+    ...clinicFields.map((pos) => ({
+      pos,
       imageUrl: clinicSig,
       label: "Clínica assina aqui",
-      variant: "clinic",
-    });
-  if (patientPos)
-    overlays.push({
-      pos: patientPos,
+      variant: "clinic" as const,
+    })),
+    ...patientFields.map((pos) => ({
+      pos,
       imageUrl: doc.status === "assinado" ? doc.patient_signature : null,
       label: "Paciente assina aqui",
-      variant: "patient",
-    });
-
-  const isClinicPhase = doc.status === "aguardando_clinica";
+      variant: "patient" as const,
+    })),
+  ];
+  const textOverlays: TextOverlay[] = textFields.map((f) => ({
+    pos: f,
+    text: autoFieldText(f.kind, doc.clinic_city),
+  }));
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
@@ -215,29 +222,19 @@ export function DocDetailPage({ kind, id }: { kind: DocKind; id: string }) {
       {isClinicPhase && (
         <Card className="mb-6 p-4">
           <h2 className="mb-1 font-semibold">Assinatura da clínica</h2>
-          <p className="mb-3 text-sm text-muted-foreground">
-            Posicione o campo de assinatura da clínica e o campo onde o paciente vai assinar (clique
-            sobre o documento). Depois, assine pela clínica e gere o link.
+          <p className="mb-2 text-sm text-muted-foreground">
+            {clinicFields.length} campo(s) da clínica e {patientFields.length} do paciente
+            detectados automaticamente
+            {textFields.length > 0 ? `, ${textFields.length} campo(s) de data/local` : ""}. Assine
+            pela clínica — a mesma assinatura é aplicada em todos os campos da clínica.
           </p>
+          {(clinicFields.length === 0 || patientFields.length === 0) && (
+            <p className="mb-2 text-xs font-medium text-warning">
+              Não detectei todos os campos automaticamente. Use os botões abaixo para posicionar
+              manualmente clicando sobre o documento.
+            </p>
+          )}
           <div className="flex flex-wrap gap-2">
-            <Button
-              variant={placing === "clinic" ? "default" : "outline"}
-              size="sm"
-              className="gap-1.5"
-              onClick={() => setPlacing(placing === "clinic" ? null : "clinic")}
-            >
-              <MapPin className="h-4 w-4" />
-              {clinicPos ? "Reposicionar campo da clínica" : "Posicionar campo da clínica"}
-            </Button>
-            <Button
-              variant={placing === "patient" ? "default" : "outline"}
-              size="sm"
-              className="gap-1.5"
-              onClick={() => setPlacing(placing === "patient" ? null : "patient")}
-            >
-              <MapPin className="h-4 w-4" />
-              {patientPos ? "Reposicionar campo do paciente" : "Posicionar campo do paciente"}
-            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -246,6 +243,34 @@ export function DocDetailPage({ kind, id }: { kind: DocKind; id: string }) {
             >
               <PenLine className="h-4 w-4" />
               {clinicSig ? "Refazer assinatura" : "Assinar como clínica"}
+            </Button>
+            <Button
+              variant={placing === "clinic" ? "default" : "outline"}
+              size="sm"
+              className="gap-1.5"
+              onClick={() => setPlacing(placing === "clinic" ? null : "clinic")}
+            >
+              <MapPin className="h-4 w-4" /> + Campo da clínica
+            </Button>
+            <Button
+              variant={placing === "patient" ? "default" : "outline"}
+              size="sm"
+              className="gap-1.5"
+              onClick={() => setPlacing(placing === "patient" ? null : "patient")}
+            >
+              <MapPin className="h-4 w-4" /> + Campo do paciente
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 text-muted-foreground"
+              onClick={() => {
+                setClinicFields([]);
+                setPatientFields([]);
+                setPlacing(null);
+              }}
+            >
+              <Eraser className="h-4 w-4" /> Limpar campos
             </Button>
             <Button size="sm" className="gap-1.5" onClick={confirmClinic} disabled={saving}>
               {saving ? (
@@ -258,8 +283,8 @@ export function DocDetailPage({ kind, id }: { kind: DocKind; id: string }) {
           </div>
           {placing && (
             <p className="mt-2 text-xs font-medium text-primary">
-              Clique sobre o documento para posicionar o campo
-              {placing === "clinic" ? " da clínica" : " do paciente"}.
+              Clique sobre o documento para adicionar um campo
+              {placing === "clinic" ? " da clínica" : " do paciente"} (pode adicionar vários).
             </p>
           )}
         </Card>
@@ -318,6 +343,7 @@ export function DocDetailPage({ kind, id }: { kind: DocKind; id: string }) {
         <PdfSignDocument
           url={originalUrl}
           overlays={overlays}
+          textOverlays={textOverlays}
           onPlace={onPlace}
           placing={!!placing}
           boxSize={DEFAULT_SIG_SIZE}
@@ -327,13 +353,11 @@ export function DocDetailPage({ kind, id }: { kind: DocKind; id: string }) {
       <SignDialog
         open={signOpen}
         title="Assinatura da clínica"
-        description="Desenhe a assinatura da clínica. Ela será inserida no campo posicionado."
+        description="Desenhe a assinatura da clínica. Ela será inserida em todos os campos da clínica."
         onOpenChange={setSignOpen}
         onConfirm={(dataUrl) => {
           setClinicSig(dataUrl);
           setSignOpen(false);
-          if (!clinicPos)
-            toast.message("Agora posicione o campo de assinatura da clínica no documento.");
         }}
       />
     </main>

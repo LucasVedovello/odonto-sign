@@ -24,6 +24,51 @@ export type SignaturePos = {
 // Tamanho padrão do campo de assinatura ao posicionar (razões da página).
 export const DEFAULT_SIG_SIZE = { w: 0.3, h: 0.09 };
 
+// Campo de texto automático (data / local) detectado no PDF. Estende SignaturePos
+// com o "kind", que define que texto será gravado na geração do PDF final.
+export type AutoTextKind = "date" | "local" | "local_date";
+export type AutoTextField = SignaturePos & { kind: AutoTextKind };
+
+// Normaliza um valor jsonb (pode ser null, objeto único legado, ou array) em array.
+export const asPosArray = (v: unknown): SignaturePos[] => {
+  if (!v) return [];
+  if (Array.isArray(v)) return v as SignaturePos[];
+  return [v as SignaturePos];
+};
+
+// ── Data e local automáticos (pt-BR) ────────────────────────────────────────
+const MESES_PT = [
+  "janeiro",
+  "fevereiro",
+  "março",
+  "abril",
+  "maio",
+  "junho",
+  "julho",
+  "agosto",
+  "setembro",
+  "outubro",
+  "novembro",
+  "dezembro",
+];
+
+// Ex.: "16 de junho de 2026"
+export const formatPtDate = (d: Date = new Date()): string =>
+  `${d.getDate()} de ${MESES_PT[d.getMonth()]} de ${d.getFullYear()}`;
+
+// Texto a gravar em cada campo automático, conforme o tipo do campo.
+export const autoFieldText = (
+  kind: AutoTextKind,
+  city?: string | null,
+  d: Date = new Date(),
+): string => {
+  const date = formatPtDate(d);
+  const c = (city ?? "").trim();
+  if (kind === "date") return date;
+  if (kind === "local") return c;
+  return c ? `${c}, ${date}` : date; // local_date
+};
+
 // ── Registro de um documento assinável ──────────────────────────────────────
 export type SignedDoc = {
   id: string;
@@ -36,9 +81,16 @@ export type SignedDoc = {
   status: SignedDocStatus;
   public_token: string;
   clinic_signature: string | null;
-  clinic_signature_pos: SignaturePos | null;
+  // Arrays: um documento pode ter VÁRIOS campos da mesma parte (ex.: contrato
+  // com "Contratada" + "Contratante" assinados pela clínica). A mesma assinatura
+  // é reutilizada em todos os campos da parte.
+  clinic_signature_pos: SignaturePos[] | null;
   patient_signature: string | null;
-  patient_signature_pos: SignaturePos | null;
+  patient_signature_pos: SignaturePos[] | null;
+  // Campos de texto automático (data/local) detectados no PDF.
+  auto_text_fields: AutoTextField[] | null;
+  // Cidade da clínica (tabela companies), resolvida no upload, para os campos de local.
+  clinic_city: string | null;
   clinic_signed_at: string | null;
   patient_signed_at: string | null;
   created_by: string | null;
