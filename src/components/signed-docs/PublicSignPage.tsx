@@ -10,7 +10,7 @@ import { PdfSignDocument, type SigOverlay, type TextOverlay } from "@/components
 import { SignDialog } from "@/components/SignDialog";
 import {
   asPosArray,
-  autoFieldText,
+  defaultFieldValue,
   docConfig,
   type AutoTextField,
   type DocKind,
@@ -93,10 +93,12 @@ export function PublicSignPage({ kind, token }: { kind: DocKind; token: string }
 
   const textOverlays: TextOverlay[] = useMemo(() => {
     if (!doc) return [];
-    return ((doc.auto_text_fields as AutoTextField[]) ?? []).map((f) => ({
-      pos: f,
-      text: autoFieldText(f.kind, doc.clinic_city),
-    }));
+    return ((doc.auto_text_fields as AutoTextField[]) ?? [])
+      .map((f) => ({
+        pos: f,
+        text: (f.value ?? defaultFieldValue(f.kind, doc.clinic_city)).trim(),
+      }))
+      .filter((t) => t.text);
   }, [doc]);
 
   const finalize = async () => {
@@ -125,10 +127,12 @@ export function PublicSignPage({ kind, token }: { kind: DocKind; token: string }
       // Mesma assinatura do paciente em todos os campos dele.
       patientFields.forEach((pos) => sigs.push({ dataUrl: patientSig, pos }));
 
-      const texts = ((doc.auto_text_fields as AutoTextField[]) ?? []).map((f) => ({
-        text: autoFieldText(f.kind, doc.clinic_city),
-        pos: f,
-      }));
+      const texts = ((doc.auto_text_fields as AutoTextField[]) ?? [])
+        .map((f) => ({
+          text: (f.value ?? defaultFieldValue(f.kind, doc.clinic_city)).trim(),
+          pos: f,
+        }))
+        .filter((t) => t.text);
 
       const blob = await generateSignedPdfBlob(originalUrl, sigs, texts);
       const signedPath = `${doc.company_id ?? "public"}/${doc.id}-signed.pdf`;

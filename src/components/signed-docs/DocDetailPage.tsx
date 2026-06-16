@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { ArrowLeft, Check, Copy, Download, Eraser, Loader2, MapPin, PenLine } from "lucide-react";
 import { PdfSignDocument, type SigOverlay, type TextOverlay } from "@/components/PdfSignDocument";
@@ -12,7 +14,7 @@ import {
   DEFAULT_SIG_SIZE,
   STATUS_META,
   asPosArray,
-  autoFieldText,
+  defaultFieldValue,
   docConfig,
   publicSignUrl,
   type AutoTextField,
@@ -55,7 +57,13 @@ export function DocDetailPage({ kind, id }: { kind: DocKind; id: string }) {
     setDoc(d);
     setClinicFields(asPosArray(d.clinic_signature_pos));
     setPatientFields(asPosArray(d.patient_signature_pos));
-    setTextFields((d.auto_text_fields as AutoTextField[]) ?? []);
+    // Cada campo de texto recebe um valor inicial editável (data sugerida etc.).
+    setTextFields(
+      ((d.auto_text_fields as AutoTextField[]) ?? []).map((f) => ({
+        ...f,
+        value: f.value ?? defaultFieldValue(f.kind, d.clinic_city),
+      })),
+    );
     setClinicSig(d.clinic_signature);
     setLoading(false);
   }, [cfg.table, id]);
@@ -77,6 +85,9 @@ export function DocDetailPage({ kind, id }: { kind: DocKind; id: string }) {
     else setPatientFields((p) => [...p, pos]);
   };
 
+  const setTextValue = (i: number, value: string) =>
+    setTextFields((prev) => prev.map((f, idx) => (idx === i ? { ...f, value } : f)));
+
   // Confirma a assinatura da clínica (aplicada a TODOS os campos dela) e libera o link.
   const confirmClinic = async () => {
     if (!doc) return;
@@ -93,7 +104,7 @@ export function DocDetailPage({ kind, id }: { kind: DocKind; id: string }) {
           clinic_signature: clinicSig,
           clinic_signature_pos: clinicFields,
           patient_signature_pos: patientFields,
-          auto_text_fields: textFields,
+          auto_text_fields: textFields, // inclui os valores digitados pela clínica
           clinic_signed_at: new Date().toISOString(),
           status: "aguardando_paciente",
         })
@@ -127,29 +138,58 @@ export function DocDetailPage({ kind, id }: { kind: DocKind; id: string }) {
     window.open(`https://wa.me/?text=${msg}`, "_blank");
   };
 
-  // Baixa o PDF final assinado (do Storage; se faltar, regenera no cliente).
+  // Nome completo do paciente — preferir o cadastro associado (patients.nome).
+  const resolvePatientName = async (d: SignedDoc): Promise<string> => {
+    if (d.patient_id) {
+      const { data } = await supabase
+        .from("patients")
+        .select("nome")
+        .eq("id", d.patient_id)
+        .maybeSingle();
+      if (data?.nome) return data.nome;
+    }
+    return d.patient_name;
+  };
+
+  // Baixa o PDF final assinado com o nome correto: "Contrato/Termo {Paciente}.pdf".
   const downloadSigned = async () => {
     if (!doc) return;
     setDownloading(true);
     try {
+      const fullName = await resolvePatientName(doc);
+      const filename = `${cfg.label} ${fullName}.pdf`;
+
+      let blob: Blob;
       if (doc.signed_pdf_path) {
-        window.open(publicUrl(doc.signed_pdf_path), "_blank");
-        return;
+        // Baixa o PDF salvo (via blob) para poder renomear o arquivo.
+        blob = await (await fetch(publicUrl(doc.signed_pdf_path), { cache: "no-store" })).blob();
+      } else {
+        // Fallback: regenera a partir do original + assinaturas + textos.
+        const { generateSignedPdfBlob } = await import("@/lib/signed-pdf");
+        const sigs: { dataUrl: string; pos: SignaturePos }[] = [];
+        const cs = doc.clinic_signature;
+        if (cs)
+          asPosArray(doc.clinic_signature_pos).forEach((pos) => sigs.push({ dataUrl: cs, pos }));
+        const ps = doc.patient_signature;
+        if (ps)
+          asPosArray(doc.patient_signature_pos).forEach((pos) => sigs.push({ dataUrl: ps, pos }));
+        const texts = ((doc.auto_text_fields as AutoTextField[]) ?? [])
+          .map((f) => ({
+            text: (f.value ?? defaultFieldValue(f.kind, doc.clinic_city)).trim(),
+            pos: f,
+          }))
+          .filter((t) => t.text);
+        blob = await generateSignedPdfBlob(originalUrl, sigs, texts);
       }
-      const { generateSignedPdf } = await import("@/lib/signed-pdf");
-      const sigs: { dataUrl: string; pos: SignaturePos }[] = [];
-      const cs = doc.clinic_signature;
-      if (cs)
-        asPosArray(doc.clinic_signature_pos).forEach((pos) => sigs.push({ dataUrl: cs, pos }));
-      const ps = doc.patient_signature;
-      if (ps)
-        asPosArray(doc.patient_signature_pos).forEach((pos) => sigs.push({ dataUrl: ps, pos }));
-      const texts = ((doc.auto_text_fields as AutoTextField[]) ?? []).map((f) => ({
-        text: autoFieldText(f.kind, doc.clinic_city),
-        pos: f,
-      }));
-      const pdf = await generateSignedPdf(originalUrl, sigs, texts);
-      pdf.save(`${cfg.label} ${doc.patient_name}.pdf`);
+
+      const objUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(objUrl);
     } catch (e) {
       console.error(e);
       toast.error("Falha ao gerar o PDF assinado");
@@ -196,10 +236,10 @@ export function DocDetailPage({ kind, id }: { kind: DocKind; id: string }) {
       variant: "patient" as const,
     })),
   ];
-  const textOverlays: TextOverlay[] = textFields.map((f) => ({
-    pos: f,
-    text: autoFieldText(f.kind, doc.clinic_city),
-  }));
+  // Preview dos textos (data/local/CPF) — só os preenchidos aparecem no PDF.
+  const textOverlays: TextOverlay[] = textFields
+    .map((f) => ({ pos: f, text: (f.value ?? "").trim() }))
+    .filter((t) => t.text);
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
@@ -224,9 +264,8 @@ export function DocDetailPage({ kind, id }: { kind: DocKind; id: string }) {
           <h2 className="mb-1 font-semibold">Assinatura da clínica</h2>
           <p className="mb-2 text-sm text-muted-foreground">
             {clinicFields.length} campo(s) da clínica e {patientFields.length} do paciente
-            detectados automaticamente
-            {textFields.length > 0 ? `, ${textFields.length} campo(s) de data/local` : ""}. Assine
-            pela clínica — a mesma assinatura é aplicada em todos os campos da clínica.
+            detectados automaticamente. Assine pela clínica — a mesma assinatura é aplicada em todos
+            os campos da clínica.
           </p>
           {(clinicFields.length === 0 || patientFields.length === 0) && (
             <p className="mb-2 text-xs font-medium text-warning">
@@ -287,6 +326,31 @@ export function DocDetailPage({ kind, id }: { kind: DocKind; id: string }) {
               {placing === "clinic" ? " da clínica" : " do paciente"} (pode adicionar vários).
             </p>
           )}
+        </Card>
+      )}
+
+      {/* ── Campos de texto editáveis (data/local/CPF...) ── */}
+      {isClinicPhase && textFields.length > 0 && (
+        <Card className="mb-6 p-4">
+          <h2 className="mb-1 font-semibold">Campos de texto detectados</h2>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Preencha os campos abaixo (data, local, CPF...). O texto é inserido no documento na
+            posição do campo. Deixe em branco para não preencher.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {textFields.map((f, i) => (
+              <div key={i} className="grid gap-1.5">
+                <Label className="text-xs">
+                  {f.label} <span className="text-muted-foreground">(pág. {f.page})</span>
+                </Label>
+                <Input
+                  value={f.value ?? ""}
+                  onChange={(e) => setTextValue(i, e.target.value)}
+                  placeholder={f.label}
+                />
+              </div>
+            ))}
+          </div>
         </Card>
       )}
 

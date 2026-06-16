@@ -93,21 +93,30 @@ function sigBox(ln: Line): SignaturePos {
 }
 
 // Caixa de texto à DIREITA do rótulo (ex.: "Local e data: ____").
-function textBoxRightOf(ln: Line, kind: AutoTextKind): AutoTextField {
+function textBoxRightOf(ln: Line, kind: AutoTextKind, label: string): AutoTextField {
   const top = (ln.H - (ln.baseline + ln.height)) / ln.H;
   const x = Math.min(ln.xR / ln.W + 0.01, 0.9);
   const w = Math.min(0.96 - x, 0.5);
   const h = Math.min(Math.max((ln.height / ln.H) * 1.5, 0.018), 0.05);
-  return { page: ln.page, x, y: Math.max(top, 0.02), w, h, kind };
+  return { page: ln.page, x, y: Math.max(top, 0.02), w, h, kind, label };
 }
 
 // Caixa de texto SOBRE a linha (ex.: padrão "__ de ____ de __").
-function textBoxOnLine(ln: Line, kind: AutoTextKind): AutoTextField {
+function textBoxOnLine(ln: Line, kind: AutoTextKind, label: string): AutoTextField {
   const top = (ln.H - (ln.baseline + ln.height)) / ln.H;
   const x = ln.xL / ln.W;
   const w = Math.min((ln.xR - ln.xL) / ln.W, 0.6);
   const h = Math.min(Math.max((ln.height / ln.H) * 1.5, 0.018), 0.05);
-  return { page: ln.page, x, y: Math.max(top, 0.02), w, h, kind };
+  return { page: ln.page, x, y: Math.max(top, 0.02), w, h, kind, label };
+}
+
+// Limpa o rótulo bruto para exibição (remove ":" e lacunas).
+function cleanLabel(raw: string): string {
+  return raw
+    .replace(/[_:.]+\s*$/g, "")
+    .replace(/\s*:\s*$/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 const dedupe = <T extends SignaturePos>(arr: T[]): T[] => {
@@ -199,57 +208,85 @@ export async function detectSignatureFields(
   const clinic: SignaturePos[] = [];
   const patient: SignaturePos[] = [];
   const texts: AutoTextField[] = [];
+  const sigLineIdx = new Set<number>();
 
-  for (const ln of lines) {
+  // ── Passo 1: rótulos de ASSINATURA (somente faixa inferior das páginas).
+  lines.forEach((ln, idx) => {
     const topRatio = (ln.H - ln.baseline) / ln.H; // 0 = topo, 1 = base
-
-    // ── Rótulos de assinatura: somente na metade inferior (bloco de assinaturas).
-    if (topRatio >= 0.45) {
-      const isPatient = labels.patient.some((l) => isLabelLine(ln.norm, l));
-      const isClinic = labels.clinic.some((l) => isLabelLine(ln.norm, l));
-      // "testemunha" é opcional → não recebe assinatura (ignorado de propósito).
-      const isWitness = isLabelLine(ln.norm, "testemunha");
-      if (!isWitness) {
-        if (isPatient && !isClinic) {
-          patient.push(sigBox(ln));
-          continue;
-        }
-        if (isClinic && !isPatient) {
-          clinic.push(sigBox(ln));
-          continue;
-        }
-      }
+    if (topRatio < 0.45) return;
+    const isPatient = labels.patient.some((l) => isLabelLine(ln.norm, l));
+    const isClinic = labels.clinic.some((l) => isLabelLine(ln.norm, l));
+    const isWitness = isLabelLine(ln.norm, "testemunha"); // opcional → ignorado
+    if (isWitness) {
+      sigLineIdx.add(idx);
+      return;
     }
-
-    // ── Campos de texto data/local (podem estar um pouco mais acima).
-    if (topRatio >= 0.4 && ln.norm.length <= 60) {
-      if (/\blocal e data\b/.test(ln.norm)) {
-        texts.push(textBoxRightOf(ln, "local_date"));
-        continue;
-      }
-      // Padrão de data com lacunas: "__ de ____ de __" ou "__/__/__".
-      const dateBlank =
-        (/_{2,}/.test(ln.norm) && /\bde\b/.test(ln.norm)) ||
-        /_{2,}\s*\/\s*_{2,}\s*\/\s*_{2,}/.test(ln.norm);
-      if (dateBlank) {
-        texts.push(textBoxOnLine(ln, "local_date"));
-        continue;
-      }
-      if (/^local\b/.test(ln.norm)) {
-        texts.push(textBoxRightOf(ln, "local"));
-        continue;
-      }
-      if (/^data\b/.test(ln.norm)) {
-        texts.push(textBoxRightOf(ln, "date"));
-        continue;
-      }
+    if (isPatient && !isClinic) {
+      patient.push(sigBox(ln));
+      sigLineIdx.add(idx);
+    } else if (isClinic && !isPatient) {
+      clinic.push(sigBox(ln));
+      sigLineIdx.add(idx);
     }
-  }
+  });
+
+  // Páginas que contêm o bloco de assinaturas. Os campos de texto são detectados
+  // SOMENTE aqui, evitando que "data"/"local" do corpo (ex.: "data de
+  // nascimento", numa página intermediária) seja transformado em campo de data.
+  const sigPages = new Set<number>([...clinic, ...patient].map((f) => f.page));
+
+  // ── Passo 2: campos de TEXTO (data/local/CPF/...) no bloco de assinaturas.
+  lines.forEach((ln, idx) => {
+    if (sigLineIdx.has(idx)) return; // já é rótulo de assinatura
+    if (!sigPages.has(ln.page)) return; // fora da(s) página(s) de assinatura
+    const topRatio = (ln.H - ln.baseline) / ln.H;
+    if (topRatio < 0.5) return; // só a faixa inferior (bloco de assinaturas)
+    if (ln.norm.length > 60) return; // evita parágrafos do corpo
+    // Exclusões: linhas de corpo que contêm "data"/"local".
+    if (
+      /nascimento|pagamento|vencimento|emissao|validade|vigencia|inicio|termino|reajuste/.test(
+        ln.norm,
+      )
+    )
+      return;
+
+    if (/\blocal e data\b/.test(ln.norm)) {
+      texts.push(textBoxRightOf(ln, "local_date", "Local e data"));
+      return;
+    }
+    // Padrão de data com lacunas: "__ de ____ de __" ou "__/__/__".
+    if (
+      (/_{2,}/.test(ln.norm) && /\bde\b/.test(ln.norm)) ||
+      /_{2,}\s*\/\s*_{2,}\s*\/\s*_{2,}/.test(ln.norm)
+    ) {
+      texts.push(textBoxOnLine(ln, "date", "Data"));
+      return;
+    }
+    const idm = ln.norm.match(/\b(cpf|cnpj|rg)\b/);
+    if (idm) {
+      texts.push(textBoxRightOf(ln, "other", idm[1].toUpperCase()));
+      return;
+    }
+    if (/^local\b/.test(ln.norm)) {
+      texts.push(textBoxRightOf(ln, "local", "Local"));
+      return;
+    }
+    if (/^data\b/.test(ln.norm)) {
+      texts.push(textBoxRightOf(ln, "date", "Data"));
+      return;
+    }
+    // Genérico: "<rótulo>: ____" curto com lacuna (ex.: "Profissão: ___").
+    const gen = ln.raw.match(/^\s*([A-Za-zÀ-ú][A-Za-zÀ-ú ./]{1,18}?)\s*:\s*_{2,}/);
+    if (gen) {
+      texts.push(textBoxRightOf(ln, "other", cleanLabel(gen[1])));
+      return;
+    }
+  });
 
   // Limita para evitar explosão por falsos positivos.
   return {
     clinic: dedupe(clinic).slice(0, 6),
     patient: dedupe(patient).slice(0, 6),
-    texts: dedupe(texts).slice(0, 6),
+    texts: dedupe(texts).slice(0, 8),
   };
 }

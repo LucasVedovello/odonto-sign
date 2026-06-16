@@ -24,10 +24,15 @@ export type SignaturePos = {
 // Tamanho padrão do campo de assinatura ao posicionar (razões da página).
 export const DEFAULT_SIG_SIZE = { w: 0.3, h: 0.09 };
 
-// Campo de texto automático (data / local) detectado no PDF. Estende SignaturePos
-// com o "kind", que define que texto será gravado na geração do PDF final.
-export type AutoTextKind = "date" | "local" | "local_date";
-export type AutoTextField = SignaturePos & { kind: AutoTextKind };
+// Campo de texto detectado no PDF (data / local / CPF / etc.) na área de
+// assinaturas. A clínica preenche o valor numa caixa de input; o texto é
+// sobreposto nas coordenadas `pos` na geração do PDF final.
+export type AutoTextKind = "date" | "local" | "local_date" | "other";
+export type AutoTextField = SignaturePos & {
+  kind: AutoTextKind;
+  label: string; // rótulo exibido ao lado do input (ex.: "Local e data", "CPF")
+  value?: string; // texto preenchido pela clínica (editável)
+};
 
 // Normaliza um valor jsonb (pode ser null, objeto único legado, ou array) em array.
 export const asPosArray = (v: unknown): SignaturePos[] => {
@@ -56,8 +61,9 @@ const MESES_PT = [
 export const formatPtDate = (d: Date = new Date()): string =>
   `${d.getDate()} de ${MESES_PT[d.getMonth()]} de ${d.getFullYear()}`;
 
-// Texto a gravar em cada campo automático, conforme o tipo do campo.
-export const autoFieldText = (
+// Valor PADRÃO sugerido para um campo (a clínica pode editar livremente).
+// Campos "other" (CPF, CNPJ, etc.) começam vazios.
+export const defaultFieldValue = (
   kind: AutoTextKind,
   city?: string | null,
   d: Date = new Date(),
@@ -66,7 +72,8 @@ export const autoFieldText = (
   const c = (city ?? "").trim();
   if (kind === "date") return date;
   if (kind === "local") return c;
-  return c ? `${c}, ${date}` : date; // local_date
+  if (kind === "local_date") return c ? `${c}, ${date}` : date;
+  return ""; // other
 };
 
 // ── Registro de um documento assinável ──────────────────────────────────────
