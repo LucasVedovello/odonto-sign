@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { CheckCircle2, Eraser, ExternalLink, FileText, Loader2, PenLine } from "lucide-react";
+import { CheckCircle2, Eraser, Loader2, PenLine } from "lucide-react";
 import { SignaturePad, type SignaturePadHandle } from "@/components/SignaturePad";
 import { ContractDocument } from "@/components/ContractDocument";
+import { PdfImageViewer } from "@/components/PdfImageViewer";
 import { PublicHeader } from "@/routes/p/$token/index";
 import {
   documentsFor,
@@ -128,42 +129,7 @@ function SignFlow() {
               <p className="mb-4 text-sm text-muted-foreground">
                 Leia atentamente os documentos abaixo antes de assinar.
               </p>
-              <div className="space-y-4">
-                {docs.map((d) => (
-                  <div key={d.file} className="overflow-hidden rounded-lg border border-border">
-                    <div className="flex items-center justify-between gap-2 border-b border-border bg-muted/40 px-4 py-2.5">
-                      <span className="flex items-center gap-2 text-sm font-medium">
-                        <FileText className="h-4 w-4 text-primary" /> {d.title}
-                      </span>
-                      <a
-                        href={termUrl(d.file)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                      >
-                        Abrir <ExternalLink className="h-3 w-3" />
-                      </a>
-                    </div>
-                    <object
-                      data={termUrl(d.file)}
-                      type="application/pdf"
-                      className="h-[480px] w-full bg-muted/20"
-                    >
-                      <div className="p-4 text-sm text-muted-foreground">
-                        Não foi possível exibir o PDF aqui.{" "}
-                        <a
-                          href={termUrl(d.file)}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-primary hover:underline"
-                        >
-                          Clique para abrir.
-                        </a>
-                      </div>
-                    </object>
-                  </div>
-                ))}
-              </div>
+              <PdfImageViewer docs={docs.map((d) => ({ title: d.title, url: termUrl(d.file) }))} />
             </Card>
 
             {/* Aceite + assinatura */}

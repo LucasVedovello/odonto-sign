@@ -15,6 +15,8 @@ import {
   maskRG,
   maskDate,
   maskPhone,
+  maskCEP,
+  fetchViaCEP,
   dateBRtoISO,
   isValidCPF,
   isValidEmail,
@@ -26,6 +28,82 @@ export const Route = createFileRoute("/p/$token/")({
   component: PatientFillFlow,
   head: () => ({ meta: [{ title: "Preenchimento — OdontoSign" }] }),
 });
+
+const ESTADOS_CIVIS = ["Solteiro(a)", "Casado(a)", "Divorciado(a)", "Viúvo(a)", "União Estável"];
+const ESTADOS_BR = [
+  "AC",
+  "AL",
+  "AP",
+  "AM",
+  "BA",
+  "CE",
+  "DF",
+  "ES",
+  "GO",
+  "MA",
+  "MT",
+  "MS",
+  "MG",
+  "PA",
+  "PB",
+  "PR",
+  "PE",
+  "PI",
+  "RJ",
+  "RN",
+  "RS",
+  "RO",
+  "RR",
+  "SC",
+  "SP",
+  "SE",
+  "TO",
+];
+const ESCOLARIDADES = [
+  "Ensino Fundamental Incompleto",
+  "Ensino Fundamental Completo",
+  "Ensino Médio Incompleto",
+  "Ensino Médio Completo",
+  "Ensino Superior Incompleto",
+  "Ensino Superior Completo",
+  "Pós-graduação",
+  "Mestrado",
+  "Doutorado",
+];
+
+// Campos do cadastro antigo (tabela patients) — mantidos exatamente.
+type Cadastro = {
+  nome: string;
+  cpf: string;
+  rg: string;
+  data_nascimento: string;
+  estado_civil: string;
+  estado_nascimento: string;
+  telefone: string;
+  email: string;
+  cep: string;
+  rua: string;
+  bairro: string;
+  numero: string;
+  profissao: string;
+  escolaridade: string;
+};
+const EMPTY_CADASTRO: Cadastro = {
+  nome: "",
+  cpf: "",
+  rg: "",
+  data_nascimento: "",
+  estado_civil: "",
+  estado_nascimento: "",
+  telefone: "",
+  email: "",
+  cep: "",
+  rua: "",
+  bairro: "",
+  numero: "",
+  profissao: "",
+  escolaridade: "",
+};
 
 type Person = {
   nome: string;
@@ -39,7 +117,6 @@ type Person = {
   celular: string;
   email: string;
 };
-
 const EMPTY_PERSON: Person = {
   nome: "",
   nascimento: "",
@@ -58,12 +135,15 @@ function PatientFillFlow() {
   const [loading, setLoading] = useState(true);
   const [contract, setContract] = useState<{
     id: string;
+    company_id: string | null;
     treatment_type: string;
     status: string;
   } | null>(null);
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
+  const [cepLoading, setCepLoading] = useState(false);
 
+  const [cadastro, setCadastro] = useState<Cadastro>(EMPTY_CADASTRO);
   const [contratante, setContratante] = useState<Person>(EMPTY_PERSON);
   const [paciente, setPaciente] = useState<Person>(EMPTY_PERSON);
   const [mesmo, setMesmo] = useState(true);
@@ -74,7 +154,7 @@ function PatientFillFlow() {
     (async () => {
       const { data, error } = await supabase
         .from("contracts")
-        .select("id,treatment_type,status")
+        .select("id,company_id,treatment_type,status")
         .eq("patient_token", token)
         .maybeSingle();
       if (error || !data) {
@@ -87,26 +167,44 @@ function PatientFillFlow() {
     })();
   }, [token]);
 
+  const setCad = (patch: Partial<Cadastro>) => setCadastro((c) => ({ ...c, ...patch }));
+
+  const handleCEP = async (raw: string) => {
+    const masked = maskCEP(raw);
+    setCad({ cep: masked });
+    if (raw.replace(/\D/g, "").length === 8) {
+      setCepLoading(true);
+      const r = await fetchViaCEP(masked);
+      setCepLoading(false);
+      if (r) setCad({ rua: r.logradouro, bairro: r.bairro });
+    }
+  };
+
   const errors = useMemo(() => {
     const e: string[] = [];
+    if (!cadastro.nome.trim()) e.push("nome do paciente (cadastro)");
+    if (cadastro.cpf && !isValidCPF(cadastro.cpf)) e.push("CPF do cadastro");
+    if (cadastro.email && !isValidEmail(cadastro.email)) e.push("email do cadastro");
+    if (cadastro.data_nascimento && !isValidDate(cadastro.data_nascimento))
+      e.push("nascimento do cadastro");
+    if (cadastro.telefone && !isValidPhone(cadastro.telefone)) e.push("telefone do cadastro");
     if (!contratante.nome.trim()) e.push("nome do contratante");
     if (contratante.cpf && !isValidCPF(contratante.cpf)) e.push("CPF do contratante");
-    if (contratante.email && !isValidEmail(contratante.email)) e.push("email do contratante");
-    if (contratante.nascimento && !isValidDate(contratante.nascimento))
-      e.push("nascimento do contratante");
-    if (contratante.celular && !isValidPhone(contratante.celular)) e.push("celular do contratante");
     if (!mesmo && !paciente.nome.trim()) e.push("nome do paciente");
     return e;
-  }, [contratante, paciente, mesmo]);
+  }, [cadastro, contratante, paciente, mesmo]);
 
   const submit = async () => {
+    if (!contract) return;
     if (errors.length) {
       toast.error(`Verifique: ${errors.join(", ")}`);
       return;
     }
     setSaving(true);
+
+    // 1) Atualiza o contrato (contratante / paciente / referências)
     const src = mesmo ? contratante : paciente;
-    const payload = {
+    const contractPayload = {
       contratante_nome: contratante.nome.trim(),
       contratante_nascimento: dateBRtoISO(contratante.nascimento),
       contratante_cpf: contratante.cpf || null,
@@ -133,12 +231,61 @@ function PatientFillFlow() {
       referencia_2_telefone: ref2.telefone || null,
       status: "aguardando_recepcao" as const,
     };
-    const { error } = await supabase.from("contracts").update(payload).eq("patient_token", token);
-    setSaving(false);
-    if (error) {
+    const { error: cErr } = await supabase
+      .from("contracts")
+      .update(contractPayload)
+      .eq("patient_token", token);
+    if (cErr) {
+      setSaving(false);
       toast.error("Erro ao enviar dados");
       return;
     }
+
+    // 2) Cria ou atualiza o registro na tabela patients (cadastro antigo)
+    const companyId = contract.company_id;
+    if (companyId) {
+      const endereco = `${cadastro.rua}, ${cadastro.numero || "s/n"} - ${cadastro.bairro}, CEP: ${cadastro.cep}`;
+      const patientPayload = {
+        company_id: companyId,
+        nome: cadastro.nome.trim(),
+        cpf: cadastro.cpf || null,
+        rg: cadastro.rg || null,
+        data_nascimento: dateBRtoISO(cadastro.data_nascimento),
+        estado_civil: cadastro.estado_civil || null,
+        estado_nascimento: cadastro.estado_nascimento || null,
+        telefone: cadastro.telefone || null,
+        email: cadastro.email.trim().toLowerCase() || null,
+        cep: cadastro.cep || null,
+        rua: cadastro.rua || null,
+        bairro: cadastro.bairro || null,
+        numero: cadastro.numero || null,
+        endereco,
+        profissao: cadastro.profissao || null,
+        escolaridade: cadastro.escolaridade || null,
+      };
+      try {
+        let existingId: string | null = null;
+        if (cadastro.cpf) {
+          const { data: ex } = await supabase
+            .from("patients")
+            .select("id")
+            .eq("company_id", companyId)
+            .eq("cpf", cadastro.cpf)
+            .maybeSingle();
+          existingId = ex?.id ?? null;
+        }
+        if (existingId) {
+          await supabase.from("patients").update(patientPayload).eq("id", existingId);
+        } else {
+          await supabase.from("patients").insert(patientPayload);
+        }
+      } catch {
+        // O contrato já foi enviado; falha no espelhamento do cadastro não bloqueia o paciente.
+        console.error("[p/token] falha ao espelhar cadastro em patients");
+      }
+    }
+
+    setSaving(false);
     setDone(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -182,8 +329,129 @@ function PatientFillFlow() {
               Preencha as informações abaixo para o contrato.
             </p>
 
-            {/* Contratante */}
+            {/* Cadastro do Paciente (campos do cadastro antigo) */}
             <Card className="mt-5 p-5 sm:p-6">
+              <SectionTitle>Cadastro do Paciente</SectionTitle>
+              <div className="mt-3 grid gap-4">
+                <Field
+                  label="Nome completo"
+                  value={cadastro.nome}
+                  onChange={(v) => setCad({ nome: v })}
+                />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field
+                    label="CPF"
+                    value={cadastro.cpf}
+                    onChange={(v) => setCad({ cpf: maskCPF(v) })}
+                    placeholder="000.000.000-00"
+                    inputMode="numeric"
+                  />
+                  <Field
+                    label="RG"
+                    value={cadastro.rg}
+                    onChange={(v) => setCad({ rg: maskRG(v) })}
+                    placeholder="00.000.000-X"
+                  />
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field
+                    label="Data de nascimento"
+                    value={cadastro.data_nascimento}
+                    onChange={(v) => setCad({ data_nascimento: maskDate(v) })}
+                    placeholder="DD/MM/AAAA"
+                    inputMode="numeric"
+                  />
+                  <SelectField
+                    label="Estado onde nasceu"
+                    value={cadastro.estado_nascimento}
+                    onChange={(v) => setCad({ estado_nascimento: v })}
+                  >
+                    <option value="">Selecione...</option>
+                    {ESTADOS_BR.map((uf) => (
+                      <option key={uf} value={uf}>
+                        {uf}
+                      </option>
+                    ))}
+                  </SelectField>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <SelectField
+                    label="Estado civil"
+                    value={cadastro.estado_civil}
+                    onChange={(v) => setCad({ estado_civil: v })}
+                  >
+                    <option value="">Selecione...</option>
+                    {ESTADOS_CIVIS.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </SelectField>
+                  <Field
+                    label="Profissão"
+                    value={cadastro.profissao}
+                    onChange={(v) => setCad({ profissao: v })}
+                  />
+                </div>
+                <SelectField
+                  label="Escolaridade"
+                  value={cadastro.escolaridade}
+                  onChange={(v) => setCad({ escolaridade: v })}
+                >
+                  <option value="">Selecione...</option>
+                  {ESCOLARIDADES.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </SelectField>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field
+                    label="Telefone"
+                    value={cadastro.telefone}
+                    onChange={(v) => setCad({ telefone: maskPhone(v) })}
+                    inputMode="tel"
+                  />
+                  <Field
+                    label="Email"
+                    value={cadastro.email}
+                    onChange={(v) => setCad({ email: v.replace(/\s/g, "") })}
+                    inputMode="email"
+                    type="email"
+                  />
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid gap-1.5">
+                    <Label>CEP</Label>
+                    <div className="relative">
+                      <Input
+                        value={cadastro.cep}
+                        placeholder="00000-000"
+                        inputMode="numeric"
+                        onChange={(e) => handleCEP(e.target.value)}
+                      />
+                      {cepLoading && (
+                        <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
+                      )}
+                    </div>
+                  </div>
+                  <Field
+                    label="Número"
+                    value={cadastro.numero}
+                    onChange={(v) => setCad({ numero: v })}
+                  />
+                </div>
+                <Field label="Rua" value={cadastro.rua} onChange={(v) => setCad({ rua: v })} />
+                <Field
+                  label="Bairro"
+                  value={cadastro.bairro}
+                  onChange={(v) => setCad({ bairro: v })}
+                />
+              </div>
+            </Card>
+
+            {/* Contratante */}
+            <Card className="mt-4 p-5 sm:p-6">
               <SectionTitle>Dados do Contratante</SectionTitle>
               <PersonFields value={contratante} onChange={setContratante} />
             </Card>
