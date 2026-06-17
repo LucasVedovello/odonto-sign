@@ -98,7 +98,7 @@ export function PdfSignDocument({
     const px = (e.clientX - rect.left) / rect.width;
     const py = (e.clientY - rect.top) / rect.height;
     const x = Math.min(Math.max(px, 0), 1 - (boxSize?.w ?? 0));
-    const y = Math.min(Math.max(py, 0), 1 - (boxSize?.h ?? 0));
+    const y = Math.min(Math.max(py - (boxSize?.h ?? 0) / 2, 0), 1 - (boxSize?.h ?? 0));
     onPlace(pageNum, x, y);
   };
 
