@@ -120,8 +120,10 @@ function ProfilePage() {
     setPwdSaving(true);
     const { error } = await supabase.auth.updateUser({ password: pwd.password });
     setPwdSaving(false);
-    if (error) toast.error(error.message);
-    else {
+    if (error) {
+      console.error("[perfil] alterar senha:", error.message);
+      toast.error("Não foi possível alterar a senha. Ela deve ter ao menos 6 caracteres.");
+    } else {
       toast.success("Senha alterada");
       setPwd({ password: "", confirm: "" });
       supabase
