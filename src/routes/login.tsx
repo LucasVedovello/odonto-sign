@@ -30,6 +30,8 @@ function LoginPage() {
       () => {},
     );
     if (error) {
+      // Log explícito para diagnosticar falhas de autenticação.
+      console.error("[login] signInWithPassword falhou:", error.message);
       setLoading(false);
       toast.error(
         error.message === "Email not confirmed"
@@ -53,11 +55,13 @@ function LoginPage() {
   const routeAfterLogin = async (userId?: string) => {
     try {
       if (userId) {
-        const { data: profile } = await supabase
+        const { data: profile, error: profileErr } = await supabase
           .from("profiles")
           .select("is_admin")
           .eq("id", userId)
           .maybeSingle();
+        // Um erro aqui (ex.: 403 por RLS) deixava o login falhar em silêncio.
+        if (profileErr) console.error("[login] erro ao ler perfil:", profileErr.message);
         if (profile?.is_admin) {
           window.location.assign("/");
           return;
@@ -78,8 +82,9 @@ function LoginPage() {
       } else {
         navigate({ to: "/select-company" });
       }
-    } catch {
+    } catch (e) {
       // Banco ainda sem suporte a múltiplas clínicas → fluxo legado.
+      console.error("[login] falha no roteamento pós-login:", e);
       navigate({ to: "/" });
     }
   };
