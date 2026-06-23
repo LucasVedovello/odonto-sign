@@ -37,6 +37,7 @@ export const getServerSession = createServerFn().handler(async () => {
       isAdmin: false,
       role: null as string | null,
       approvalStatus: "pending" as string,
+      subscriptionExpired: false,
     };
   }
 
@@ -60,7 +61,13 @@ export const getServerSession = createServerFn().handler(async () => {
 
   // Admins always pass
   if (profile?.is_admin || role === "platform_admin") {
-    return { authenticated: true, isAdmin: true, role, approvalStatus: "approved" as string };
+    return {
+      authenticated: true,
+      isAdmin: true,
+      role,
+      approvalStatus: "approved" as string,
+      subscriptionExpired: false,
+    };
   }
 
   // No profile or no company_id → send back to login
@@ -70,20 +77,31 @@ export const getServerSession = createServerFn().handler(async () => {
       isAdmin: false,
       role: null as string | null,
       approvalStatus: "pending" as string,
+      subscriptionExpired: false,
     };
   }
 
-  // Check company approval
+  // Check company approval + subscription
   const { data: company } = await serverSupabase
     .from("companies")
-    .select("approval_status")
+    .select("approval_status, subscription_expires_at")
     .eq("id", profile.company_id)
     .maybeSingle();
 
   // Safe default: if company row can't be read, treat as pending
   const approvalStatus = company?.approval_status ?? "pending";
 
-  if (DEV) console.log("[getServerSession] approval_status:", approvalStatus);
+  // Assinatura vencida (ou nula) bloqueia o acesso operacional.
+  const exp = company?.subscription_expires_at;
+  const subscriptionExpired = !exp || new Date(exp).getTime() < Date.now();
 
-  return { authenticated: true, isAdmin: false, role, approvalStatus };
+  if (DEV)
+    console.log(
+      "[getServerSession] approval_status:",
+      approvalStatus,
+      "| subscriptionExpired:",
+      subscriptionExpired,
+    );
+
+  return { authenticated: true, isAdmin: false, role, approvalStatus, subscriptionExpired };
 });

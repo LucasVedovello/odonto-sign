@@ -51,11 +51,12 @@ export function PublicSignPage({ kind, token }: { kind: DocKind; token: string }
 
   useEffect(() => {
     (async () => {
-      const { data, error } = await supabase
-        .from(cfg.table as "contracts")
-        .select("*")
-        .eq("public_token", token)
-        .maybeSingle();
+      // Acesso público restrito ao token via RPC SECURITY DEFINER (a leitura
+      // direta da tabela por anon foi removida — ver migration fix_rls_anon).
+      const { data, error } = await supabase.rpc("public_get_signed_document", {
+        p_kind: kind,
+        p_token: token,
+      });
       if (error || !data) {
         setLoading(false);
         return;
@@ -65,7 +66,7 @@ export function PublicSignPage({ kind, token }: { kind: DocKind; token: string }
       if (d.status === "assinado") setDone(true);
       setLoading(false);
     })();
-  }, [cfg.table, token]);
+  }, [kind, token]);
 
   const originalUrl = useMemo(
     () => (doc ? publicUrl(doc.original_pdf_path) : ""),
@@ -142,16 +143,17 @@ export function PublicSignPage({ kind, token }: { kind: DocKind; token: string }
       // Mesmo que o upload falhe, persistimos a assinatura; a recepção regenera.
       if (upErr) console.error("[PublicSignPage] upload signed PDF falhou", upErr);
 
-      const { error } = await supabase
-        .from(cfg.table as "contracts")
-        .update({
-          patient_signature: patientSig,
-          patient_signed_at: new Date().toISOString(),
-          status: "assinado",
-          signed_pdf_path: upErr ? null : signedPath,
-        })
-        .eq("public_token", token);
+      const { data: signed, error } = await supabase.rpc("public_sign_document", {
+        p_kind: kind,
+        p_token: token,
+        p_signature: patientSig,
+        p_signed_pdf_path: upErr ? undefined : signedPath,
+      });
       if (error) throw error;
+      if (!signed) {
+        toast.error("Este documento não está mais disponível para assinatura.");
+        return;
+      }
 
       setDone(true);
       window.scrollTo({ top: 0, behavior: "smooth" });

@@ -14,6 +14,7 @@ import {
   History,
   FileSignature,
   ScrollText,
+  Contact,
   Trash2,
   Building2,
   PlusCircle,
@@ -57,6 +58,7 @@ export function AppHeader() {
       // platform_admin: visão da plataforma + acesso operacional
       add("Contratos", FileSignature, "/contratos");
       add("Termos", ScrollText, "/termos");
+      add("Pacientes", Contact, "/pacientes");
       add("Prontuário", ClipboardList, "/prontuario");
       add("Recentes", History, "/prontuarios-recentes");
       add("Admin", ShieldCheck, "/admin");
@@ -67,6 +69,7 @@ export function AppHeader() {
       // clinic_owner: gestão completa da clínica
       add("Contratos", FileSignature, "/contratos");
       add("Termos", ScrollText, "/termos");
+      add("Pacientes", Contact, "/pacientes");
       add("Prontuário", ClipboardList, "/prontuario");
       add("Recentes", History, "/prontuarios-recentes");
       add("Usuários", Users, "/usuarios");
@@ -77,6 +80,7 @@ export function AppHeader() {
       // dentist / staff: operação do dia a dia (sem administração)
       add("Contratos", FileSignature, "/contratos");
       add("Termos", ScrollText, "/termos");
+      add("Pacientes", Contact, "/pacientes");
       add("Prontuário", ClipboardList, "/prontuario");
       add("Recentes", History, "/prontuarios-recentes");
       tabs.push({ type: "separator" as const });

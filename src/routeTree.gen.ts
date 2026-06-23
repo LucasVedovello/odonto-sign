@@ -9,11 +9,11 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TestRouteImport } from './routes/test'
 import { Route as SelectCompanyRouteImport } from './routes/select-company'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as CriarEmpresaRouteImport } from './routes/criar-empresa'
+import { Route as AssinaturaExpiradaRouteImport } from './routes/assinatura-expirada'
 import { Route as AguardandoAprovacaoRouteImport } from './routes/aguardando-aprovacao'
 import { Route as AdicionarClinicaRouteImport } from './routes/adicionar-clinica'
 import { Route as AcessoNegadoRouteImport } from './routes/acesso-negado'
@@ -28,6 +28,7 @@ import { Route as AuthenticatedSuporteRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedProntuariosRecentesRouteImport } from './routes/_authenticated/prontuarios-recentes'
 import { Route as AuthenticatedProntuarioRouteImport } from './routes/_authenticated/prontuario'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
+import { Route as AuthenticatedPacientesRouteImport } from './routes/_authenticated/pacientes'
 import { Route as AuthenticatedLixeiraRouteImport } from './routes/_authenticated/lixeira'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedTermosIndexRouteImport } from './routes/_authenticated/termos/index'
@@ -35,11 +36,6 @@ import { Route as AuthenticatedContratosIndexRouteImport } from './routes/_authe
 import { Route as AuthenticatedTermosIdRouteImport } from './routes/_authenticated/termos/$id'
 import { Route as AuthenticatedContratosIdRouteImport } from './routes/_authenticated/contratos/$id'
 
-const TestRoute = TestRouteImport.update({
-  id: '/test',
-  path: '/test',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SelectCompanyRoute = SelectCompanyRouteImport.update({
   id: '/select-company',
   path: '/select-company',
@@ -58,6 +54,11 @@ const LoginRoute = LoginRouteImport.update({
 const CriarEmpresaRoute = CriarEmpresaRouteImport.update({
   id: '/criar-empresa',
   path: '/criar-empresa',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AssinaturaExpiradaRoute = AssinaturaExpiradaRouteImport.update({
+  id: '/assinatura-expirada',
+  path: '/assinatura-expirada',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AguardandoAprovacaoRoute = AguardandoAprovacaoRouteImport.update({
@@ -130,6 +131,11 @@ const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
   path: '/perfil',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedPacientesRoute = AuthenticatedPacientesRouteImport.update({
+  id: '/pacientes',
+  path: '/pacientes',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedLixeiraRoute = AuthenticatedLixeiraRouteImport.update({
   id: '/lixeira',
   path: '/lixeira',
@@ -170,13 +176,14 @@ export interface FileRoutesByFullPath {
   '/acesso-negado': typeof AcessoNegadoRoute
   '/adicionar-clinica': typeof AdicionarClinicaRoute
   '/aguardando-aprovacao': typeof AguardandoAprovacaoRoute
+  '/assinatura-expirada': typeof AssinaturaExpiradaRoute
   '/criar-empresa': typeof CriarEmpresaRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/select-company': typeof SelectCompanyRoute
-  '/test': typeof TestRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/lixeira': typeof AuthenticatedLixeiraRoute
+  '/pacientes': typeof AuthenticatedPacientesRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/prontuario': typeof AuthenticatedProntuarioRoute
   '/prontuarios-recentes': typeof AuthenticatedProntuariosRecentesRoute
@@ -195,13 +202,14 @@ export interface FileRoutesByTo {
   '/acesso-negado': typeof AcessoNegadoRoute
   '/adicionar-clinica': typeof AdicionarClinicaRoute
   '/aguardando-aprovacao': typeof AguardandoAprovacaoRoute
+  '/assinatura-expirada': typeof AssinaturaExpiradaRoute
   '/criar-empresa': typeof CriarEmpresaRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/select-company': typeof SelectCompanyRoute
-  '/test': typeof TestRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/lixeira': typeof AuthenticatedLixeiraRoute
+  '/pacientes': typeof AuthenticatedPacientesRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/prontuario': typeof AuthenticatedProntuarioRoute
   '/prontuarios-recentes': typeof AuthenticatedProntuariosRecentesRoute
@@ -223,13 +231,14 @@ export interface FileRoutesById {
   '/acesso-negado': typeof AcessoNegadoRoute
   '/adicionar-clinica': typeof AdicionarClinicaRoute
   '/aguardando-aprovacao': typeof AguardandoAprovacaoRoute
+  '/assinatura-expirada': typeof AssinaturaExpiradaRoute
   '/criar-empresa': typeof CriarEmpresaRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/select-company': typeof SelectCompanyRoute
-  '/test': typeof TestRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/lixeira': typeof AuthenticatedLixeiraRoute
+  '/_authenticated/pacientes': typeof AuthenticatedPacientesRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/prontuario': typeof AuthenticatedProntuarioRoute
   '/_authenticated/prontuarios-recentes': typeof AuthenticatedProntuariosRecentesRoute
@@ -252,13 +261,14 @@ export interface FileRouteTypes {
     | '/acesso-negado'
     | '/adicionar-clinica'
     | '/aguardando-aprovacao'
+    | '/assinatura-expirada'
     | '/criar-empresa'
     | '/login'
     | '/reset-password'
     | '/select-company'
-    | '/test'
     | '/admin'
     | '/lixeira'
+    | '/pacientes'
     | '/perfil'
     | '/prontuario'
     | '/prontuarios-recentes'
@@ -277,13 +287,14 @@ export interface FileRouteTypes {
     | '/acesso-negado'
     | '/adicionar-clinica'
     | '/aguardando-aprovacao'
+    | '/assinatura-expirada'
     | '/criar-empresa'
     | '/login'
     | '/reset-password'
     | '/select-company'
-    | '/test'
     | '/admin'
     | '/lixeira'
+    | '/pacientes'
     | '/perfil'
     | '/prontuario'
     | '/prontuarios-recentes'
@@ -304,13 +315,14 @@ export interface FileRouteTypes {
     | '/acesso-negado'
     | '/adicionar-clinica'
     | '/aguardando-aprovacao'
+    | '/assinatura-expirada'
     | '/criar-empresa'
     | '/login'
     | '/reset-password'
     | '/select-company'
-    | '/test'
     | '/_authenticated/admin'
     | '/_authenticated/lixeira'
+    | '/_authenticated/pacientes'
     | '/_authenticated/perfil'
     | '/_authenticated/prontuario'
     | '/_authenticated/prontuarios-recentes'
@@ -332,11 +344,11 @@ export interface RootRouteChildren {
   AcessoNegadoRoute: typeof AcessoNegadoRoute
   AdicionarClinicaRoute: typeof AdicionarClinicaRoute
   AguardandoAprovacaoRoute: typeof AguardandoAprovacaoRoute
+  AssinaturaExpiradaRoute: typeof AssinaturaExpiradaRoute
   CriarEmpresaRoute: typeof CriarEmpresaRoute
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SelectCompanyRoute: typeof SelectCompanyRoute
-  TestRoute: typeof TestRoute
   AssinarContratoUuidRoute: typeof AssinarContratoUuidRoute
   AssinarTermoUuidRoute: typeof AssinarTermoUuidRoute
   CadastroTokenRoute: typeof CadastroTokenRoute
@@ -344,13 +356,6 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/test': {
-      id: '/test'
-      path: '/test'
-      fullPath: '/test'
-      preLoaderRoute: typeof TestRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/select-company': {
       id: '/select-company'
       path: '/select-company'
@@ -377,6 +382,13 @@ declare module '@tanstack/react-router' {
       path: '/criar-empresa'
       fullPath: '/criar-empresa'
       preLoaderRoute: typeof CriarEmpresaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/assinatura-expirada': {
+      id: '/assinatura-expirada'
+      path: '/assinatura-expirada'
+      fullPath: '/assinatura-expirada'
+      preLoaderRoute: typeof AssinaturaExpiradaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/aguardando-aprovacao': {
@@ -477,6 +489,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPerfilRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/pacientes': {
+      id: '/_authenticated/pacientes'
+      path: '/pacientes'
+      fullPath: '/pacientes'
+      preLoaderRoute: typeof AuthenticatedPacientesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/lixeira': {
       id: '/_authenticated/lixeira'
       path: '/lixeira'
@@ -525,6 +544,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedLixeiraRoute: typeof AuthenticatedLixeiraRoute
+  AuthenticatedPacientesRoute: typeof AuthenticatedPacientesRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedProntuarioRoute: typeof AuthenticatedProntuarioRoute
   AuthenticatedProntuariosRecentesRoute: typeof AuthenticatedProntuariosRecentesRoute
@@ -540,6 +560,7 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedLixeiraRoute: AuthenticatedLixeiraRoute,
+  AuthenticatedPacientesRoute: AuthenticatedPacientesRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedProntuarioRoute: AuthenticatedProntuarioRoute,
   AuthenticatedProntuariosRecentesRoute: AuthenticatedProntuariosRecentesRoute,
@@ -562,11 +583,11 @@ const rootRouteChildren: RootRouteChildren = {
   AcessoNegadoRoute: AcessoNegadoRoute,
   AdicionarClinicaRoute: AdicionarClinicaRoute,
   AguardandoAprovacaoRoute: AguardandoAprovacaoRoute,
+  AssinaturaExpiradaRoute: AssinaturaExpiradaRoute,
   CriarEmpresaRoute: CriarEmpresaRoute,
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SelectCompanyRoute: SelectCompanyRoute,
-  TestRoute: TestRoute,
   AssinarContratoUuidRoute: AssinarContratoUuidRoute,
   AssinarTermoUuidRoute: AssinarTermoUuidRoute,
   CadastroTokenRoute: CadastroTokenRoute,

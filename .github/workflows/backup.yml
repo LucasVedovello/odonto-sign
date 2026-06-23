@@ -23,13 +23,29 @@ jobs:
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
-          FILENAME="backup-$(date +'%Y-%m-%d').sql"
+          # set -e garante que uma falha do pg_dump aborte o step
+          # (sem isso, o `echo` seguinte mascararia o erro com exit 0).
+          set -euo pipefail
+          if [ -z "${SUPABASE_DB_URL:-}" ]; then
+            echo "::error::Secret SUPABASE_DB_URL não configurado"
+            exit 1
+          fi
+          FILENAME="backup-$(date +'%Y-%m-%d_%H-%M-%S').sql"
           /usr/lib/postgresql/17/bin/pg_dump "$SUPABASE_DB_URL" \
             --no-owner \
             --no-acl \
             --format=plain \
             > "$FILENAME"
-          echo "BACKUP_FILE=$FILENAME" >> $GITHUB_ENV
+          echo "BACKUP_FILE=$FILENAME" >> "$GITHUB_ENV"
+
+      - name: Verify backup is not empty
+        run: |
+          # Falha o job se o arquivo não existir ou tiver 0 bytes.
+          if [ ! -s "$BACKUP_FILE" ]; then
+            echo "::error::Backup vazio ou ausente: ${BACKUP_FILE:-<não definido>}"
+            exit 1
+          fi
+          echo "Backup OK ($(du -h "$BACKUP_FILE" | cut -f1)): $BACKUP_FILE"
 
       - name: Upload backup as artifact
         uses: actions/upload-artifact@v4.6.2
