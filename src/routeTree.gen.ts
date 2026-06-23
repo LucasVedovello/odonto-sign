@@ -25,6 +25,7 @@ import { Route as AssinarTermoUuidRouteImport } from './routes/assinar-termo.$uu
 import { Route as AssinarContratoUuidRouteImport } from './routes/assinar-contrato.$uuid'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AuthenticatedSuporteRouteImport } from './routes/_authenticated/suporte'
+import { Route as AuthenticatedProntuariosRecentesRouteImport } from './routes/_authenticated/prontuarios-recentes'
 import { Route as AuthenticatedProntuarioRouteImport } from './routes/_authenticated/prontuario'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedLixeiraRouteImport } from './routes/_authenticated/lixeira'
@@ -113,6 +114,12 @@ const AuthenticatedSuporteRoute = AuthenticatedSuporteRouteImport.update({
   path: '/suporte',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedProntuariosRecentesRoute =
+  AuthenticatedProntuariosRecentesRouteImport.update({
+    id: '/prontuarios-recentes',
+    path: '/prontuarios-recentes',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedProntuarioRoute = AuthenticatedProntuarioRouteImport.update({
   id: '/prontuario',
   path: '/prontuario',
@@ -172,6 +179,7 @@ export interface FileRoutesByFullPath {
   '/lixeira': typeof AuthenticatedLixeiraRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/prontuario': typeof AuthenticatedProntuarioRoute
+  '/prontuarios-recentes': typeof AuthenticatedProntuariosRecentesRoute
   '/suporte': typeof AuthenticatedSuporteRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/assinar-contrato/$uuid': typeof AssinarContratoUuidRoute
@@ -196,6 +204,7 @@ export interface FileRoutesByTo {
   '/lixeira': typeof AuthenticatedLixeiraRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/prontuario': typeof AuthenticatedProntuarioRoute
+  '/prontuarios-recentes': typeof AuthenticatedProntuariosRecentesRoute
   '/suporte': typeof AuthenticatedSuporteRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/assinar-contrato/$uuid': typeof AssinarContratoUuidRoute
@@ -223,6 +232,7 @@ export interface FileRoutesById {
   '/_authenticated/lixeira': typeof AuthenticatedLixeiraRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/prontuario': typeof AuthenticatedProntuarioRoute
+  '/_authenticated/prontuarios-recentes': typeof AuthenticatedProntuariosRecentesRoute
   '/_authenticated/suporte': typeof AuthenticatedSuporteRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/assinar-contrato/$uuid': typeof AssinarContratoUuidRoute
@@ -251,6 +261,7 @@ export interface FileRouteTypes {
     | '/lixeira'
     | '/perfil'
     | '/prontuario'
+    | '/prontuarios-recentes'
     | '/suporte'
     | '/usuarios'
     | '/assinar-contrato/$uuid'
@@ -275,6 +286,7 @@ export interface FileRouteTypes {
     | '/lixeira'
     | '/perfil'
     | '/prontuario'
+    | '/prontuarios-recentes'
     | '/suporte'
     | '/usuarios'
     | '/assinar-contrato/$uuid'
@@ -301,6 +313,7 @@ export interface FileRouteTypes {
     | '/_authenticated/lixeira'
     | '/_authenticated/perfil'
     | '/_authenticated/prontuario'
+    | '/_authenticated/prontuarios-recentes'
     | '/_authenticated/suporte'
     | '/_authenticated/usuarios'
     | '/assinar-contrato/$uuid'
@@ -443,6 +456,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSuporteRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/prontuarios-recentes': {
+      id: '/_authenticated/prontuarios-recentes'
+      path: '/prontuarios-recentes'
+      fullPath: '/prontuarios-recentes'
+      preLoaderRoute: typeof AuthenticatedProntuariosRecentesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/prontuario': {
       id: '/_authenticated/prontuario'
       path: '/prontuario'
@@ -507,6 +527,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedLixeiraRoute: typeof AuthenticatedLixeiraRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedProntuarioRoute: typeof AuthenticatedProntuarioRoute
+  AuthenticatedProntuariosRecentesRoute: typeof AuthenticatedProntuariosRecentesRoute
   AuthenticatedSuporteRoute: typeof AuthenticatedSuporteRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
@@ -521,6 +542,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedLixeiraRoute: AuthenticatedLixeiraRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedProntuarioRoute: AuthenticatedProntuarioRoute,
+  AuthenticatedProntuariosRecentesRoute: AuthenticatedProntuariosRecentesRoute,
   AuthenticatedSuporteRoute: AuthenticatedSuporteRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,

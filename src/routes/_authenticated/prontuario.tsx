@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -32,8 +32,15 @@ import {
 import { cn } from "@/lib/utils";
 import { SignaturePad, type SignaturePadHandle } from "@/components/SignaturePad";
 import { SignatureDialog, type DualSignature } from "@/components/SignatureDialog";
+import { AuditFooter } from "@/components/AuditFooter";
+import { fetchProfileNames } from "@/lib/audit";
+import { downloadProntuarioPdf } from "@/lib/prontuario-download";
 
 export const Route = createFileRoute("/_authenticated/prontuario")({
+  // `?abrir=<id>` abre o prontuário direto na edição (usado pela aba "Recentes").
+  validateSearch: (search: Record<string, unknown>): { abrir?: string } => ({
+    abrir: typeof search.abrir === "string" ? search.abrir : undefined,
+  }),
   component: ProntuarioPage,
   head: () => ({ meta: [{ title: "Prontuários — OdontoSign" }] }),
 });
@@ -64,6 +71,9 @@ type ProntuarioRow = {
   assinatura_doutor: string | null;
   status: ProntuarioStatus | null;
   created_at: string;
+  updated_at: string | null;
+  created_by: string | null;
+  updated_by: string | null;
 };
 
 const STATUS_META: Record<ProntuarioStatus, { label: string; cls: string }> = {
@@ -217,7 +227,10 @@ const db = supabase as any;
 // ── Main Component ───────────────────────────────────────────────────────────
 function ProntuarioPage() {
   const { profile } = useAuth();
+  const { abrir } = Route.useSearch();
+  const navigate = useNavigate();
   const [prontuarios, setProntuarios] = useState<ProntuarioRow[]>([]);
+  const [authorNames, setAuthorNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [editingId, setEditingId] = useState<string | null | "new">(null);
@@ -244,17 +257,33 @@ function ProntuarioPage() {
     if (!profile?.company_id) return;
     const { data } = await db
       .from("prontuarios")
-      .select("id,nome,data,num_prontuario,num_contrato,assinatura_doutor,status,created_at")
+      .select(
+        "id,nome,data,num_prontuario,num_contrato,assinatura_doutor,status,created_at,updated_at,created_by,updated_by",
+      )
       .eq("company_id", profile.company_id)
       .is("deleted_at", null)
       .order("created_at", { ascending: false });
-    setProntuarios((data ?? []) as ProntuarioRow[]);
+    const list = (data ?? []) as ProntuarioRow[];
+    setProntuarios(list);
     setLoading(false);
+    setAuthorNames(await fetchProfileNames(list.flatMap((p) => [p.created_by, p.updated_by])));
   }, [profile?.company_id]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  // Abertura direta via `?abrir=<id>` (aba "Recentes"): abre a edição uma vez e
+  // limpa o parâmetro para não reabrir ao fechar/recarregar.
+  const openedFromParam = useRef<string | null>(null);
+  useEffect(() => {
+    if (abrir && openedFromParam.current !== abrir) {
+      openedFromParam.current = abrir;
+      openEdit(abrir);
+      navigate({ to: "/prontuario", search: {}, replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [abrir]);
 
   // ── Patient search ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -531,33 +560,12 @@ function ProntuarioPage() {
 
   // ── Download PDF ────────────────────────────────────────────────────────
   const downloadPdf = async (id: string) => {
-    const { data: row } = await db.from("prontuarios").select("*").eq("id", id).single();
-    const { data: evs } = await db
-      .from("prontuario_eventos")
-      .select("*")
-      .eq("prontuario_id", id)
-      .order("created_at");
-    if (!row) return;
-
-    // Tipo do contrato vem de patients.procedimentos (TEXT[]); a ficha de
-    // Prótese (IOP054) só entra quando "protese" está entre os procedimentos.
-    let isProtese = false;
-    if (row.patient_id) {
-      const { data: pat } = await db
-        .from("patients")
-        .select("procedimentos")
-        .eq("id", row.patient_id)
-        .single();
-      isProtese = (pat?.procedimentos ?? []).some(
-        (proc: string) => (proc ?? "").toLowerCase() === "protese",
-      );
+    try {
+      await downloadProntuarioPdf(id);
+    } catch (e) {
+      console.error(e);
+      toast.error("Falha ao gerar o PDF");
     }
-
-    const { generateProntuarioPdf } = await import("@/lib/prontuario-pdf");
-    const doc = await generateProntuarioPdf(row, evs ?? [], { isProtese });
-    doc.save(
-      `prontuario-${(row.nome ?? "paciente").replace(/\s+/g, "_")}-${row.data ?? "s-data"}.pdf`,
-    );
   };
 
   // ── Filtered list ────────────────────────────────────────────────────────
@@ -1205,7 +1213,7 @@ function ProntuarioPage() {
         <div className="grid gap-3 card-list">
           {filtered.map((p) => (
             <Card key={p.id} className="p-4">
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1 cursor-pointer" onClick={() => openEdit(p.id)}>
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-medium truncate">
@@ -1244,6 +1252,12 @@ function ProntuarioPage() {
                   </Button>
                 </div>
               </div>
+              <AuditFooter
+                createdByName={p.created_by ? authorNames[p.created_by] : null}
+                createdAt={p.created_at}
+                updatedByName={p.updated_by ? authorNames[p.updated_by] : null}
+                updatedAt={p.updated_at}
+              />
             </Card>
           ))}
         </div>

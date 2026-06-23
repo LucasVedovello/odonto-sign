@@ -101,6 +101,7 @@ export type SignedDoc = {
   clinic_signed_at: string | null;
   patient_signed_at: string | null;
   created_by: string | null;
+  updated_by: string | null;
   created_at: string;
   updated_at: string;
 };

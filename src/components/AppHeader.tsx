@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Headset,
   ClipboardList,
+  History,
   FileSignature,
   ScrollText,
   Trash2,
@@ -57,6 +58,7 @@ export function AppHeader() {
       add("Contratos", FileSignature, "/contratos");
       add("Termos", ScrollText, "/termos");
       add("Prontuário", ClipboardList, "/prontuario");
+      add("Recentes", History, "/prontuarios-recentes");
       add("Admin", ShieldCheck, "/admin");
       tabs.push({ type: "separator" as const });
       routes.push(null);
@@ -66,6 +68,7 @@ export function AppHeader() {
       add("Contratos", FileSignature, "/contratos");
       add("Termos", ScrollText, "/termos");
       add("Prontuário", ClipboardList, "/prontuario");
+      add("Recentes", History, "/prontuarios-recentes");
       add("Usuários", Users, "/usuarios");
       tabs.push({ type: "separator" as const });
       routes.push(null);
@@ -75,6 +78,7 @@ export function AppHeader() {
       add("Contratos", FileSignature, "/contratos");
       add("Termos", ScrollText, "/termos");
       add("Prontuário", ClipboardList, "/prontuario");
+      add("Recentes", History, "/prontuarios-recentes");
       tabs.push({ type: "separator" as const });
       routes.push(null);
       add("Suporte", Headset, "/suporte");

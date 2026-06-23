@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { AuditFooter } from "@/components/AuditFooter";
+import { fetchProfileNames } from "@/lib/audit";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -44,13 +46,24 @@ import {
 } from "@/lib/signed-docs";
 import type { DetectResult } from "@/lib/pdf-detect";
 
-type Row = Pick<SignedDoc, "id" | "patient_name" | "title" | "status" | "created_at">;
+type Row = Pick<
+  SignedDoc,
+  | "id"
+  | "patient_name"
+  | "title"
+  | "status"
+  | "created_at"
+  | "created_by"
+  | "updated_at"
+  | "updated_by"
+>;
 
 export function DocsListPage({ kind }: { kind: DocKind }) {
   const cfg = docConfig(kind);
   const { profile } = useAuth();
   const navigate = useNavigate();
   const [rows, setRows] = useState<Row[]>([]);
+  const [authorNames, setAuthorNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
 
@@ -74,14 +87,20 @@ export function DocsListPage({ kind }: { kind: DocKind }) {
     // estático em uma das tabelas; o valor em runtime continua sendo o correto.
     const { data, error } = await supabase
       .from(cfg.table as "contracts")
-      .select("id,patient_name,title,status,created_at")
+      .select("id,patient_name,title,status,created_at,created_by,updated_at,updated_by")
       .eq("company_id", profile.company_id)
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(300);
-    if (error) toast.error(`Erro ao carregar ${cfg.labelPlural.toLowerCase()}`);
-    else setRows((data ?? []) as Row[]);
+    if (error) {
+      toast.error(`Erro ao carregar ${cfg.labelPlural.toLowerCase()}`);
+      setLoading(false);
+      return;
+    }
+    const list = (data ?? []) as Row[];
+    setRows(list);
     setLoading(false);
+    setAuthorNames(await fetchProfileNames(list.flatMap((r) => [r.created_by, r.updated_by])));
   }, [profile, cfg.table, cfg.labelPlural]);
 
   useEffect(() => {
@@ -264,46 +283,60 @@ export function DocsListPage({ kind }: { kind: DocKind }) {
                 {filtered.map((r) => {
                   const st = STATUS_META[r.status] ?? STATUS_META.aguardando_clinica;
                   return (
-                    <TableRow
-                      key={r.id}
-                      className="cursor-pointer"
-                      onClick={() => navigate({ to: `${cfg.listPath}/$id`, params: { id: r.id } })}
-                    >
-                      <TableCell className="font-medium">{r.patient_name}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {r.title || "—"}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={st.cls}>
-                          {st.label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {new Date(r.created_at).toLocaleDateString("pt-BR")}
-                      </TableCell>
-                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() =>
-                              navigate({ to: `${cfg.listPath}/$id`, params: { id: r.id } })
-                            }
-                          >
-                            Abrir
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                            aria-label={`Excluir ${cfg.label.toLowerCase()}`}
-                            onClick={() => setDeleteTarget(r)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                    <Fragment key={r.id}>
+                      <TableRow
+                        className="cursor-pointer border-b-0"
+                        onClick={() =>
+                          navigate({ to: `${cfg.listPath}/$id`, params: { id: r.id } })
+                        }
+                      >
+                        <TableCell className="font-medium">{r.patient_name}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {r.title || "—"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={st.cls}>
+                            {st.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {new Date(r.created_at).toLocaleDateString("pt-BR")}
+                        </TableCell>
+                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                navigate({ to: `${cfg.listPath}/$id`, params: { id: r.id } })
+                              }
+                            >
+                              Abrir
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                              aria-label={`Excluir ${cfg.label.toLowerCase()}`}
+                              onClick={() => setDeleteTarget(r)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                      <TableRow className="hover:bg-transparent">
+                        <TableCell colSpan={5} className="py-0 pb-3 pt-0">
+                          <AuditFooter
+                            className="mt-0"
+                            createdByName={r.created_by ? authorNames[r.created_by] : null}
+                            createdAt={r.created_at}
+                            updatedByName={r.updated_by ? authorNames[r.updated_by] : null}
+                            updatedAt={r.updated_at}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    </Fragment>
                   );
                 })}
               </TableBody>
