@@ -91,9 +91,10 @@ export const getServerSession = createServerFn().handler(async () => {
   // Safe default: if company row can't be read, treat as pending
   const approvalStatus = company?.approval_status ?? "pending";
 
-  // Assinatura vencida (ou nula) bloqueia o acesso operacional.
+  // Só bloqueia quando há uma data de expiração e ela já passou. Clínica
+  // aprovada sem data (trial ainda não definido) continua com acesso.
   const exp = company?.subscription_expires_at;
-  const subscriptionExpired = !exp || new Date(exp).getTime() < Date.now();
+  const subscriptionExpired = !!exp && new Date(exp).getTime() < Date.now();
 
   if (DEV)
     console.log(

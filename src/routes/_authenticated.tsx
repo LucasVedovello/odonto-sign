@@ -99,9 +99,10 @@ export const Route = createFileRoute("/_authenticated")({
         throw redirect({ to: "/acesso-negado" });
       }
 
-      // Assinatura vencida (ou nula) → bloqueia o acesso operacional.
+      // Só bloqueia quando há uma data de expiração e ela já passou. Clínica
+      // aprovada sem data (trial ainda não definido) continua com acesso.
       const exp = company?.subscription_expires_at;
-      const subscriptionExpired = !exp || new Date(exp).getTime() < Date.now();
+      const subscriptionExpired = !!exp && new Date(exp).getTime() < Date.now();
       if (
         subscriptionExpired &&
         location.pathname !== "/assinatura-expirada" &&

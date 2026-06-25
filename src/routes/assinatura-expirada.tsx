@@ -10,8 +10,7 @@ export const Route = createFileRoute("/assinatura-expirada")({
   head: () => ({ meta: [{ title: "Assinatura expirada — OdontoSign" }] }),
 });
 
-// TODO: substituir pelo número de suporte real da plataforma.
-const SUPPORT_WHATSAPP = "5519XXXXXXXXX";
+const SUPPORT_WHATSAPP = "5519992441699";
 
 function SubscriptionExpiredPage() {
   const navigate = useNavigate();

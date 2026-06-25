@@ -361,13 +361,18 @@ function AdminPage() {
     const { company, type } = approvalAction;
     try {
       if (type === "approve") {
+        const now = new Date();
+        // Trial inicial de 30 dias a partir da aprovação. Sem isso, a clínica
+        // aprovada cairia direto na página de assinatura expirada no login.
+        const trialEnds = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
         const { error } = await db
           .from("companies")
           .update({
             approval_status: "approved",
-            approved_at: new Date().toISOString(),
+            approved_at: now.toISOString(),
             approved_by: me.id,
             rejection_reason: null,
+            subscription_expires_at: trialEnds.toISOString(),
           })
           .eq("id", company.id);
         if (error) throw error;
