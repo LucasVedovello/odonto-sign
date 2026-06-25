@@ -17,11 +17,13 @@ export const Route = createFileRoute("/aceitar-convite")({
 
 const EXPIRED_MSG =
   "Este link de convite expirou. Peça ao administrador da clínica para reenviar o convite.";
-const INVALID_MSG = "Convite inválido. Peça ao administrador da clínica para reenviar o convite.";
+const INVALID_MSG =
+  "Não foi possível validar o convite. O link pode já ter sido usado. Peça um novo convite ao administrador.";
+const NO_TOKEN_MSG =
+  "Não encontramos o token do convite na URL. Abra o link diretamente do e-mail mais recente ou peça um novo convite.";
 
-// Classifica o erro do link como "expirado" (mensagem específica pedida) ou
-// genérico/inválido. Em ambos os casos o remédio é o admin reenviar o convite.
-function inviteErrorMessage(raw?: string | null, code?: string | null): string {
+// Classifica o erro do link como "expirado" (mensagem específica) ou genérico.
+function classifyLinkError(raw?: string | null, code?: string | null): string {
   const s = `${code ?? ""} ${raw ?? ""}`.toLowerCase();
   if (s.includes("expired") || s.includes("otp_expired")) return EXPIRED_MSG;
   return INVALID_MSG;
@@ -40,61 +42,99 @@ function AcceptInvitePage() {
   const [form, setForm] = useState({ nome: "", password: "", confirm: "" });
   const [loading, setLoading] = useState(false);
 
-  // Estabelece a sessão a partir do link do convite e carrega o nome da
-  // clínica que convidou (para a mensagem de boas-vindas).
+  // Estabelece a sessão a partir do link do convite ANTES de liberar o
+  // formulário. O convite vem em fluxo implícito (#access_token=...), que o
+  // detectSessionInUrl do client PKCE não processa — por isso fazemos o
+  // setSession manualmente.
   useEffect(() => {
     let active = true;
 
+    const fail = (msg: string) => {
+      if (active) {
+        setErrorMsg(msg);
+        setReady(false);
+      }
+    };
+
     const init = async () => {
       const qs = new URLSearchParams(window.location.search);
-      const hash = window.location.hash.startsWith("#")
+      const rawHash = window.location.hash.startsWith("#")
         ? window.location.hash.slice(1)
         : window.location.hash;
-      const hs = new URLSearchParams(hash);
+      const hs = new URLSearchParams(rawHash);
 
-      // Supabase pode sinalizar erro direto no link, tanto na query quanto no
-      // hash (ex.: #error=access_denied&error_code=otp_expired&...).
+      console.info("[aceitar-convite] init", {
+        hasHash: !!rawHash,
+        hashKeys: [...hs.keys()],
+        queryKeys: [...qs.keys()],
+      });
+
+      // 0) Erro explícito vindo do Supabase (query ou hash).
       const errDesc = qs.get("error_description") || hs.get("error_description");
       const errCode = qs.get("error_code") || hs.get("error_code");
       if (errDesc) {
-        if (active) setErrorMsg(inviteErrorMessage(errDesc, errCode));
+        console.error("[aceitar-convite] erro no link:", { errCode, errDesc });
+        fail(classifyLinkError(errDesc, errCode));
         return;
       }
 
-      // Formato 1 — query param: ?token_hash=...&type=invite → verifyOtp.
-      const tokenHash = qs.get("token_hash");
-      if (tokenHash) {
-        const type = (qs.get("type") as EmailOtpType) || "invite";
-        const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
-        if (error) {
-          if (import.meta.env.DEV) console.error("[aceitar-convite] verifyOtp:", error.message);
-          if (active) setErrorMsg(inviteErrorMessage(error.message, error.code));
+      // 1) Fluxo implícito: hash com access_token + refresh_token → setSession.
+      const accessToken = hs.get("access_token");
+      const refreshToken = hs.get("refresh_token");
+      if (accessToken && refreshToken) {
+        console.info("[aceitar-convite] estabelecendo sessão via setSession (hash)");
+        const { data, error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        if (error || !data.session) {
+          console.error("[aceitar-convite] setSession falhou:", error);
+          fail(classifyLinkError(error?.message, error?.code));
           return;
         }
+        // Limpa o token da barra de endereço (evita reprocesso/exposição).
+        window.history.replaceState(null, "", window.location.pathname);
+      } else {
+        // 2) Alternativa: query com token_hash → verifyOtp.
+        const tokenHash = qs.get("token_hash");
+        if (tokenHash) {
+          const type = (qs.get("type") as EmailOtpType) || "invite";
+          console.info("[aceitar-convite] estabelecendo sessão via verifyOtp (token_hash)", {
+            type,
+          });
+          const { data, error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
+          if (error || !data.session) {
+            console.error("[aceitar-convite] verifyOtp falhou:", error);
+            fail(classifyLinkError(error?.message, error?.code));
+            return;
+          }
+          window.history.replaceState(null, "", window.location.pathname);
+        }
       }
-      // Formato 2 — hash: #access_token=... (ou ?code= no PKCE) já é processado
-      // pelo detectSessionInUrl do client. Confirmamos a sessão abaixo, com
-      // pequena retentativa para dar tempo ao processamento do hash.
 
+      // 3) Confirma a sessão. Cobre os caminhos acima e o caso em que o client
+      // já tinha processado a sessão sozinho. Pequena retentativa por segurança.
       let user = null as Awaited<ReturnType<typeof supabase.auth.getUser>>["data"]["user"];
-      for (let i = 0; i < 5 && !user; i++) {
-        const { data } = await supabase.auth.getUser();
+      for (let i = 0; i < 4 && !user; i++) {
+        const { data, error } = await supabase.auth.getUser();
+        if (error) console.error("[aceitar-convite] getUser erro (tentativa", i + 1, "):", error);
         user = data.user;
-        if (!user) await new Promise((r) => setTimeout(r, 400));
+        if (!user) await new Promise((r) => setTimeout(r, 300));
       }
 
       if (!active) return;
       if (!user) {
-        // Sem token de erro explícito, mas também sem sessão: link inválido ou
-        // já consumido/expirado. Orienta a pedir um novo convite.
-        setErrorMsg(EXPIRED_MSG);
+        console.error("[aceitar-convite] sem sessão após processar o link");
+        // Sem nenhum token na URL → mensagem específica; com token mas sem
+        // sessão → provavelmente expirado/usado.
+        fail(accessToken || qs.get("token_hash") ? EXPIRED_MSG : NO_TOKEN_MSG);
         return;
       }
 
+      console.info("[aceitar-convite] sessão ativa para", user.email);
       setEmail(user.email ?? "");
 
-      // Nome da clínica: prioriza o id gravado no convite (user_metadata),
-      // com fallback no company_id do perfil já criado pelo trigger.
+      // Nome da clínica para a mensagem de boas-vindas.
       let companyId = (user.user_metadata?.invite_company_id as string | undefined) ?? undefined;
       if (!companyId) {
         const { data: prof } = await supabase
@@ -105,18 +145,23 @@ function AcceptInvitePage() {
         companyId = prof?.company_id ?? undefined;
       }
       if (companyId) {
-        const { data: comp } = await supabase
+        const { data: comp, error: compErr } = await supabase
           .from("companies")
           .select("company_name")
           .eq("id", companyId)
           .maybeSingle();
+        if (compErr) console.error("[aceitar-convite] carregar clínica:", compErr);
         if (active) setCompanyName(comp?.company_name ?? null);
       }
 
       if (active) setReady(true);
     };
 
-    init();
+    init().catch((err) => {
+      console.error("[aceitar-convite] erro inesperado na inicialização:", err);
+      fail(INVALID_MSG);
+    });
+
     return () => {
       active = false;
     };
@@ -143,37 +188,46 @@ function AcceptInvitePage() {
     const first_name = parts[0];
     const last_name = parts.slice(1).join(" ");
 
-    const { data: userData } = await supabase.auth.getUser();
+    // Garante que a sessão do convite ainda está ativa antes de gravar.
+    const { data: userData, error: userErr } = await supabase.auth.getUser();
     const uid = userData.user?.id;
+    if (userErr || !uid) {
+      console.error("[aceitar-convite] sessão ausente no submit:", userErr);
+      setLoading(false);
+      setErrorMsg(EXPIRED_MSG);
+      return;
+    }
 
-    // Define senha e nome na conta (auth). A conta já existe desde o convite;
-    // ao definir a senha o usuário fica autenticado.
+    // Define senha e nome na conta (auth).
     const { error } = await supabase.auth.updateUser({
       password: form.password,
-      data: { first_name, last_name },
+      data: { full_name: fullName, first_name, last_name },
     });
 
     if (error) {
+      console.error("[aceitar-convite] updateUser falhou:", error);
       setLoading(false);
-      if (import.meta.env.DEV) console.error("[aceitar-convite] updateUser:", error.message);
-      // Se a sessão expirou entre abrir a página e enviar, cai no estado de erro.
-      if (/expired|otp_expired|session|jwt/i.test(`${error.code ?? ""} ${error.message}`)) {
+      const code = (error.code ?? "").toLowerCase();
+      const msg = (error.message ?? "").toLowerCase();
+      if (code.includes("weak_password") || (msg.includes("password") && msg.includes("least"))) {
+        toast.error("Senha muito fraca. Use no mínimo 8 caracteres.");
+      } else if (code.includes("same_password") || msg.includes("different from the old")) {
+        toast.error("Escolha uma senha diferente.");
+      } else if (/expired|otp_expired|session|jwt|not authenticated/.test(`${code} ${msg}`)) {
+        // Sessão do convite caiu → volta para a tela de erro com botão de login.
         setErrorMsg(EXPIRED_MSG);
-        return;
+      } else {
+        toast.error("Não foi possível ativar a conta. Tente novamente ou peça um novo convite.");
       }
-      toast.error("Não foi possível ativar a conta. Verifique os dados e tente novamente.");
       return;
     }
 
     // Espelha o nome no perfil e marca a conta como ativa.
-    if (uid) {
-      const { error: pErr } = await supabase
-        .from("profiles")
-        .update({ first_name, last_name, status: "active" })
-        .eq("id", uid);
-      if (pErr && import.meta.env.DEV)
-        console.error("[aceitar-convite] update profile:", pErr.message);
-    }
+    const { error: pErr } = await supabase
+      .from("profiles")
+      .update({ first_name, last_name, status: "active" })
+      .eq("id", uid);
+    if (pErr) console.error("[aceitar-convite] atualizar perfil falhou:", pErr);
 
     setLoading(false);
     toast.success("Conta ativada! Bem-vindo(a) à equipe.");
@@ -212,8 +266,9 @@ function AcceptInvitePage() {
   // ── Carregando: validando o link ────────────────────────────────
   if (!ready) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Validando seu convite…</p>
       </div>
     );
   }
