@@ -2,7 +2,11 @@ name: Daily Database Backup
 
 on:
   schedule:
+    # Múltiplos horários (UTC): se o agendador do GitHub pular um run
+    # (atraso/limpeza por inatividade), outro horário pega no mesmo dia.
     - cron: '0 6 * * *'
+    - cron: '0 12 * * *'
+    - cron: '0 18 * * *'
   workflow_dispatch:
 
 jobs:
@@ -38,18 +42,44 @@ jobs:
             > "$FILENAME"
           echo "BACKUP_FILE=$FILENAME" >> "$GITHUB_ENV"
 
-      - name: Verify backup is not empty
+      - name: Validate backup file
         run: |
-          # Falha o job se o arquivo não existir ou tiver 0 bytes.
-          if [ ! -s "$BACKUP_FILE" ]; then
-            echo "::error::Backup vazio ou ausente: ${BACKUP_FILE:-<não definido>}"
+          set -euo pipefail
+          FILE="${BACKUP_FILE:-}"
+          # 1) O arquivo precisa existir.
+          if [ -z "$FILE" ] || [ ! -f "$FILE" ]; then
+            echo "::error::Backup não foi gerado: ${FILE:-<não definido>} — provável falha do pg_dump"
             exit 1
           fi
-          echo "Backup OK ($(du -h "$BACKUP_FILE" | cut -f1)): $BACKUP_FILE"
+          # 2) E precisa ter tamanho maior que 1KB (um dump válido nunca é tão pequeno).
+          MIN_BYTES=1024
+          SIZE=$(stat -c%s "$FILE")
+          if [ "$SIZE" -lt "$MIN_BYTES" ]; then
+            echo "::error::Backup vazio ou pequeno demais ($SIZE bytes < $MIN_BYTES bytes): $FILE — pg_dump provavelmente falhou"
+            exit 1
+          fi
+          echo "Backup válido: $FILE ($(du -h "$FILE" | cut -f1) / $SIZE bytes)"
 
       - name: Upload backup as artifact
-        uses: actions/upload-artifact@v4.6.2
+        uses: actions/upload-artifact@v4
         with:
           name: backup-${{ github.run_id }}
           path: ${{ env.BACKUP_FILE }}
           retention-days: 30
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          # Anotação de erro (aparece na lista de Actions e no topo do run)
+          # + resumo do job, deixando a falha visível no GitHub sem serviço externo.
+          echo "::error::❌ Backup diário FALHOU (run ${{ github.run_id }}). Verifique os logs e o secret SUPABASE_DB_URL."
+          {
+            echo "## ❌ Backup diário falhou"
+            echo ""
+            echo "O backup do banco não foi concluído com sucesso."
+            echo ""
+            echo "- **Run:** [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+            echo "- **Quando:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+            echo ""
+            echo "Cheque se o secret \`SUPABASE_DB_URL\` está válido e se o banco está acessível."
+          } >> "$GITHUB_STEP_SUMMARY"
