@@ -41,6 +41,10 @@ export const inviteUser = createServerFn({ method: "POST" })
       .maybeSingle();
     if (existing) throw new Error("Este email já possui uma conta");
 
+    // NB: a expiração do link NÃO é configurável por chamada — `inviteUserByEmail`
+    // só aceita `data` e `redirectTo`. O tempo de vida do link é controlado pela
+    // config de Auth do projeto (Authentication → Settings → "Email OTP Expiration"
+    // / `mailer_otp_exp`). Ajuste lá para aumentar a validade do convite.
     const { error } = await supabaseAdmin.auth.admin.inviteUserByEmail(data.email, {
       data: { invite_company_id: profile.company_id, first_name: "", last_name: "" },
       redirectTo: data.redirectTo,
