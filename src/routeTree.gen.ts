@@ -28,7 +28,6 @@ import { Route as AuthenticatedSuporteRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedProntuariosRecentesRouteImport } from './routes/_authenticated/prontuarios-recentes'
 import { Route as AuthenticatedProntuarioRouteImport } from './routes/_authenticated/prontuario'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
-import { Route as AuthenticatedPacientesRouteImport } from './routes/_authenticated/pacientes'
 import { Route as AuthenticatedLixeiraRouteImport } from './routes/_authenticated/lixeira'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedTermosIndexRouteImport } from './routes/_authenticated/termos/index'
@@ -131,11 +130,6 @@ const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
   path: '/perfil',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedPacientesRoute = AuthenticatedPacientesRouteImport.update({
-  id: '/pacientes',
-  path: '/pacientes',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
 const AuthenticatedLixeiraRoute = AuthenticatedLixeiraRouteImport.update({
   id: '/lixeira',
   path: '/lixeira',
@@ -183,7 +177,6 @@ export interface FileRoutesByFullPath {
   '/select-company': typeof SelectCompanyRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/lixeira': typeof AuthenticatedLixeiraRoute
-  '/pacientes': typeof AuthenticatedPacientesRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/prontuario': typeof AuthenticatedProntuarioRoute
   '/prontuarios-recentes': typeof AuthenticatedProntuariosRecentesRoute
@@ -209,7 +202,6 @@ export interface FileRoutesByTo {
   '/select-company': typeof SelectCompanyRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/lixeira': typeof AuthenticatedLixeiraRoute
-  '/pacientes': typeof AuthenticatedPacientesRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/prontuario': typeof AuthenticatedProntuarioRoute
   '/prontuarios-recentes': typeof AuthenticatedProntuariosRecentesRoute
@@ -238,7 +230,6 @@ export interface FileRoutesById {
   '/select-company': typeof SelectCompanyRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/lixeira': typeof AuthenticatedLixeiraRoute
-  '/_authenticated/pacientes': typeof AuthenticatedPacientesRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/prontuario': typeof AuthenticatedProntuarioRoute
   '/_authenticated/prontuarios-recentes': typeof AuthenticatedProntuariosRecentesRoute
@@ -268,7 +259,6 @@ export interface FileRouteTypes {
     | '/select-company'
     | '/admin'
     | '/lixeira'
-    | '/pacientes'
     | '/perfil'
     | '/prontuario'
     | '/prontuarios-recentes'
@@ -294,7 +284,6 @@ export interface FileRouteTypes {
     | '/select-company'
     | '/admin'
     | '/lixeira'
-    | '/pacientes'
     | '/perfil'
     | '/prontuario'
     | '/prontuarios-recentes'
@@ -322,7 +311,6 @@ export interface FileRouteTypes {
     | '/select-company'
     | '/_authenticated/admin'
     | '/_authenticated/lixeira'
-    | '/_authenticated/pacientes'
     | '/_authenticated/perfil'
     | '/_authenticated/prontuario'
     | '/_authenticated/prontuarios-recentes'
@@ -489,13 +477,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPerfilRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/pacientes': {
-      id: '/_authenticated/pacientes'
-      path: '/pacientes'
-      fullPath: '/pacientes'
-      preLoaderRoute: typeof AuthenticatedPacientesRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/_authenticated/lixeira': {
       id: '/_authenticated/lixeira'
       path: '/lixeira'
@@ -544,7 +525,6 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedLixeiraRoute: typeof AuthenticatedLixeiraRoute
-  AuthenticatedPacientesRoute: typeof AuthenticatedPacientesRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedProntuarioRoute: typeof AuthenticatedProntuarioRoute
   AuthenticatedProntuariosRecentesRoute: typeof AuthenticatedProntuariosRecentesRoute
@@ -560,7 +540,6 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedLixeiraRoute: AuthenticatedLixeiraRoute,
-  AuthenticatedPacientesRoute: AuthenticatedPacientesRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedProntuarioRoute: AuthenticatedProntuarioRoute,
   AuthenticatedProntuariosRecentesRoute: AuthenticatedProntuariosRecentesRoute,
