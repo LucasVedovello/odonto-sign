@@ -24,6 +24,87 @@ import {
 import { toast } from "sonner";
 import { Loader2, CheckCircle2, ArrowLeft, ArrowRight, FileText } from "lucide-react";
 
+// ── Tratamento de erros do Supabase Auth (signUp) ─────────────────
+// Mapeia os erros para mensagens em português, usando o `code` estável
+// quando disponível e caindo no texto do erro como fallback.
+type SignupErrorInfo = { message: string; alreadyRegistered: boolean };
+
+function describeSignupError(error: {
+  code?: string;
+  message?: string;
+  status?: number;
+}): SignupErrorInfo {
+  const code = error.code ?? "";
+  const raw = (error.message ?? "").toLowerCase();
+
+  if (
+    code === "user_already_exists" ||
+    code === "email_exists" ||
+    raw.includes("already registered") ||
+    raw.includes("already been registered") ||
+    raw.includes("user already exists")
+  ) {
+    return {
+      alreadyRegistered: true,
+      message:
+        "Este e-mail já possui uma conta. Faça login para acessar ou criar uma nova empresa.",
+    };
+  }
+
+  if (
+    code === "weak_password" ||
+    raw.includes("password should be") ||
+    raw.includes("password is too") ||
+    (raw.includes("password") && raw.includes("at least"))
+  ) {
+    return {
+      alreadyRegistered: false,
+      message: "Senha muito fraca. Use no mínimo 6 caracteres, combinando letras e números.",
+    };
+  }
+
+  if (
+    code === "email_address_invalid" ||
+    code === "validation_failed" ||
+    raw.includes("invalid format") ||
+    raw.includes("unable to validate email")
+  ) {
+    return {
+      alreadyRegistered: false,
+      message: "E-mail inválido. Verifique o endereço digitado.",
+    };
+  }
+
+  if (
+    code === "over_email_send_rate_limit" ||
+    code === "over_request_rate_limit" ||
+    error.status === 429 ||
+    raw.includes("rate limit") ||
+    raw.includes("for security purposes")
+  ) {
+    return {
+      alreadyRegistered: false,
+      message: "Muitas tentativas em sequência. Aguarde alguns instantes e tente novamente.",
+    };
+  }
+
+  if (
+    code === "signup_disabled" ||
+    raw.includes("signups not allowed") ||
+    raw.includes("signup is disabled")
+  ) {
+    return {
+      alreadyRegistered: false,
+      message: "O cadastro está temporariamente indisponível. Tente novamente mais tarde.",
+    };
+  }
+
+  return {
+    alreadyRegistered: false,
+    message: "Não foi possível concluir o cadastro. Verifique os dados e tente novamente.",
+  };
+}
+
 // ── Unidades federativas ──────────────────────────────────────────
 const UFS = [
   "AC",
@@ -394,7 +475,19 @@ export function CompanyWizard({ mode }: { mode: CompanyWizardMode }) {
       },
     });
     if (error) {
-      toast.error(error.message);
+      if (import.meta.env.DEV) console.error("[company-wizard] signUp error:", error);
+      const info = describeSignupError(error);
+      if (info.alreadyRegistered) {
+        toast.error(info.message, {
+          duration: 8000,
+          action: {
+            label: "Fazer login",
+            onClick: () => navigate({ to: "/login" }),
+          },
+        });
+      } else {
+        toast.error(info.message);
+      }
       return;
     }
 
