@@ -6,11 +6,18 @@
 // alias `db = supabase as any` (mesmo padrão de prontuarios).
 
 // ── Status / fluxo ───────────────────────────────────────────────────────────
-// rascunho → (clínica assina + gera link) → aguardando_assinatura → (paciente
-// assina) → assinado. Mesmo modelo enxuto de Contratos/Prontuários.
+// Ordem correta (clínica assina ANTES do paciente):
+//   rascunho
+//     → recepção cria, atribui ao dentista; dentista preenche e conclui
+//   aguardando_assinatura_clinica
+//     → recepção/administrador assina (Representante da Contratada)
+//   aguardando_assinatura_paciente
+//     → recepção gera link; paciente assina (Cliente responsável)
+//   assinado
 export type FichaStatus =
   | "rascunho" // criada/editável, opcionalmente atribuída a um dentista
-  | "aguardando_assinatura" // clínica assinou + link gerado, aguardando o paciente
+  | "aguardando_assinatura_clinica" // avaliação concluída, clínica vai assinar
+  | "aguardando_assinatura_paciente" // clínica assinou, aguardando o paciente
   | "assinado"; // paciente assinou
 
 export const STATUS_META: Record<FichaStatus, { label: string; cls: string }> = {
@@ -18,9 +25,13 @@ export const STATUS_META: Record<FichaStatus, { label: string; cls: string }> = 
     label: "Rascunho",
     cls: "bg-muted text-muted-foreground border-border",
   },
-  aguardando_assinatura: {
-    label: "Aguardando Assinatura",
-    cls: "bg-warning/15 text-warning border-warning/30",
+  aguardando_assinatura_clinica: {
+    label: "Aguardando assinatura da clínica",
+    cls: "bg-orange-500/15 text-orange-600 border-orange-500/30 dark:text-orange-300",
+  },
+  aguardando_assinatura_paciente: {
+    label: "Aguardando assinatura do paciente",
+    cls: "bg-yellow-400/15 text-yellow-600 border-yellow-500/30 dark:text-yellow-300",
   },
   assinado: {
     label: "Assinado",
@@ -50,6 +61,47 @@ export const TODOS_DENTES_ADULTO = [
   ...DENTES_ADULTO_INF_DIR,
   ...DENTES_ADULTO_INF_ESQ,
 ];
+
+// Layout de dentes por seção do odontograma. O template IMPRESSO pula alguns
+// dentes em certas seções, então o formulário precisa oferecer exatamente os
+// mesmos dentes — caso contrário o usuário marcaria um dente que não tem
+// bolinha no PDF (e a marcação sumiria). Os quadrantes esquerdos são sempre
+// completos; só o quadrante superior-direito e o inferior-direito mudam.
+export type OdontoLayout = {
+  supDir: string[];
+  supEsq: string[];
+  infDir: string[];
+  infEsq: string[];
+};
+
+// Seção completa (16 + 16): Dentística, Cirurgia, Implante.
+export const ODONTO_COMPLETO: OdontoLayout = {
+  supDir: DENTES_ADULTO_SUP_DIR,
+  supEsq: DENTES_ADULTO_SUP_ESQ,
+  infDir: DENTES_ADULTO_INF_DIR,
+  infEsq: DENTES_ADULTO_INF_ESQ,
+};
+// Endodontia: superior pula 13, inferior pula 44.
+export const ODONTO_ENDODONTIA: OdontoLayout = {
+  supDir: ["18", "17", "16", "15", "14", "12", "11"],
+  supEsq: DENTES_ADULTO_SUP_ESQ,
+  infDir: ["48", "47", "46", "45", "43", "42", "41"],
+  infEsq: DENTES_ADULTO_INF_ESQ,
+};
+// Núcleo e Prótese Fixa: superior pula 14, inferior pula 44.
+export const ODONTO_NUCLEO_PROTESE: OdontoLayout = {
+  supDir: ["18", "17", "16", "15", "13", "12", "11"],
+  supEsq: DENTES_ADULTO_SUP_ESQ,
+  infDir: ["48", "47", "46", "45", "43", "42", "41"],
+  infEsq: DENTES_ADULTO_INF_ESQ,
+};
+// Provisórios: superior pula 15, inferior pula 44.
+export const ODONTO_PROVISORIOS: OdontoLayout = {
+  supDir: ["18", "17", "16", "14", "13", "12", "11"],
+  supEsq: DENTES_ADULTO_SUP_ESQ,
+  infDir: ["48", "47", "46", "45", "43", "42", "41"],
+  infEsq: DENTES_ADULTO_INF_ESQ,
+};
 
 // ── Tipo do formulário ───────────────────────────────────────────────────────
 // Reflete (quase) 1:1 as colunas de `avaliacoes`. Campos de sistema (id, status,

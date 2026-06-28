@@ -238,7 +238,7 @@ function FichasListPage() {
                     >
                       <Download className="h-3.5 w-3.5" />
                     </Button>
-                    {r.status === "aguardando_assinatura" && r.link_assinatura_token && (
+                    {r.status === "aguardando_assinatura_paciente" && r.link_assinatura_token && (
                       <Button
                         size="sm"
                         variant="outline"

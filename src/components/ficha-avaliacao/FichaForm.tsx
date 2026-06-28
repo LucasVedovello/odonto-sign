@@ -12,16 +12,17 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { Odontograma } from "@/components/ficha-avaliacao/Odontograma";
 import {
-  DENTES_ADULTO_INF_DIR,
-  DENTES_ADULTO_INF_ESQ,
-  DENTES_ADULTO_SUP_DIR,
-  DENTES_ADULTO_SUP_ESQ,
   DENTES_DECIDUOS_INF_DIR,
   DENTES_DECIDUOS_INF_ESQ,
   DENTES_DECIDUOS_SUP_DIR,
   DENTES_DECIDUOS_SUP_ESQ,
+  ODONTO_COMPLETO,
+  ODONTO_ENDODONTIA,
+  ODONTO_NUCLEO_PROTESE,
+  ODONTO_PROVISORIOS,
   type DentesMap,
   type FichaData,
+  type OdontoLayout,
 } from "@/lib/ficha-avaliacao";
 
 type Props = {
@@ -93,14 +94,18 @@ export function FichaForm({ value, onChange, readOnly }: Props) {
     onChange({ [group]: { ...cur, [dente]: !cur[dente] } } as Partial<FichaData>);
   };
 
-  const odontograma = (group: DentesKey, implante?: boolean): ReactNode => (
+  const odontograma = (
+    group: DentesKey,
+    layout: OdontoLayout = ODONTO_COMPLETO,
+    implante?: boolean,
+  ): ReactNode => (
     <Odontograma
       value={(value[group] ?? {}) as DentesMap}
       onToggle={(d) => toggleTooth(group, d)}
-      supDir={DENTES_ADULTO_SUP_DIR}
-      supEsq={DENTES_ADULTO_SUP_ESQ}
-      infDir={DENTES_ADULTO_INF_DIR}
-      infEsq={DENTES_ADULTO_INF_ESQ}
+      supDir={layout.supDir}
+      supEsq={layout.supEsq}
+      infDir={layout.infDir}
+      infEsq={layout.infEsq}
       readOnly={readOnly}
       implante={implante}
     />
@@ -206,7 +211,7 @@ export function FichaForm({ value, onChange, readOnly }: Props) {
         {sectionTitle("Endodontia (Tratamento de Canal)")}
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            {odontograma("endodontia_dentes")}
+            {odontograma("endodontia_dentes", ODONTO_ENDODONTIA)}
             <div className="mt-3">
               {check(
                 "endodontia_obs",
@@ -291,7 +296,7 @@ export function FichaForm({ value, onChange, readOnly }: Props) {
       <Card className="p-5 sm:p-6">
         {sectionTitle("Núcleo para Prótese Fixa")}
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          {odontograma("nucleo_dentes")}
+          {odontograma("nucleo_dentes", ODONTO_NUCLEO_PROTESE)}
           <div className="grid w-full max-w-xs gap-3">
             {field("nucleo_nos_dentes", "Núcleos nos dentes")}
             {field("nucleo_total", "Total")}
@@ -304,7 +309,7 @@ export function FichaForm({ value, onChange, readOnly }: Props) {
       <Card className="p-5 sm:p-6">
         {sectionTitle("Prótese Fixa Definitiva (Pilares ou Pônticos)")}
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          {odontograma("protese_fixa_dentes")}
+          {odontograma("protese_fixa_dentes", ODONTO_NUCLEO_PROTESE)}
           <div className="grid w-full max-w-xs gap-3">
             {field("protese_elemento_definitivo", "Elemento definitivo nos dentes")}
             {field("protese_onlay_inlay", "Onlay / Inlay nos dentes")}
@@ -319,7 +324,7 @@ export function FichaForm({ value, onChange, readOnly }: Props) {
       <Card className="p-5 sm:p-6">
         {sectionTitle("Provisórios - Elementos")}
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          {odontograma("provisorios_dentes")}
+          {odontograma("provisorios_dentes", ODONTO_PROVISORIOS)}
           <div className="grid w-full max-w-xs gap-3">
             {field("provisorios_nos_dentes", "Provisórios nos dentes")}
             {field("provisorios_total", "Total")}
@@ -415,7 +420,7 @@ export function FichaForm({ value, onChange, readOnly }: Props) {
         {sectionTitle("Implante e Prótese sobre Implante")}
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            {odontograma("implante_dentes", true)}
+            {odontograma("implante_dentes", ODONTO_COMPLETO, true)}
             <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2">
               {check("implante_apos_ortodontia", "Após ortodontia")}
               {check("implante_pinos_importados", "Pinos e componentes importados")}

@@ -141,7 +141,7 @@ function AssinarFichaPage() {
     );
   }
 
-  if (row.status !== "aguardando_assinatura") {
+  if (row.status !== "aguardando_assinatura_paciente") {
     return (
       <div className="min-h-screen">
         <PublicHeader subtitle="Ficha de Avaliação" />

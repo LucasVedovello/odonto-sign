@@ -63,8 +63,8 @@ function NovaFichaPage() {
     }
   };
 
-  // Atribui o dentista responsável; a ficha permanece em rascunho até a clínica
-  // coletar a assinatura e gerar o link (status aguardando_assinatura).
+  // Atribui o dentista responsável; a ficha permanece em rascunho até o dentista
+  // concluir a avaliação (status aguardando_assinatura_clinica).
   const enviarParaDentista = async (dentistaId: string) => {
     setSaving(true);
     const id = await insert({ status: "rascunho", dentista_id: dentistaId });

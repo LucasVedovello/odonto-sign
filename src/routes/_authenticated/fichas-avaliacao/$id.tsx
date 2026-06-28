@@ -117,12 +117,26 @@ function FichaDetailPage() {
     }
   };
 
-  // 1ª etapa: a clínica/representante assina no pad.
+  // Avaliação concluída (pelo dentista ou recepção): volta para a recepção para
+  // coletar a assinatura da clínica.
+  const concluirAvaliacao = async () => {
+    setSaving(true);
+    const ok = await persist({ status: "aguardando_assinatura_clinica" });
+    setSaving(false);
+    if (ok) {
+      toast.success("Avaliação concluída — pronta para a assinatura da clínica");
+      load();
+    }
+  };
+
+  // 1ª assinatura: a clínica/representante assina no pad. Vai no campo
+  // "Representante da Contratada" do PDF e libera a etapa do paciente.
   const coletarAssinaturaClinica = async (dataUrl: string) => {
     setSaving(true);
     const ok = await persist({
       assinatura_clinica: dataUrl,
       clinica_assinada_em: new Date().toISOString(),
+      status: "aguardando_assinatura_paciente",
     });
     setSaving(false);
     setSignOpen(false);
@@ -132,8 +146,7 @@ function FichaDetailPage() {
     }
   };
 
-  // 2ª etapa: gera o link único do paciente (token novo + validade 72h) e
-  // muda o status para aguardando_assinatura.
+  // 2ª etapa: gera o link único do paciente (token novo + validade 72h).
   const gerarLink = async () => {
     setSaving(true);
     const token = crypto.randomUUID();
@@ -141,7 +154,7 @@ function FichaDetailPage() {
     const ok = await persist({
       link_assinatura_token: token,
       link_assinatura_expira_em: expira,
-      status: "aguardando_assinatura",
+      status: "aguardando_assinatura_paciente",
     });
     setSaving(false);
     if (ok) {
@@ -197,6 +210,7 @@ function FichaDetailPage() {
   const st = STATUS_META[row.status] ?? STATUS_META.rascunho;
   const editable = row.status === "rascunho";
   const link = row.link_assinatura_token ? publicSignUrl(row.id, row.link_assinatura_token) : "";
+  const linkGerado = !!row.link_assinatura_expira_em;
 
   const copyLink = async () => {
     try {
@@ -231,74 +245,78 @@ function FichaDetailPage() {
         </Badge>
       </div>
 
-      {/* ── Assinatura da clínica → geração do link (fase rascunho) ── */}
-      {editable && !isDentist && (
+      {/* ── 1ª assinatura: clínica/representante (Representante da Contratada) ── */}
+      {row.status === "aguardando_assinatura_clinica" && (
         <Card className="mb-5 p-4">
-          {!row.assinatura_clinica ? (
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="font-semibold">Coletar assinatura da clínica</h2>
-                <p className="text-sm text-muted-foreground">
-                  Após revisar a ficha, assine pela clínica/representante para liberar o link do
-                  paciente.
-                </p>
-              </div>
-              <Button className="gap-1.5" onClick={() => setSignOpen(true)} disabled={saving}>
-                <PenLine className="h-4 w-4" /> Coletar Assinatura da Clínica
-              </Button>
+          {isDentist ? (
+            <div>
+              <h2 className="font-semibold">Avaliação concluída</h2>
+              <p className="text-sm text-muted-foreground">
+                A ficha voltou para a recepção coletar a assinatura da clínica.
+              </p>
             </div>
           ) : (
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <img
-                  src={row.assinatura_clinica}
-                  alt="Assinatura da clínica"
-                  className="h-14 w-40 rounded-lg border border-border bg-white object-contain p-1"
-                />
-                <div>
-                  <h2 className="font-semibold">Clínica assinou</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Gere o link único para o paciente ler e assinar (válido por {LINK_HORAS}h).
-                  </p>
-                </div>
+              <div>
+                <h2 className="font-semibold">Assinatura da clínica</h2>
+                <p className="text-sm text-muted-foreground">
+                  Revise a ficha e assine pela clínica/representante. Em seguida você poderá gerar o
+                  link para o paciente assinar.
+                </p>
               </div>
-              <div className="flex gap-2">
-                <Button variant="outline" className="gap-1.5" onClick={() => setSignOpen(true)}>
-                  <PenLine className="h-4 w-4" /> Refazer
-                </Button>
-                <Button className="gap-1.5" onClick={gerarLink} disabled={saving}>
-                  {saving ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Link2 className="h-4 w-4" />
-                  )}
-                  Gerar Link para Paciente Assinar
-                </Button>
-              </div>
+              <Button className="gap-1.5" onClick={() => setSignOpen(true)} disabled={saving}>
+                <PenLine className="h-4 w-4" /> Assinar pela clínica
+              </Button>
             </div>
           )}
         </Card>
       )}
 
-      {/* ── Link do paciente (copiar apenas) ── */}
-      {row.status === "aguardando_assinatura" && (
+      {/* ── 2ª assinatura: link do paciente (Cliente responsável) ── */}
+      {row.status === "aguardando_assinatura_paciente" && (
         <Card className="mb-5 p-4">
-          <h2 className="mb-1 font-semibold">Link para o paciente assinar</h2>
-          <p className="mb-3 text-sm text-muted-foreground">
-            A clínica já assinou. Envie este link ao paciente — ele lê a ficha e assina no campo
-            dele.
-          </p>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <input
-              readOnly
-              value={link}
-              className="flex-1 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm"
-              onFocus={(e) => e.currentTarget.select()}
-            />
-            <Button variant="outline" className="gap-1.5" onClick={copyLink}>
-              <Copy className="h-4 w-4" /> Copiar link
-            </Button>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              {row.assinatura_clinica && (
+                <img
+                  src={row.assinatura_clinica}
+                  alt="Assinatura da clínica"
+                  className="h-14 w-40 rounded-lg border border-border bg-white object-contain p-1"
+                />
+              )}
+              <div>
+                <h2 className="font-semibold">Clínica assinou</h2>
+                <p className="text-sm text-muted-foreground">
+                  {linkGerado
+                    ? `Envie o link ao paciente — ele lê a ficha e assina (válido por ${LINK_HORAS}h).`
+                    : "Gere o link único para o paciente ler e assinar."}
+                </p>
+              </div>
+            </div>
+            {!isDentist && (
+              <Button className="gap-1.5" onClick={gerarLink} disabled={saving}>
+                {saving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Link2 className="h-4 w-4" />
+                )}
+                {linkGerado ? "Gerar novo link" : "Gerar Link para o Paciente"}
+              </Button>
+            )}
           </div>
+          {linkGerado && (
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <input
+                readOnly
+                value={link}
+                className="flex-1 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm"
+                onFocus={(e) => e.currentTarget.select()}
+              />
+              <Button variant="outline" className="gap-1.5" onClick={copyLink}>
+                <Copy className="h-4 w-4" /> Copiar link
+              </Button>
+            </div>
+          )}
         </Card>
       )}
 
@@ -388,6 +406,14 @@ function FichaDetailPage() {
                 {row.dentista_id ? "Trocar dentista" : "Enviar para dentista"}
               </Button>
             )}
+            <Button className="gap-2" onClick={concluirAvaliacao} disabled={saving}>
+              {saving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <CheckCircle2 className="h-4 w-4" />
+              )}
+              Concluir avaliação
+            </Button>
           </>
         )}
       </div>
