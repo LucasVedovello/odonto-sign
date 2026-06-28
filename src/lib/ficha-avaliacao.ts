@@ -6,10 +6,11 @@
 // alias `db = supabase as any` (mesmo padrão de prontuarios).
 
 // ── Status / fluxo ───────────────────────────────────────────────────────────
+// rascunho → (clínica assina + gera link) → aguardando_assinatura → (paciente
+// assina) → assinado. Mesmo modelo enxuto de Contratos/Prontuários.
 export type FichaStatus =
-  | "rascunho" // criada, ainda não enviada ao dentista
-  | "aguardando_assinatura" // enviada ao dentista (revisão / clínica vai assinar)
-  | "aguardando_paciente" // clínica assinou + link gerado p/ o paciente
+  | "rascunho" // criada/editável, opcionalmente atribuída a um dentista
+  | "aguardando_assinatura" // clínica assinou + link gerado, aguardando o paciente
   | "assinado"; // paciente assinou
 
 export const STATUS_META: Record<FichaStatus, { label: string; cls: string }> = {
@@ -20,10 +21,6 @@ export const STATUS_META: Record<FichaStatus, { label: string; cls: string }> = 
   aguardando_assinatura: {
     label: "Aguardando Assinatura",
     cls: "bg-warning/15 text-warning border-warning/30",
-  },
-  aguardando_paciente: {
-    label: "Aguardando Paciente",
-    cls: "bg-blue-500/15 text-blue-600 border-blue-500/30 dark:text-blue-300",
   },
   assinado: {
     label: "Assinado",

@@ -141,7 +141,7 @@ function AssinarFichaPage() {
     );
   }
 
-  if (row.status !== "aguardando_paciente") {
+  if (row.status !== "aguardando_assinatura") {
     return (
       <div className="min-h-screen">
         <PublicHeader subtitle="Ficha de Avaliação" />
@@ -192,9 +192,9 @@ function AssinarFichaPage() {
               className="mt-0.5"
             />
             <label htmlFor="accept" className="text-sm leading-snug">
-              Aceito e concordo com os itens acima descritos e estou ciente de que esta ficha se
-              trata de um planejamento. Se for necessária alguma alteração, só será realizada com
-              minha aprovação.
+              Eu, <span className="font-semibold">{row.paciente_nome}</span>, aceito e concordo com
+              os itens acima descritos e estou ciente de que esta ficha se trata de um planejamento.
+              Se for necessária alguma alteração, só será realizada com minha aprovação.
             </label>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
@@ -208,7 +208,7 @@ function AssinarFichaPage() {
               ) : (
                 <CheckCircle2 className="h-4 w-4" />
               )}
-              Confirmar e finalizar
+              Confirmar Assinatura
             </Button>
           </div>
           {patientSig && (

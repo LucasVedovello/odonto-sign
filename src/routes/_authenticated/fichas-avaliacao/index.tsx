@@ -116,8 +116,17 @@ function FichasListPage() {
     try {
       const { data } = await db.from("avaliacoes").select("*").eq("id", id).single();
       if (!data) return;
+      let cidade: string | null = null;
+      if (data.company_id) {
+        const { data: comp } = await supabase
+          .from("companies")
+          .select("cidade")
+          .eq("id", data.company_id)
+          .maybeSingle();
+        cidade = comp?.cidade ?? null;
+      }
       const { downloadFichaAvaliacaoPdf } = await import("@/lib/ficha-avaliacao-pdf");
-      await downloadFichaAvaliacaoPdf({ ...fichaFromRow(data), ...data });
+      await downloadFichaAvaliacaoPdf({ ...fichaFromRow(data), ...data }, { cidade });
     } catch (e) {
       console.error(e);
       toast.error("Falha ao gerar o PDF");
@@ -229,7 +238,7 @@ function FichasListPage() {
                     >
                       <Download className="h-3.5 w-3.5" />
                     </Button>
-                    {r.status === "aguardando_paciente" && r.link_assinatura_token && (
+                    {r.status === "aguardando_assinatura" && r.link_assinatura_token && (
                       <Button
                         size="sm"
                         variant="outline"

@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   Copy,
   Download,
+  Link2,
   Loader2,
   PenLine,
   Save,
@@ -39,8 +40,8 @@ export const Route = createFileRoute("/_authenticated/fichas-avaliacao/$id")({
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = supabase as any;
 
-// Validade do link de assinatura do paciente (dias).
-const LINK_DIAS = 7;
+// Validade do link de assinatura do paciente: 72 horas.
+const LINK_HORAS = 72;
 
 function FichaDetailPage() {
   const { id } = Route.useParams();
@@ -107,7 +108,7 @@ function FichaDetailPage() {
 
   const enviarParaDentista = async (dentistaId: string) => {
     setSaving(true);
-    const ok = await persist({ status: "aguardando_assinatura", dentista_id: dentistaId });
+    const ok = await persist({ dentista_id: dentistaId });
     setSaving(false);
     setDentistOpen(false);
     if (ok) {
@@ -116,19 +117,35 @@ function FichaDetailPage() {
     }
   };
 
+  // 1ª etapa: a clínica/representante assina no pad.
   const coletarAssinaturaClinica = async (dataUrl: string) => {
     setSaving(true);
-    const expira = new Date(Date.now() + LINK_DIAS * 24 * 60 * 60 * 1000).toISOString();
     const ok = await persist({
       assinatura_clinica: dataUrl,
       clinica_assinada_em: new Date().toISOString(),
-      status: "aguardando_paciente",
-      link_assinatura_expira_em: expira,
     });
     setSaving(false);
     setSignOpen(false);
     if (ok) {
-      toast.success("Assinatura da clínica registrada. Link gerado para o paciente.");
+      toast.success("Assinatura da clínica registrada");
+      load();
+    }
+  };
+
+  // 2ª etapa: gera o link único do paciente (token novo + validade 72h) e
+  // muda o status para aguardando_assinatura.
+  const gerarLink = async () => {
+    setSaving(true);
+    const token = crypto.randomUUID();
+    const expira = new Date(Date.now() + LINK_HORAS * 60 * 60 * 1000).toISOString();
+    const ok = await persist({
+      link_assinatura_token: token,
+      link_assinatura_expira_em: expira,
+      status: "aguardando_assinatura",
+    });
+    setSaving(false);
+    if (ok) {
+      toast.success("Link gerado para o paciente assinar");
       load();
     }
   };
@@ -136,9 +153,18 @@ function FichaDetailPage() {
   const gerarPdf = async () => {
     if (!row) return;
     try {
+      let cidade: string | null = null;
+      if (row.company_id) {
+        const { data: comp } = await supabase
+          .from("companies")
+          .select("cidade")
+          .eq("id", row.company_id)
+          .maybeSingle();
+        cidade = comp?.cidade ?? null;
+      }
       const { downloadFichaAvaliacaoPdf } = await import("@/lib/ficha-avaliacao-pdf");
       // row fornece campos de sistema (assinaturas); form sobrepõe os dados (edições atuais).
-      await downloadFichaAvaliacaoPdf({ ...row, ...form });
+      await downloadFichaAvaliacaoPdf({ ...row, ...form }, { cidade });
     } catch (e) {
       console.error(e);
       toast.error("Falha ao gerar o PDF");
@@ -169,7 +195,7 @@ function FichaDetailPage() {
   }
 
   const st = STATUS_META[row.status] ?? STATUS_META.rascunho;
-  const editable = row.status === "rascunho" || row.status === "aguardando_assinatura";
+  const editable = row.status === "rascunho";
   const link = row.link_assinatura_token ? publicSignUrl(row.id, row.link_assinatura_token) : "";
 
   const copyLink = async () => {
@@ -179,12 +205,6 @@ function FichaDetailPage() {
     } catch {
       toast.error("Não foi possível copiar o link");
     }
-  };
-  const shareWhatsApp = () => {
-    const msg = encodeURIComponent(
-      `Olá! Segue o link para leitura e assinatura da sua ficha de avaliação: ${link}`,
-    );
-    window.open(`https://wa.me/?text=${msg}`, "_blank");
   };
 
   return (
@@ -211,23 +231,57 @@ function FichaDetailPage() {
         </Badge>
       </div>
 
-      {/* ── Painel de ações por fase ── */}
-      {row.status === "aguardando_assinatura" && !isDentist && (
-        <Card className="mb-5 flex flex-wrap items-center justify-between gap-3 p-4">
-          <div>
-            <h2 className="font-semibold">Coletar assinatura da clínica</h2>
-            <p className="text-sm text-muted-foreground">
-              Após o dentista revisar, assine pela clínica/representante e gere o link para o
-              paciente assinar.
-            </p>
-          </div>
-          <Button className="gap-1.5" onClick={() => setSignOpen(true)} disabled={saving}>
-            <PenLine className="h-4 w-4" /> Coletar assinatura
-          </Button>
+      {/* ── Assinatura da clínica → geração do link (fase rascunho) ── */}
+      {editable && !isDentist && (
+        <Card className="mb-5 p-4">
+          {!row.assinatura_clinica ? (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="font-semibold">Coletar assinatura da clínica</h2>
+                <p className="text-sm text-muted-foreground">
+                  Após revisar a ficha, assine pela clínica/representante para liberar o link do
+                  paciente.
+                </p>
+              </div>
+              <Button className="gap-1.5" onClick={() => setSignOpen(true)} disabled={saving}>
+                <PenLine className="h-4 w-4" /> Coletar Assinatura da Clínica
+              </Button>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <img
+                  src={row.assinatura_clinica}
+                  alt="Assinatura da clínica"
+                  className="h-14 w-40 rounded-lg border border-border bg-white object-contain p-1"
+                />
+                <div>
+                  <h2 className="font-semibold">Clínica assinou</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Gere o link único para o paciente ler e assinar (válido por {LINK_HORAS}h).
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" className="gap-1.5" onClick={() => setSignOpen(true)}>
+                  <PenLine className="h-4 w-4" /> Refazer
+                </Button>
+                <Button className="gap-1.5" onClick={gerarLink} disabled={saving}>
+                  {saving ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Link2 className="h-4 w-4" />
+                  )}
+                  Gerar Link para Paciente Assinar
+                </Button>
+              </div>
+            </div>
+          )}
         </Card>
       )}
 
-      {row.status === "aguardando_paciente" && (
+      {/* ── Link do paciente (copiar apenas) ── */}
+      {row.status === "aguardando_assinatura" && (
         <Card className="mb-5 p-4">
           <h2 className="mb-1 font-semibold">Link para o paciente assinar</h2>
           <p className="mb-3 text-sm text-muted-foreground">
@@ -241,14 +295,9 @@ function FichaDetailPage() {
               className="flex-1 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm"
               onFocus={(e) => e.currentTarget.select()}
             />
-            <div className="flex gap-2">
-              <Button variant="outline" className="gap-1.5" onClick={copyLink}>
-                <Copy className="h-4 w-4" /> Copiar
-              </Button>
-              <Button className="gap-1.5" onClick={shareWhatsApp}>
-                <Send className="h-4 w-4" /> WhatsApp
-              </Button>
-            </div>
+            <Button variant="outline" className="gap-1.5" onClick={copyLink}>
+              <Copy className="h-4 w-4" /> Copiar link
+            </Button>
           </div>
         </Card>
       )}
@@ -275,7 +324,7 @@ function FichaDetailPage() {
       )}
 
       {/* ── Assinaturas (quando houver) ── */}
-      {(row.assinatura_clinica || row.assinatura_paciente) && (
+      {(row.assinatura_clinica || row.assinatura_paciente) && row.status !== "rascunho" && (
         <Card className="mb-5 grid gap-4 p-4 sm:grid-cols-2">
           <div>
             <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">
@@ -329,9 +378,14 @@ function FichaDetailPage() {
               Salvar
             </Button>
             {!isDentist && (
-              <Button className="gap-2" onClick={() => setDentistOpen(true)} disabled={saving}>
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={() => setDentistOpen(true)}
+                disabled={saving}
+              >
                 <Send className="h-4 w-4" />
-                {row.status === "rascunho" ? "Salvar e enviar" : "Reenviar a dentista"}
+                {row.dentista_id ? "Trocar dentista" : "Enviar para dentista"}
               </Button>
             )}
           </>
@@ -348,7 +402,7 @@ function FichaDetailPage() {
       <SignDialog
         open={signOpen}
         title="Assinatura da clínica"
-        description="Desenhe a assinatura do representante da clínica. Em seguida, o link para o paciente será gerado."
+        description="Desenhe a assinatura do representante da clínica."
         onOpenChange={setSignOpen}
         onConfirm={coletarAssinaturaClinica}
       />
