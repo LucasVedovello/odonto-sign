@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Headset,
   ClipboardList,
+  NotebookPen,
   History,
   FileSignature,
   ScrollText,
@@ -55,9 +56,10 @@ export function AppHeader() {
 
     if (isAdmin) {
       // platform_admin: visão da plataforma + acesso operacional
+      add("Avaliação", ClipboardList, "/fichas-avaliacao");
       add("Contratos", FileSignature, "/contratos");
       add("Termos", ScrollText, "/termos");
-      add("Prontuário", ClipboardList, "/prontuario");
+      add("Prontuário", NotebookPen, "/prontuario");
       add("Recentes", History, "/prontuarios-recentes");
       add("Admin", ShieldCheck, "/admin");
       tabs.push({ type: "separator" as const });
@@ -65,9 +67,10 @@ export function AppHeader() {
       add("Suporte", Headset, "/suporte");
     } else if (isOwner) {
       // clinic_owner: gestão completa da clínica
+      add("Avaliação", ClipboardList, "/fichas-avaliacao");
       add("Contratos", FileSignature, "/contratos");
       add("Termos", ScrollText, "/termos");
-      add("Prontuário", ClipboardList, "/prontuario");
+      add("Prontuário", NotebookPen, "/prontuario");
       add("Recentes", History, "/prontuarios-recentes");
       add("Usuários", Users, "/usuarios");
       tabs.push({ type: "separator" as const });
@@ -75,9 +78,10 @@ export function AppHeader() {
       add("Suporte", Headset, "/suporte");
     } else {
       // dentist / staff: operação do dia a dia (sem administração)
+      add("Avaliação", ClipboardList, "/fichas-avaliacao");
       add("Contratos", FileSignature, "/contratos");
       add("Termos", ScrollText, "/termos");
-      add("Prontuário", ClipboardList, "/prontuario");
+      add("Prontuário", NotebookPen, "/prontuario");
       add("Recentes", History, "/prontuarios-recentes");
       tabs.push({ type: "separator" as const });
       routes.push(null);

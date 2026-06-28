@@ -7,6 +7,7 @@ import {
   Loader2,
   User,
   ClipboardList,
+  ClipboardPlus,
   CalendarClock,
   FileSignature,
   ScrollText,
@@ -35,7 +36,13 @@ export const Route = createFileRoute("/_authenticated/lixeira")({
   head: () => ({ meta: [{ title: "Lixeira — OdontoSign" }] }),
 });
 
-type TrashTable = "patients" | "prontuarios" | "appointments" | "contracts" | "terms";
+type TrashTable =
+  | "patients"
+  | "prontuarios"
+  | "appointments"
+  | "contracts"
+  | "terms"
+  | "avaliacoes";
 
 // Retenção: itens permanecem na lixeira por 30 dias antes do expurgo automático.
 const RETENTION_DAYS = 30;
@@ -94,6 +101,23 @@ function TrashPage() {
             deleted_at: p.deleted_at!,
           }));
         }
+        if (table === "avaliacoes") {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data } = await (supabase as any)
+            .from("avaliacoes")
+            .select("id,paciente_nome,data_avaliacao,deleted_at")
+            .not("deleted_at", "is", null)
+            .order("deleted_at", { ascending: false });
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          return (data ?? []).map((a: any) => ({
+            id: a.id,
+            label: a.paciente_nome ?? "Sem nome",
+            sublabel: a.data_avaliacao
+              ? `Avaliação de ${new Date(a.data_avaliacao).toLocaleDateString("pt-BR")}`
+              : "—",
+            deleted_at: a.deleted_at!,
+          }));
+        }
         if (table === "appointments") {
           const { data } = await supabase
             .from("appointments")
@@ -127,11 +151,16 @@ function TrashPage() {
   const appointments = useTrashQuery("appointments");
   const contracts = useTrashQuery("contracts");
   const terms = useTrashQuery("terms");
+  const avaliacoes = useTrashQuery("avaliacoes");
 
   const refresh = (table: TrashTable) => qc.invalidateQueries({ queryKey: ["trash", table] });
 
   const restore = async (table: TrashTable, item: TrashItem) => {
-    const { error } = await supabase.from(table).update({ deleted_at: null }).eq("id", item.id);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any)
+      .from(table)
+      .update({ deleted_at: null })
+      .eq("id", item.id);
     if (error) toast.error("Erro ao restaurar");
     else {
       toast.success(`"${item.label}" restaurado`);
@@ -142,7 +171,8 @@ function TrashPage() {
   const confirmHardDelete = async () => {
     if (!hardDelete) return;
     const { table, item } = hardDelete;
-    const { error } = await supabase.from(table).delete().eq("id", item.id);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any).from(table).delete().eq("id", item.id);
     if (error) toast.error("Erro ao excluir permanentemente");
     else {
       toast.success("Excluído permanentemente");
@@ -229,8 +259,9 @@ function TrashPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="contracts">
+      <Tabs defaultValue="avaliacoes">
         <TabsList className="flex-wrap">
+          <TabsTrigger value="avaliacoes">Avaliações ({avaliacoes.data?.length ?? 0})</TabsTrigger>
           <TabsTrigger value="contracts">Contratos ({contracts.data?.length ?? 0})</TabsTrigger>
           <TabsTrigger value="terms">Termos ({terms.data?.length ?? 0})</TabsTrigger>
           <TabsTrigger value="prontuarios">
@@ -241,6 +272,9 @@ function TrashPage() {
             Consultas ({appointments.data?.length ?? 0})
           </TabsTrigger>
         </TabsList>
+        <TabsContent value="avaliacoes" className="mt-4">
+          {renderList("avaliacoes", avaliacoes, <ClipboardPlus className="h-4 w-4" />)}
+        </TabsContent>
         <TabsContent value="contracts" className="mt-4">
           {renderList("contracts", contracts, <FileSignature className="h-4 w-4" />)}
         </TabsContent>

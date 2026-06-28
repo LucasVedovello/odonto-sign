@@ -31,8 +31,12 @@ import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedLixeiraRouteImport } from './routes/_authenticated/lixeira'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedTermosIndexRouteImport } from './routes/_authenticated/termos/index'
+import { Route as AuthenticatedFichasAvaliacaoIndexRouteImport } from './routes/_authenticated/fichas-avaliacao/index'
 import { Route as AuthenticatedContratosIndexRouteImport } from './routes/_authenticated/contratos/index'
+import { Route as FichasAvaliacaoIdAssinarRouteImport } from './routes/fichas-avaliacao.$id.assinar'
 import { Route as AuthenticatedTermosIdRouteImport } from './routes/_authenticated/termos/$id'
+import { Route as AuthenticatedFichasAvaliacaoNovaRouteImport } from './routes/_authenticated/fichas-avaliacao/nova'
+import { Route as AuthenticatedFichasAvaliacaoIdRouteImport } from './routes/_authenticated/fichas-avaliacao/$id'
 import { Route as AuthenticatedContratosIdRouteImport } from './routes/_authenticated/contratos/$id'
 
 const SelectCompanyRoute = SelectCompanyRouteImport.update({
@@ -146,17 +150,41 @@ const AuthenticatedTermosIndexRoute =
     path: '/termos/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedFichasAvaliacaoIndexRoute =
+  AuthenticatedFichasAvaliacaoIndexRouteImport.update({
+    id: '/fichas-avaliacao/',
+    path: '/fichas-avaliacao/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedContratosIndexRoute =
   AuthenticatedContratosIndexRouteImport.update({
     id: '/contratos/',
     path: '/contratos/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const FichasAvaliacaoIdAssinarRoute =
+  FichasAvaliacaoIdAssinarRouteImport.update({
+    id: '/fichas-avaliacao/$id/assinar',
+    path: '/fichas-avaliacao/$id/assinar',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedTermosIdRoute = AuthenticatedTermosIdRouteImport.update({
   id: '/termos/$id',
   path: '/termos/$id',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedFichasAvaliacaoNovaRoute =
+  AuthenticatedFichasAvaliacaoNovaRouteImport.update({
+    id: '/fichas-avaliacao/nova',
+    path: '/fichas-avaliacao/nova',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedFichasAvaliacaoIdRoute =
+  AuthenticatedFichasAvaliacaoIdRouteImport.update({
+    id: '/fichas-avaliacao/$id',
+    path: '/fichas-avaliacao/$id',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedContratosIdRoute =
   AuthenticatedContratosIdRouteImport.update({
     id: '/contratos/$id',
@@ -186,8 +214,12 @@ export interface FileRoutesByFullPath {
   '/assinar-termo/$uuid': typeof AssinarTermoUuidRoute
   '/cadastro/$token': typeof CadastroTokenRoute
   '/contratos/$id': typeof AuthenticatedContratosIdRoute
+  '/fichas-avaliacao/$id': typeof AuthenticatedFichasAvaliacaoIdRoute
+  '/fichas-avaliacao/nova': typeof AuthenticatedFichasAvaliacaoNovaRoute
   '/termos/$id': typeof AuthenticatedTermosIdRoute
+  '/fichas-avaliacao/$id/assinar': typeof FichasAvaliacaoIdAssinarRoute
   '/contratos/': typeof AuthenticatedContratosIndexRoute
+  '/fichas-avaliacao/': typeof AuthenticatedFichasAvaliacaoIndexRoute
   '/termos/': typeof AuthenticatedTermosIndexRoute
 }
 export interface FileRoutesByTo {
@@ -212,8 +244,12 @@ export interface FileRoutesByTo {
   '/cadastro/$token': typeof CadastroTokenRoute
   '/': typeof AuthenticatedIndexRoute
   '/contratos/$id': typeof AuthenticatedContratosIdRoute
+  '/fichas-avaliacao/$id': typeof AuthenticatedFichasAvaliacaoIdRoute
+  '/fichas-avaliacao/nova': typeof AuthenticatedFichasAvaliacaoNovaRoute
   '/termos/$id': typeof AuthenticatedTermosIdRoute
+  '/fichas-avaliacao/$id/assinar': typeof FichasAvaliacaoIdAssinarRoute
   '/contratos': typeof AuthenticatedContratosIndexRoute
+  '/fichas-avaliacao': typeof AuthenticatedFichasAvaliacaoIndexRoute
   '/termos': typeof AuthenticatedTermosIndexRoute
 }
 export interface FileRoutesById {
@@ -240,8 +276,12 @@ export interface FileRoutesById {
   '/cadastro/$token': typeof CadastroTokenRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/contratos/$id': typeof AuthenticatedContratosIdRoute
+  '/_authenticated/fichas-avaliacao/$id': typeof AuthenticatedFichasAvaliacaoIdRoute
+  '/_authenticated/fichas-avaliacao/nova': typeof AuthenticatedFichasAvaliacaoNovaRoute
   '/_authenticated/termos/$id': typeof AuthenticatedTermosIdRoute
+  '/fichas-avaliacao/$id/assinar': typeof FichasAvaliacaoIdAssinarRoute
   '/_authenticated/contratos/': typeof AuthenticatedContratosIndexRoute
+  '/_authenticated/fichas-avaliacao/': typeof AuthenticatedFichasAvaliacaoIndexRoute
   '/_authenticated/termos/': typeof AuthenticatedTermosIndexRoute
 }
 export interface FileRouteTypes {
@@ -268,8 +308,12 @@ export interface FileRouteTypes {
     | '/assinar-termo/$uuid'
     | '/cadastro/$token'
     | '/contratos/$id'
+    | '/fichas-avaliacao/$id'
+    | '/fichas-avaliacao/nova'
     | '/termos/$id'
+    | '/fichas-avaliacao/$id/assinar'
     | '/contratos/'
+    | '/fichas-avaliacao/'
     | '/termos/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -294,8 +338,12 @@ export interface FileRouteTypes {
     | '/cadastro/$token'
     | '/'
     | '/contratos/$id'
+    | '/fichas-avaliacao/$id'
+    | '/fichas-avaliacao/nova'
     | '/termos/$id'
+    | '/fichas-avaliacao/$id/assinar'
     | '/contratos'
+    | '/fichas-avaliacao'
     | '/termos'
   id:
     | '__root__'
@@ -321,8 +369,12 @@ export interface FileRouteTypes {
     | '/cadastro/$token'
     | '/_authenticated/'
     | '/_authenticated/contratos/$id'
+    | '/_authenticated/fichas-avaliacao/$id'
+    | '/_authenticated/fichas-avaliacao/nova'
     | '/_authenticated/termos/$id'
+    | '/fichas-avaliacao/$id/assinar'
     | '/_authenticated/contratos/'
+    | '/_authenticated/fichas-avaliacao/'
     | '/_authenticated/termos/'
   fileRoutesById: FileRoutesById
 }
@@ -340,6 +392,7 @@ export interface RootRouteChildren {
   AssinarContratoUuidRoute: typeof AssinarContratoUuidRoute
   AssinarTermoUuidRoute: typeof AssinarTermoUuidRoute
   CadastroTokenRoute: typeof CadastroTokenRoute
+  FichasAvaliacaoIdAssinarRoute: typeof FichasAvaliacaoIdAssinarRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -498,6 +551,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTermosIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/fichas-avaliacao/': {
+      id: '/_authenticated/fichas-avaliacao/'
+      path: '/fichas-avaliacao'
+      fullPath: '/fichas-avaliacao/'
+      preLoaderRoute: typeof AuthenticatedFichasAvaliacaoIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/contratos/': {
       id: '/_authenticated/contratos/'
       path: '/contratos'
@@ -505,11 +565,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedContratosIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/fichas-avaliacao/$id/assinar': {
+      id: '/fichas-avaliacao/$id/assinar'
+      path: '/fichas-avaliacao/$id/assinar'
+      fullPath: '/fichas-avaliacao/$id/assinar'
+      preLoaderRoute: typeof FichasAvaliacaoIdAssinarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/termos/$id': {
       id: '/_authenticated/termos/$id'
       path: '/termos/$id'
       fullPath: '/termos/$id'
       preLoaderRoute: typeof AuthenticatedTermosIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/fichas-avaliacao/nova': {
+      id: '/_authenticated/fichas-avaliacao/nova'
+      path: '/fichas-avaliacao/nova'
+      fullPath: '/fichas-avaliacao/nova'
+      preLoaderRoute: typeof AuthenticatedFichasAvaliacaoNovaRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/fichas-avaliacao/$id': {
+      id: '/_authenticated/fichas-avaliacao/$id'
+      path: '/fichas-avaliacao/$id'
+      fullPath: '/fichas-avaliacao/$id'
+      preLoaderRoute: typeof AuthenticatedFichasAvaliacaoIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/contratos/$id': {
@@ -532,8 +613,11 @@ interface AuthenticatedRouteChildren {
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedContratosIdRoute: typeof AuthenticatedContratosIdRoute
+  AuthenticatedFichasAvaliacaoIdRoute: typeof AuthenticatedFichasAvaliacaoIdRoute
+  AuthenticatedFichasAvaliacaoNovaRoute: typeof AuthenticatedFichasAvaliacaoNovaRoute
   AuthenticatedTermosIdRoute: typeof AuthenticatedTermosIdRoute
   AuthenticatedContratosIndexRoute: typeof AuthenticatedContratosIndexRoute
+  AuthenticatedFichasAvaliacaoIndexRoute: typeof AuthenticatedFichasAvaliacaoIndexRoute
   AuthenticatedTermosIndexRoute: typeof AuthenticatedTermosIndexRoute
 }
 
@@ -547,8 +631,12 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedContratosIdRoute: AuthenticatedContratosIdRoute,
+  AuthenticatedFichasAvaliacaoIdRoute: AuthenticatedFichasAvaliacaoIdRoute,
+  AuthenticatedFichasAvaliacaoNovaRoute: AuthenticatedFichasAvaliacaoNovaRoute,
   AuthenticatedTermosIdRoute: AuthenticatedTermosIdRoute,
   AuthenticatedContratosIndexRoute: AuthenticatedContratosIndexRoute,
+  AuthenticatedFichasAvaliacaoIndexRoute:
+    AuthenticatedFichasAvaliacaoIndexRoute,
   AuthenticatedTermosIndexRoute: AuthenticatedTermosIndexRoute,
 }
 
@@ -570,6 +658,7 @@ const rootRouteChildren: RootRouteChildren = {
   AssinarContratoUuidRoute: AssinarContratoUuidRoute,
   AssinarTermoUuidRoute: AssinarTermoUuidRoute,
   CadastroTokenRoute: CadastroTokenRoute,
+  FichasAvaliacaoIdAssinarRoute: FichasAvaliacaoIdAssinarRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
